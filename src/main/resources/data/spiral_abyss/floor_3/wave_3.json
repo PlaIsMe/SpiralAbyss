@@ -1,0 +1,15 @@
+{
+  "total_time": 150,
+  "health_scale": 2.1,
+  "damage_scale": 1.49,
+  "bosses": [
+    {
+      "id": "minecraft:zombie",
+      "count": 4
+    },
+    {
+      "id": "minecraft:skeleton",
+      "count": 4
+    }
+  ]
+}

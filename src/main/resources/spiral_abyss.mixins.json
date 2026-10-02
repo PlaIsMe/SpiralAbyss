@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.pla.spiral_abyss.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "spiral_abyss.refmap.json",
+  "mixins": [
+    "EntityDropMixin",
+    "LivingEntityDropMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

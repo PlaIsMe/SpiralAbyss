@@ -1,0 +1,27 @@
+{
+  "health_scale": 2.5,
+  "damage_scale": 1.6,
+  "wave_delay": 5,
+  "rewards": {
+    "rolls": 2,
+    "experience": 600,
+    "entries": [
+      {
+        "loot_table": "minecraft:chests/simple_dungeon",
+        "weight": 2,
+        "chance": 1.0
+      },
+      {
+        "item": "minecraft:diamond",
+        "min_count": 1,
+        "max_count": 3,
+        "chance": 0.5
+      },
+      {
+        "item": "minecraft:emerald",
+        "count": 6,
+        "chance": 1.0
+      }
+    ]
+  }
+}
