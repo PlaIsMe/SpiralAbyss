@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "spiral_abyss:block/abyss_rune_4",
+    "side": "spiral_abyss:block/abyss_pillar",
+    "top": "spiral_abyss:block/abyss_pillar_top"
+  }
+}

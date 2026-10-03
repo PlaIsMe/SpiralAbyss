@@ -91,10 +91,10 @@ public class RewardChestModel extends HierarchicalModel<RewardChestEntity> {
         long millis = (long) (Math.max(0, (entity.level().getGameTime() - entity.phaseStart())
                 + (age - entity.tickCount)) * 50);
         var animation = switch (entity.phase()) {
-            case RewardChestEntity.OPEN -> RewardChestAnimations.open;
-            case RewardChestEntity.SHAKE -> RewardChestAnimations.shake;
-            case RewardChestEntity.LOOTED -> RewardChestAnimations.looted;
-            default -> null;
+            case RewardChestEntity.OPEN -> RewardChestAnimations.OPEN;
+            case RewardChestEntity.SHAKE -> RewardChestAnimations.SHAKE;
+            case RewardChestEntity.LOOTED -> RewardChestAnimations.LOOTED;
+            default -> RewardChestAnimations.IDLE;
         };
         if (animation != null) KeyframeAnimations.animate(this, animation, millis, 1, new org.joml.Vector3f());
     }

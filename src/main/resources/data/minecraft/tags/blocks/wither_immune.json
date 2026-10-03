@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "spiral_abyss:abyss_base_block",
+    "spiral_abyss:abyss_pillar",
+    "spiral_abyss:abyss_rune_1",
+    "spiral_abyss:abyss_rune_2",
+    "spiral_abyss:abyss_rune_3",
+    "spiral_abyss:abyss_rune_4",
+    "spiral_abyss:abyss_border_middle",
+    "spiral_abyss:abyss_border_outside"
+  ]
+}

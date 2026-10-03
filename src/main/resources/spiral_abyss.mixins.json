@@ -6,7 +6,11 @@
   "refmap": "spiral_abyss.refmap.json",
   "mixins": [
     "EntityDropMixin",
-    "LivingEntityDropMixin"
+    "LivingEntityDropMixin",
+    "AbyssEnvironmentMixin",
+    "AbyssDrownedTridentMixin",
+    "AbyssSlimeSplitMixin",
+    "AbyssTeleportCommandMixin"
   ],
   "injectors": {
     "defaultRequire": 1

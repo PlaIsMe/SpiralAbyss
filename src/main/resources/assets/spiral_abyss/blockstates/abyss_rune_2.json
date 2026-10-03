@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "spiral_abyss:block/abyss_rune_2" },
+    "facing=east": { "model": "spiral_abyss:block/abyss_rune_2", "y": 90 },
+    "facing=south": { "model": "spiral_abyss:block/abyss_rune_2", "y": 180 },
+    "facing=west": { "model": "spiral_abyss:block/abyss_rune_2", "y": 270 }
+  }
+}

@@ -11,10 +11,16 @@ public class SpiralAbyss {
     public static final String MOD_ID = "spiral_abyss";
 
     public SpiralAbyss() {
+        com.pla.spiral_abyss.config.GearConfig.prepare();
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.COMMON,
+                com.pla.spiral_abyss.config.AbyssConfig.SPEC, "spiral_abyss/spiral_abyss-common.toml");
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         EntityInit.ENTITY_TYPES.register(modBus);
         BlockInit.BLOCKS.register(modBus);
+        BlockEntityInit.BLOCK_ENTITIES.register(modBus);
+        LootInit.MODIFIERS.register(modBus);
         ItemInit.ITEMS.register(modBus);
+        com.pla.spiral_abyss.network.AbyssNetwork.register();
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
     }
 

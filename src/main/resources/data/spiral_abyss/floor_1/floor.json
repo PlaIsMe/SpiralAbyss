@@ -1,6 +1,7 @@
 {
-  "health_scale": 1.25,
-  "damage_scale": 1.1,
+  "health_scale": 1.0,
+  "damage_scale": 1.0,
+  "total_time": 360,
   "wave_delay": 5,
   "rewards": {
     "rolls": 2,

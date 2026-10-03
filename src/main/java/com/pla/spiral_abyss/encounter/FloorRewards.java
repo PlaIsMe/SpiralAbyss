@@ -6,6 +6,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.loot.LootDataId;
+import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -16,7 +19,7 @@ import java.util.*;
 /** Roll once on victory and save the result; chest opening never rerolls rewards. */
 public final class FloorRewards {
     private FloorRewards() {}
-    public static double partyScale(int players) { return 1 + 0.5 * (Math.max(1, Math.min(4, players)) - 1); }
+    public static double partyScale(int players) { return players <= 0 ? 0 : 1 + 0.5 * (players - 1); }
     public record Bundle(List<ItemStack> items, int experience) {
         public Bundle { items = items.stream().map(ItemStack::copy).toList(); }
         public CompoundTag save() {
@@ -38,25 +41,22 @@ public final class FloorRewards {
                 .create(LootContextParamSets.CHEST);
         double scaledRolls = rewards.rolls() * scale;
         int rolls = (int) scaledRolls + (level.random.nextDouble() < scaledRolls % 1 ? 1 : 0);
-        var tables = rewards.entries().stream().filter(entry -> !entry.item()).toList();
+        var pool = new RewardPool(rewards.entries(), entry -> entry.item() ? availableItem(entry)
+                : level.getServer().getLootData().getElement(new LootDataId<>(LootDataType.TABLE, entry.id())) != null);
         var bonuses = rewards.entries().stream().filter(FloorDefinition.RewardEntry::item).toList();
-        int totalWeight = tables.stream().mapToInt(FloorDefinition.RewardEntry::weight).sum();
+        // Selecting from the available table pool is equivalent to rerolling missing tables,
+        // without an unbounded retry when optional mods are absent.
         for (int i = 0; i < rolls; i++) {
             // Choose a chest table, then independently try every item bonus on this same roll.
-            if (totalWeight > 0) {
-                int choice = level.random.nextInt(totalWeight);
-                for (var entry : tables) {
-                    choice -= entry.weight();
-                    if (choice >= 0) continue;
-                    if (level.random.nextDouble() < entry.chance())
-                        items.addAll(level.getServer().getLootData().getLootTable(entry.id()).getRandomItems(params));
-                    break;
-                }
-            }
-            for (var entry : bonuses) {
+            var table = pool.table(level.random);
+            if (table != null && level.random.nextDouble() < table.chance())
+                items.addAll(level.getServer().getLootData().getLootTable(table.id()).getRandomItems(params));
+            for (var requested : bonuses) {
+                var entry = pool.bonus(requested, level.random);
+                if (entry == null) continue;
                 if (level.random.nextDouble() >= entry.chance()) continue;
                 var item = ForgeRegistries.ITEMS.getValue(entry.id());
-                if (item == null) continue;
+                if (item == null || item == Items.AIR) continue;
                 int count = entry.minCount() + level.random.nextInt(entry.maxCount() - entry.minCount() + 1);
                 while (count > 0) {
                     ItemStack stack = new ItemStack(item, Math.min(count, item.getMaxStackSize()));
@@ -66,14 +66,17 @@ public final class FloorRewards {
         }
         return new Bundle(items, (int) Math.round(rewards.experience() * scale));
     }
-    public static void release(ServerLevel level, Vec3 position, Bundle bundle) {
-        for (ItemStack stack : bundle.items()) {
-            if (stack.isEmpty()) continue;
-            ItemEntity item = new ItemEntity(level, position.x, position.y + 0.8, position.z, stack.copy());
-            item.setDeltaMovement((level.random.nextDouble() - 0.5) * 0.6, 0.45 + level.random.nextDouble() * 0.2,
-                    (level.random.nextDouble() - 0.5) * 0.6);
-            item.setDefaultPickUpDelay(); level.addFreshEntity(item);
-        }
-        if (bundle.experience() > 0) ExperienceOrb.award(level, position, bundle.experience());
+    private static boolean availableItem(FloorDefinition.RewardEntry entry) {
+        return ForgeRegistries.ITEMS.containsKey(entry.id()) && ForgeRegistries.ITEMS.getValue(entry.id()) != Items.AIR;
+    }
+    public static void releaseItem(ServerLevel level, Vec3 position, ItemStack stack) {
+        if (stack.isEmpty()) return;
+        ItemEntity item = new ItemEntity(level, position.x, position.y + 0.8, position.z, stack.copy());
+        item.setDeltaMovement((level.random.nextDouble() - 0.5) * 0.6, 0.45 + level.random.nextDouble() * 0.2,
+                (level.random.nextDouble() - 0.5) * 0.6);
+        item.setDefaultPickUpDelay(); level.addFreshEntity(item);
+    }
+    public static void releaseExperience(ServerLevel level, Vec3 position, int experience) {
+        if (experience > 0) ExperienceOrb.award(level, position, experience);
     }
 }

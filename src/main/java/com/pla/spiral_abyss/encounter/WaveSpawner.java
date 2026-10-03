@@ -20,10 +20,10 @@ public final class WaveSpawner {
     private static final UUID HEALTH_MODIFIER = UUID.fromString("2fce3415-4a70-4976-a728-98234fdac4e3");
 
     public List<Mob> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
-                           FloorDefinition.Wave wave, UUID runId) {
+                           FloorDefinition.Wave wave, List<FloorDefinition.Enemy> composition, UUID runId, WaveEquipment equipment) {
         List<Mob> created = new ArrayList<>();
         try {
-            for (var entry : wave.bosses()) {
+            for (var entry : composition) {
                 EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(entry.id());
                 for (int i = 0; i < entry.count(); i++) {
                     Entity entity = type == null ? null : type.create(level);
@@ -37,6 +37,14 @@ public final class WaveSpawner {
                     SpawnGroupData group = mob instanceof Zombie ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
                             MobSpawnType.COMMAND, group, null);
+                    if (mob instanceof net.minecraft.world.entity.monster.Slime slime && entry.category() != null) {
+                        if (entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.FODDER_MOB)
+                            slime.setSize(1 + level.random.nextInt(2), true);
+                        else if (entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.COMMON_MOB) slime.setSize(4, true);
+                    }
+                    if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
+                    if (mob instanceof net.minecraft.world.entity.monster.piglin.Piglin piglin) piglin.setBaby(false);
+                    equipment.apply(mob);
                     // Spawn initialization may add riders (for example a spider jockey).
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard);
                     mob.stopRiding();

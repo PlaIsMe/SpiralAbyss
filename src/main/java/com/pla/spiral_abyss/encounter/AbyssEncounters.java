@@ -8,6 +8,7 @@ import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.*;
 import net.minecraftforge.eventbus.api.*;
 import net.minecraftforge.fml.common.Mod;
@@ -19,11 +20,27 @@ public final class AbyssEncounters {
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         var level = event.getServer().getLevel(AbyssDimension.LEVEL);
         if (level != null) AbyssParties.configure(level);
+        AbyssParties.get(event.getServer()).prepareCycle();
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) AbyssParties.get(event.getServer()).tick();
     }
     @SubscribeEvent public static void stop(ServerStoppingEvent event) { AbyssParties.stop(event.getServer()); }
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void preventPlayerDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)
+                || !player.level().dimension().equals(AbyssDimension.LEVEL)) return;
+        event.setCanceled(true);
+        var parties = AbyssParties.get(player.server);
+        var session = parties.sessionFor(player);
+        if (session == null) {
+            // Cover command-based arrivals before their first arena tick as well.
+            player.setHealth(player.getMaxHealth());
+            parties.enterOwn(player); session = parties.sessionFor(player);
+        }
+        if (session != null) session.defeat(player);
+        else { ArenaSession.restoreSurvival(player); parties.leave(player); }
+    }
     @SubscribeEvent public static void isolateDamage(LivingAttackEvent event) {
         if (!(event.getEntity().level() instanceof net.minecraft.server.level.ServerLevel level)
                 || !level.dimension().equals(AbyssDimension.LEVEL)) return;

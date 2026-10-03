@@ -18,6 +18,7 @@ public final class FloorParser {
         double health = scale(floor, "health_scale", 1);
         double damage = scale(floor, "damage_scale", 1);
         int delay = integer(floor, "wave_delay", 5, 0, 300) * 20;
+        int ticks = integer(floor, "total_time", 360, 1, 86400) * 20;
         JsonObject loot = floor.has("rewards") ? object(floor.get("rewards"), "rewards") : new JsonObject();
         List<FloorDefinition.RewardEntry> entries = new ArrayList<>();
         if (loot.has("loot_tables")) {
@@ -30,8 +31,7 @@ public final class FloorParser {
                 require(spec.has("item") != spec.has("loot_table"), "reward needs exactly one of item or loot_table");
                 boolean item = spec.has("item");
                 ResourceLocation rewardId = id(spec.get(item ? "item" : "loot_table"));
-                if (item) require(ForgeRegistries.ITEMS.containsKey(rewardId)
-                        && !rewardId.equals(new ResourceLocation("minecraft", "air")), "unknown item: " + rewardId);
+                // Optional mod rewards are resolved at payout time, after loot tables have loaded.
                 int min = integer(spec, "min_count", integer(spec, "count", 1, 1, 4096), 1, 4096);
                 int max = integer(spec, "max_count", min, min, 4096);
                 int weight = integer(spec, "weight", 1, 1, 10000);
@@ -53,12 +53,20 @@ public final class FloorParser {
         for (var entry : waves.entrySet()) {
             require(entry.getKey() == parsed.size() + 1, "wave files must be consecutive, starting at wave_1.json");
             JsonObject wave = entry.getValue();
-            require(wave.has("total_time"), "wave_" + entry.getKey() + " needs total_time (seconds)");
-            int ticks = integer(wave, "total_time", 0, 1, 86400) * 20;
             List<FloorDefinition.Enemy> enemies = new ArrayList<>();
-            require(wave.has("bosses"), "wave needs a bosses array");
+            Map<MobCategory, Integer> categories = new EnumMap<>(MobCategory.class);
             int count = 0;
-            for (JsonElement boss : array(wave.get("bosses"), "bosses")) {
+            for (MobCategory category : MobCategory.values()) {
+                int amount = integer(wave, category.key(), 0, 0, 128);
+                if (amount > 0) categories.put(category, amount);
+                count += amount;
+            }
+            Set<String> known = new HashSet<>(List.of("total_time", "health_scale", "damage_scale", "bosses"));
+            // Accept old wave total_time fields for existing packs, but only floor.json controls the clock.
+            for (MobCategory category : MobCategory.values()) known.add(category.key());
+            for (String key : wave.keySet()) require(known.contains(key), "unknown wave field: " + key);
+            // Explicit IDs remain supported for existing datapacks and fixed encounters.
+            for (JsonElement boss : wave.has("bosses") ? array(wave.get("bosses"), "bosses") : new JsonArray()) {
                 ResourceLocation mobId;
                 int amount = 1;
                 if (boss.isJsonPrimitive()) mobId = id(boss);
@@ -71,16 +79,17 @@ public final class FloorParser {
                 require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
                         "players cannot be wave enemies");
                 require(!mobId.equals(new ResourceLocation("spiral_abyss", "key_entity"))
-                        && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest")),
+                        && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest"))
+                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "scroll_entity")),
                         "the key cannot be a wave enemy");
                 enemies.add(new FloorDefinition.Enemy(mobId, amount));
                 count += amount;
             }
             require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
-            parsed.add(new FloorDefinition.Wave(ticks, scale(wave, "health_scale", health),
-                    scale(wave, "damage_scale", damage), enemies));
+            parsed.add(new FloorDefinition.Wave(scale(wave, "health_scale", health),
+                    scale(wave, "damage_scale", damage), categories, enemies));
         }
-        return new FloorDefinition(number, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
+        return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
     }
 
     private static double scale(JsonObject obj, String key, double fallback) {

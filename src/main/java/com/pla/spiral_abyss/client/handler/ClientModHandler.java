@@ -13,6 +13,9 @@ public final class ClientModHandler {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(EntityInit.KEY_ENTITY.get(), KeyEntityRenderer::new);
+        event.registerEntityRenderer(EntityInit.SCROLL_ENTITY.get(), com.pla.spiral_abyss.client.renderer.ScrollEntityRenderer::new);
+        event.registerBlockEntityRenderer(com.pla.spiral_abyss.init.BlockEntityInit.ABYSS_PORTAL.get(),
+                com.pla.spiral_abyss.client.renderer.AbyssPortalRenderer::new);
         event.registerEntityRenderer(EntityInit.REWARD_CHEST.get(), com.pla.spiral_abyss.client.renderer.RewardChestRenderer::new);
     }
 }

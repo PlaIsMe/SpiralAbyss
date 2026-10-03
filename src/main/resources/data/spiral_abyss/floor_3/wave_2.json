@@ -1,13 +1,4 @@
 {
-  "total_time": 120,
-  "bosses": [
-    {
-      "id": "minecraft:skeleton",
-      "count": 3
-    },
-    {
-      "id": "minecraft:zombie",
-      "count": 2
-    }
-  ]
+  "common_mob": 3,
+  "champion_mob": 2
 }

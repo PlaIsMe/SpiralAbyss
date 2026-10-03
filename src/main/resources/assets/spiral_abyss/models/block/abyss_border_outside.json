@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": { "all": "spiral_abyss:block/abyss_border_outside" }
+}

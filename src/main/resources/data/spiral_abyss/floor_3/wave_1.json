@@ -1,9 +1,4 @@
 {
-  "total_time": 90,
-  "bosses": [
-    {
-      "id": "minecraft:zombie",
-      "count": 3
-    }
-  ]
+  "fodder_mob": 5,
+  "common_mob": 3
 }
