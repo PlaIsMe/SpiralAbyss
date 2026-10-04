@@ -20,6 +20,7 @@ public class SpiralAbyss {
         BlockEntityInit.BLOCK_ENTITIES.register(modBus);
         LootInit.MODIFIERS.register(modBus);
         ItemInit.ITEMS.register(modBus);
+        CreativeTabInit.TABS.register(modBus);
         com.pla.spiral_abyss.network.AbyssNetwork.register();
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
     }

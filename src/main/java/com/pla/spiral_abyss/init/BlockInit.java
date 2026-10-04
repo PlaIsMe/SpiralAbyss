@@ -3,7 +3,10 @@ package com.pla.spiral_abyss.init;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.block.AbyssRuneBlock;
 import com.pla.spiral_abyss.block.AbyssPortalBlock;
-import com.pla.spiral_abyss.block.AbyssPortalAnchorBlock;
+import com.pla.spiral_abyss.block.AbyssGateVerticalBlock;
+import com.pla.spiral_abyss.block.AbyssGateSlabBlock;
+import com.pla.spiral_abyss.block.AbyssGateCurveBlock;
+import com.pla.spiral_abyss.block.AbyssGateActivationBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -17,11 +20,6 @@ public class BlockInit {
 
     public static final RegistryObject<AbyssPortalBlock> ABYSS_PORTAL = BLOCKS.register("abyss_portal",
             () -> new AbyssPortalBlock(BlockBehaviour.Properties.copy(Blocks.NETHER_PORTAL).noLootTable()));
-    public static final RegistryObject<AbyssPortalAnchorBlock> ABYSS_PORTAL_ANCHOR = BLOCKS.register("abyss_portal_anchor",
-            () -> new AbyssPortalAnchorBlock(BlockBehaviour.Properties.copy(Blocks.POLISHED_ANDESITE_SLAB)
-                    .dropsLike(Blocks.POLISHED_ANDESITE_SLAB).lightLevel(state -> 11)
-                    .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK)));
-
     public static final RegistryObject<Block> SPINNING_BLOCK = BLOCKS.register("spinning_block",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEDROCK)));
 
@@ -48,6 +46,21 @@ public class BlockInit {
 
     public static final RegistryObject<Block> ABYSS_BORDER_OUTSIDE = BLOCKS.register("abyss_border_outside",
             () -> new Block(unbreakable()));
+
+    public static final RegistryObject<AbyssGateVerticalBlock> ABYSS_GATE_VERTICAL = BLOCKS.register("abyss_gate_vertical",
+            () -> new AbyssGateVerticalBlock(gateProperties()));
+    public static final RegistryObject<AbyssGateSlabBlock> ABYSS_GATE_HORIZONTAL = BLOCKS.register("abyss_gate_horizontal",
+            () -> new AbyssGateSlabBlock(gateProperties()));
+    public static final RegistryObject<AbyssGateCurveBlock> ABYSS_GATE_CURVE = BLOCKS.register("abyss_gate_curve",
+            () -> new AbyssGateCurveBlock(gateProperties()));
+    public static final RegistryObject<AbyssGateActivationBlock> ABYSS_GATE_ACTIVATE_BLOCK = BLOCKS.register("abyss_gate_activate_block",
+            () -> new AbyssGateActivationBlock(gateProperties().dynamicShape()
+                    .isSuffocating((state, level, pos) -> false).isViewBlocking((state, level, pos) -> false)));
+
+    private static BlockBehaviour.Properties gateProperties() {
+        return BlockBehaviour.Properties.copy(Blocks.COBBLESTONE).noOcclusion()
+                .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK);
+    }
 
     private static BlockBehaviour.Properties unbreakable() {
         return BlockBehaviour.Properties.copy(Blocks.BEDROCK)

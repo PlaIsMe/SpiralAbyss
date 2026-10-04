@@ -1,0 +1,291 @@
+{
+  "credit": "Made with Blockbench",
+  "textures": {
+    "particle": "spiral_abyss:block/abyss_gate_2",
+    "wall": "spiral_abyss:block/abyss_gate_2"
+  },
+  "elements": [
+    {
+      "name": "Center post",
+      "from": [
+        4,
+        8,
+        8
+      ],
+      "to": [
+        12,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5,
+            16,
+            11,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "east": {
+          "uv": [
+            5,
+            16,
+            11,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "south": {
+          "uv": [
+            5,
+            16,
+            11,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "west": {
+          "uv": [
+            5,
+            16,
+            11,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "down": {
+          "uv": [
+            11,
+            16,
+            16,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            5,
+            8
+          ],
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "name": "Center post",
+      "from": [
+        4,
+        8,
+        4
+      ],
+      "to": [
+        12,
+        10,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            16,
+            10,
+            12
+          ],
+          "texture": "#wall"
+        },
+        "east": {
+          "uv": [
+            10,
+            8,
+            11,
+            4
+          ],
+          "texture": "#wall"
+        },
+        "south": {
+          "uv": [
+            6,
+            4,
+            10,
+            0
+          ],
+          "texture": "#wall"
+        },
+        "west": {
+          "uv": [
+            5,
+            12,
+            6,
+            8
+          ],
+          "texture": "#wall"
+        },
+        "down": {
+          "uv": [
+            6,
+            4,
+            10,
+            0
+          ],
+          "texture": "#wall"
+        },
+        "up": {
+          "uv": [
+            6,
+            16,
+            10,
+            12
+          ],
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "name": "Center post",
+      "from": [
+        4,
+        6,
+        8
+      ],
+      "to": [
+        12,
+        8,
+        12
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            4,
+            10,
+            0
+          ],
+          "texture": "#wall"
+        },
+        "east": {
+          "uv": [
+            5,
+            8,
+            6,
+            4
+          ],
+          "texture": "#wall"
+        },
+        "south": {
+          "uv": [
+            6,
+            4,
+            10,
+            0
+          ],
+          "texture": "#wall"
+        },
+        "west": {
+          "uv": [
+            10,
+            9,
+            11,
+            5
+          ],
+          "texture": "#wall"
+        },
+        "down": {
+          "uv": [
+            6,
+            16,
+            10,
+            12
+          ],
+          "texture": "#wall"
+        },
+        "up": {
+          "uv": [
+            6,
+            4,
+            10,
+            0
+          ],
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "name": "Center post",
+      "from": [
+        4,
+        0,
+        0
+      ],
+      "to": [
+        12,
+        8,
+        8
+      ],
+      "faces": {
+        "up": {
+          "uv": [
+            5,
+            8,
+            11,
+            0
+          ],
+          "texture": "#wall",
+          "rotation": 180
+        },
+        "east": {
+          "uv": [
+            5,
+            8,
+            11,
+            0
+          ],
+          "texture": "#wall",
+          "rotation": 270
+        },
+        "down": {
+          "uv": [
+            5,
+            8,
+            11,
+            0
+          ],
+          "texture": "#wall"
+        },
+        "west": {
+          "uv": [
+            5,
+            8,
+            11,
+            0
+          ],
+          "texture": "#wall",
+          "rotation": 90
+        },
+        "north": {
+          "uv": [
+            11,
+            8,
+            16,
+            0
+          ],
+          "texture": "#wall",
+          "rotation": 180
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            5,
+            0
+          ],
+          "texture": "#wall"
+        }
+      }
+    }
+  ],
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:cutout"
+}

@@ -7,7 +7,7 @@ import net.minecraftforge.registries.*;
 
 public final class BlockEntityInit {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, SpiralAbyss.MOD_ID);
-    public static final RegistryObject<BlockEntityType<AbyssPortalBlockEntity>> ABYSS_PORTAL = BLOCK_ENTITIES.register("abyss_portal",
-            () -> BlockEntityType.Builder.of(AbyssPortalBlockEntity::new, BlockInit.ABYSS_PORTAL_ANCHOR.get()).build(null));
+    public static final RegistryObject<BlockEntityType<AbyssPortalBlockEntity>> ABYSS_PORTAL = BLOCK_ENTITIES.register("abyss_gate_portal",
+            () -> BlockEntityType.Builder.of(AbyssPortalBlockEntity::new, BlockInit.ABYSS_GATE_ACTIVATE_BLOCK.get()).build(null));
     private BlockEntityInit() {}
 }

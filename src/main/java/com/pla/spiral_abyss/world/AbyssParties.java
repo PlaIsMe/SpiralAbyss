@@ -4,8 +4,8 @@ import com.pla.spiral_abyss.encounter.WaveSpawner;
 import com.pla.spiral_abyss.entity.*;
 import com.pla.spiral_abyss.network.AbyssNetwork;
 import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundInitializeBorderPacket;
@@ -23,7 +23,8 @@ import java.util.*;
 /** Server-thread portal party management. Floor changes reuse a slot; empty parties release it. */
 public final class AbyssParties {
     public static final int DIMENSION_SIZE = 2304;
-    private static final String RETURN = "spiral_abyss_return", VISIT = "spiral_abyss_visit_host", VISIT_FLOOR = "spiral_abyss_visit_floor";
+    private static final String RETURN = "spiral_abyss_return", VISIT = "spiral_abyss_visit_host", VISIT_FLOOR = "spiral_abyss_visit_floor",
+            RETURN_REQUIRED = "spiral_abyss_return_required";
     private static final Map<MinecraftServer, AbyssParties> SERVERS = new IdentityHashMap<>();
     private final MinecraftServer server;
     private final AbyssPlayers data;
@@ -35,7 +36,7 @@ public final class AbyssParties {
     public PortalParties portals() { return portals; }
     public AbyssCycle cycle() {
         if (!data.cycle().initialized()) {
-            data.cycle().start(System.currentTimeMillis(), java.util.concurrent.ThreadLocalRandom.current().nextLong(), AbyssConfig.snapshot());
+            data.cycle().start(System.currentTimeMillis(), java.util.concurrent.ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
             data.setDirty();
         }
         return data.cycle();
@@ -43,13 +44,13 @@ public final class AbyssParties {
     public long resetRemainingMillis() { return cycle().remainingMillis(System.currentTimeMillis(), AbyssConfig.RESET_DAYS.get()); }
     public void prepareCycle() {
         var cycle = cycle();
-        var fallback = AbyssConfig.snapshot();
-        cycle.repair(AbyssConfig::availableMob, fallback);
+        var fallback = MobCatalog.snapshot();
+        cycle.repair(MobCatalog::availableMob, fallback);
         for (var floor : com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().values()) {
             for (int wave = 0; wave < floor.waves().size(); wave++) {
                 try {
-                    var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), AbyssConfig::availableMob, fallback);
-                    if (lineup.stream().anyMatch(enemy -> !AbyssConfig.availableMob(enemy.id())))
+                    var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), MobCatalog::availableMob, fallback);
+                    if (lineup.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
                         throw new IllegalArgumentException("No available replacement for a saved mob; update its category pool");
                 }
                 catch (IllegalArgumentException ex) { com.mojang.logging.LogUtils.getLogger().warn("Abyss cycle floor {} wave {} unavailable: {}", floor.number(), wave + 1, ex.getMessage()); }
@@ -59,9 +60,9 @@ public final class AbyssParties {
     }
     public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
             com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) {
-        var result = cycle().lineup(floor, wave, definition, AbyssConfig::availableMob, AbyssConfig.snapshot());
+        var result = cycle().lineup(floor, wave, definition, MobCatalog::availableMob, MobCatalog.snapshot());
         data.setDirty();
-        if (result.stream().anyMatch(enemy -> !AbyssConfig.availableMob(enemy.id())))
+        if (result.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
             throw new IllegalArgumentException("No available replacement for a saved cycle mob; install a mob or update its category pool");
         return result;
     }
@@ -72,7 +73,7 @@ public final class AbyssParties {
         for (ArenaSession session : List.copyOf(sessions.values())) retire(session);
         portals.invalidateAll();
         data.resetAllProgress();
-        cycle().start(cycleStart, java.util.concurrent.ThreadLocalRandom.current().nextLong(), AbyssConfig.snapshot());
+        cycle().start(cycleStart, java.util.concurrent.ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
         prepareCycle();
         data.setDirty();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -97,17 +98,17 @@ public final class AbyssParties {
     public ArenaSession hostedBy(UUID host) { return sessions.get(host); }
     public AbyssPlayers.Profile profile(UUID player) { return data.profile(player); }
     public void bindPortal(UUID host, UUID portal) { data.profile(host).portal = portal; data.setDirty(); }
-    public boolean rewardEligible(UUID player, int floor) {
-        if (data.profile(player).progress.claimed(floor)) return false;
-        return data.profiles().stream().noneMatch(p -> p.progress.floor() == floor && p.progress.pending() != null
-                && p.progress.beneficiaries().contains(player));
-    }
     public boolean checkUnlocked(ServerPlayer recipient, ServerPlayer player, int floor) {
         if (data.profile(player.getUUID()).progress.unlocked(floor)) return true;
         recipient.sendSystemMessage(Component.translatable("message.spiral_abyss.floor_locked_player", player.getDisplayName(), floor));
         return false;
     }
     public static AbyssParties get(MinecraftServer server) { return SERVERS.computeIfAbsent(server, AbyssParties::new); }
+    public static void disconnect(ServerPlayer player) {
+        // Shutdown closes the service before final logout notifications; do not recreate it.
+        AbyssParties parties = SERVERS.get(player.server);
+        if (parties != null) parties.loggedOut(player);
+    }
     public static void stop(MinecraftServer server) {
         AbyssParties parties = SERVERS.remove(server);
         if (parties != null) new ArrayList<>(parties.sessions.values()).forEach(parties::retire);
@@ -170,6 +171,7 @@ public final class AbyssParties {
     public boolean enterPortalGuest(ServerPlayer player, UUID host, Vec3 returnPosition) {
         ArenaSession session = sessions.get(host);
         if (session == null) return false;
+        if (session.looting() && !session.contains(player)) return tell(player, "claim_first");
         if (host.equals(player.getUUID())) {
             if (!enter(player, host)) return false;
             follow(player.getUUID(), null);
@@ -188,16 +190,28 @@ public final class AbyssParties {
         player.setPortalCooldown();
     }
     public boolean enterFloor(ServerPlayer player, int number) {
+        ArenaSession current = sessionFor(player);
+        if (current != null && current.isLeader(player) && !current.host().equals(player.getUUID()))
+            return enterLedFloor(player, current, number);
         if (profile(player.getUUID()).followingHost != null) return followFloor(player, number);
         return enterOwnFloor(player, number);
+    }
+    private boolean enterLedFloor(ServerPlayer player, ArenaSession session, int number) {
+        if (session.controller().active()) return tell(player, "already_running");
+        if (session.looting()) return tell(player, "claim_first");
+        // The completed attempt keeps its original saved bundle. Future attempts belong
+        // to the successor's profile, so an absent original owner earns no free unlocks.
+        if (!enterOwnFloor(player, number)) return false;
+        follow(player.getUUID(), null);
+        return true;
     }
     private boolean enterOwnFloor(ServerPlayer player, int number) {
         if (!com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
         if (!checkUnlocked(player, player, number)) return false;
         ArenaSession current = sessionFor(player);
-        if (current != null && current.profile().progress.pending() != null
-                && !current.host().equals(player.getUUID())) return tell(player, "claim_first");
+        if (current != null && current.looting()) return tell(player, "claim_first");
         ArenaSession own = sessions.get(player.getUUID());
+        if (own != null && !own.isLeader(player)) return tell(player, "host_only");
         if ((current != null && current.controller().active()) || (own != null && own.controller().active())) return tell(player, "already_running");
         var progress = data.profile(player.getUUID()).progress;
         if (!progress.canSelectFloor(number)) return tell(player, "claim_first");
@@ -213,7 +227,6 @@ public final class AbyssParties {
         // when the host changes/retries a floor; guest admission must never rebuild a live fight.
         if (own != null) session.restoreStructure();
         session.refreshDisplay();
-        player.sendSystemMessage(Component.translatable("message.spiral_abyss.selected_floor", number));
         return true;
     }
     private boolean enter(ServerPlayer player, UUID host) {
@@ -264,10 +277,9 @@ public final class AbyssParties {
         if (!player.level().dimension().equals(AbyssDimension.LEVEL)) return tell(player, "wrong_dimension");
         CompoundTag persisted = persisted(player), saved = persisted.getCompound(RETURN);
         ResourceLocation id = ResourceLocation.tryParse(saved.getString("Dimension"));
-        ServerLevel destination = id == null ? null : server.getLevel(ResourceKey.create(Registries.DIMENSION, id));
-        if (destination == null || destination.dimension().equals(AbyssDimension.LEVEL)) destination = server.overworld();
+        ServerLevel destination = server.overworld();
         Vec3 position = new Vec3(saved.getDouble("X"), saved.getDouble("Y"), saved.getDouble("Z"));
-        if (id == null || !isSafe(destination, player, position)) {
+        if (id == null || !id.equals(destination.dimension().location()) || !isSafe(destination, player, position)) {
             position = Vec3.atBottomCenterOf(destination.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, destination.getSharedSpawnPos()));
         }
         ArenaSession session = sessionFor(player);
@@ -277,7 +289,7 @@ public final class AbyssParties {
         } else if (player.changeDimension(destination, new AbyssTeleporter(position, saved.getFloat("Yaw"), saved.getFloat("Pitch"))) == null) return false;
         if (session != null) session.remove(player.getUUID());
         if (session != null && session.players().isEmpty()) retire(session);
-        membership.remove(player.getUUID()); persisted.remove(VISIT); persisted.remove(VISIT_FLOOR); persisted.remove(RETURN);
+        membership.remove(player.getUUID()); persisted.remove(VISIT); persisted.remove(VISIT_FLOOR); persisted.remove(RETURN); persisted.remove(RETURN_REQUIRED);
         follow(player.getUUID(), null);
         player.getPersistentData().put(Player.PERSISTED_NBT_TAG, persisted); player.fallDistance = 0;
         if (ArenaSession.hasDefeatMarker(player)) ArenaSession.restoreSurvival(player);
@@ -299,6 +311,7 @@ public final class AbyssParties {
     }
     public UUID followedHost(ServerPlayer player) {
         ArenaSession session = sessionFor(player);
+        if (session != null && session.isLeader(player) && !session.host().equals(player.getUUID())) return null;
         if (session != null && !session.host().equals(player.getUUID())) return session.host();
         return profile(player.getUUID()).followingHost;
     }
@@ -318,7 +331,7 @@ public final class AbyssParties {
         if (host == null || !profile(player.getUUID()).progress.canSelectFloor(number)) return tell(player, "selection_expired");
         ArenaSession current = sessionFor(player);
         if (current == null || current.controller().active()) return tell(player, "already_running");
-        if (current.profile().progress.pending() != null) return tell(player, "claim_first");
+        if (current.looting()) return tell(player, "claim_first");
         return travelFollowing(player, host, number, false);
     }
     private boolean travelFollowing(ServerPlayer player, UUID host, int number, boolean portalEntry) {
@@ -328,6 +341,7 @@ public final class AbyssParties {
         ArenaSession destination = hostedBy(host);
         boolean join = destination != null && GuestFloorRules.joinHost(portalEntry, profile(player.getUUID()).personalRun,
                 number, destination.controller().currentFloor(), destination.controller().active(), progress.pending() != null);
+        if (join && destination.looting() && !destination.contains(player)) return tell(player, "claim_first");
         boolean entered = join ? enter(player, host) : enterOwnFloor(player, number);
         if (entered) {
             follow(player.getUUID(), host);
@@ -341,7 +355,7 @@ public final class AbyssParties {
     private boolean separateGuests(ServerPlayer requester, ArenaSession session) {
         if (!canTravel(requester)) return tell(requester, "travel_unavailable");
         int oldFloor = session.controller().currentFloor();
-        var guests = session.players().stream().filter(p -> !p.getUUID().equals(session.host())).toList();
+        var guests = session.players().stream().filter(p -> !session.isLeader(p)).toList();
         long required = guests.stream().filter(p -> hostedBy(p.getUUID()) == null).count();
         if (sessions.size() + required > AbyssPlayers.ARENA_SLOTS) return tell(requester, "arenas_full");
         for (ServerPlayer guest : guests) {
@@ -367,7 +381,7 @@ public final class AbyssParties {
         ArenaSession session = sessionFor(player);
         if (!validInteraction(player, chest, session)) return false;
         if (player.isShiftKeyDown()) return portals.openArenaMenu(player);
-        boolean opened = session.profile().progress.beginOpening(); session.refreshDisplay(); return opened;
+        return session.openReward(player, chest.tier());
     }
     private boolean validInteraction(ServerPlayer player, ArenaInteractable entity, ArenaSession session) {
         return session != null && player.isAlive() && !player.isSpectator() && !entity.isRemoved()
@@ -380,6 +394,8 @@ public final class AbyssParties {
     }
     public boolean reset(ServerPlayer player) {
         ArenaSession session = sessions.get(player.getUUID());
+        // An original owner returning outside cannot erase the successor's live encounter or chest.
+        if (session != null && !session.isLeader(player)) return tell(player, "host_only");
         var profile = data.profile(player.getUUID());
         profile.progress.reset();
         follow(player.getUUID(), null);
@@ -389,43 +405,57 @@ public final class AbyssParties {
         player.sendSystemMessage(Component.translatable("message.spiral_abyss.reset"));
         return true;
     }
-    public void claim(Collection<UUID> beneficiaries, int floor) {
-        for (UUID id : beneficiaries) data.profile(id).progress.syncClaim(floor);
+    public void loggedIn(ServerPlayer player) {
+        if (player.level().dimension().equals(AbyssDimension.LEVEL)) {
+            CompoundTag mark = persisted(player);
+            mark.putBoolean(RETURN_REQUIRED, true);
+            player.getPersistentData().put(Player.PERSISTED_NBT_TAG, mark);
+        }
+        if (ArenaSession.hasDefeatMarker(player)) ArenaSession.restoreSurvival(player);
+        returnAfterDisconnect(player);
+    }
+    public void loggedOut(ServerPlayer player) {
+        if (player.level().dimension().equals(AbyssDimension.LEVEL)) {
+            CompoundTag mark = persisted(player);
+            mark.putBoolean(RETURN_REQUIRED, true);
+            player.getPersistentData().put(Player.PERSISTED_NBT_TAG, mark);
+        }
+        ArenaSession session = sessionFor(player);
+        if (session != null) {
+            session.remove(player.getUUID());
+            if (session.players().isEmpty()) retire(session);
+        }
+        membership.remove(player.getUUID()); hudStates.remove(player);
+        follow(player.getUUID(), null);
+    }
+    private void returnAfterDisconnect(ServerPlayer player) {
+        if (!persisted(player).getBoolean(RETURN_REQUIRED)) return;
+        ArenaSession.restoreSurvival(player);
+        if (player.level().dimension().equals(AbyssDimension.LEVEL) && !leave(player, true)) return;
+        CompoundTag mark = persisted(player);
+        mark.remove(RETURN_REQUIRED); mark.remove(VISIT); mark.remove(VISIT_FLOOR); mark.remove(RETURN);
+        player.getPersistentData().put(Player.PERSISTED_NBT_TAG, mark);
+        follow(player.getUUID(), null);
     }
     public void tick() {
         long now = System.currentTimeMillis();
         int days = AbyssConfig.RESET_DAYS.get();
         if (cycle().due(now, days)) resetGlobal(cycle().nextStart(now, days));
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) returnAfterCycleReset(player);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            returnAfterDisconnect(player);
+            returnAfterCycleReset(player);
+        }
         portals.tick();
         ServerLevel level = server.getLevel(AbyssDimension.LEVEL);
         if (level == null) return;
         if (maintainBorder(level)) level.players().forEach(p -> p.connection.send(new ClientboundInitializeBorderPacket(level.getWorldBorder())));
-        // Restore a visit after reconnect/restart, or provide a private slot for command-based arrivals.
+        // Only the admission service may place players in a room. Reconnects and arbitrary
+        // dimension teleports must not rebuild visits or bypass a combat/loot admission lock.
         for (ServerPlayer player : List.copyOf(level.players())) {
             if (profile(player.getUUID()).cycleReturnRequired) continue;
             if (sessionFor(player) != null) continue;
-            CompoundTag persisted = persisted(player);
-            UUID host = persisted.hasUUID(VISIT) ? persisted.getUUID(VISIT) : player.getUUID();
-            int savedFloor = persisted.contains(VISIT_FLOOR) ? persisted.getInt(VISIT_FLOOR) : profile(host).progress.floor();
-            ArenaSession destination = hostedBy(host);
-            boolean fightClosed = destination != null && !destination.canAdmit(player.getUUID());
-            if (!host.equals(player.getUUID()) && (savedFloor != profile(host).progress.floor()
-                    || !profile(player.getUUID()).progress.unlocked(profile(host).progress.floor()) || fightClosed)) {
-                var progress = profile(player.getUUID()).progress;
-                int resume = progress.pending() != null ? progress.floor()
-                        : progress.unlocked(savedFloor) ? savedFloor : GuestFloorRules.firstUnclaimed(progress);
-                if (enterOwnFloor(player, resume)) {
-                    follow(player.getUUID(), host);
-                    profile(player.getUUID()).personalRun = fightClosed; data.setDirty();
-                }
-                else leave(player);
-            } else if (!enter(player, host)) leave(player);
-            else if (!host.equals(player.getUUID())) {
-                // A restored shared visit is a reconnect, not a personal run or physical portal reentry.
-                follow(player.getUUID(), host);
-                profile(player.getUUID()).personalRun = false; data.setDirty();
-            }
+            ArenaSession.restoreSurvival(player);
+            leave(player, true);
         }
         for (ArenaSession session : List.copyOf(sessions.values())) {
             for (UUID id : session.admitted()) {

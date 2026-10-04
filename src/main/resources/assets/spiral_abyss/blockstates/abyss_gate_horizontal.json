@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "axis=z,type=bottom": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal"
+    },
+    "axis=z,type=top": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_top"
+    },
+    "axis=z,type=double": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_double"
+    },
+    "axis=x,type=bottom": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal",
+      "y": 90
+    },
+    "axis=x,type=top": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_top",
+      "y": 90
+    },
+    "axis=x,type=double": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_double",
+      "y": 90
+    }
+  }
+}

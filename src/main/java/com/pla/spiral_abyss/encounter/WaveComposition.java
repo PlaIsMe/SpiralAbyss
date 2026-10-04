@@ -1,6 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
-import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.encounter.data.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -9,7 +9,7 @@ import java.util.*;
 /** Resolves counts to entity IDs before spawning anything. */
 public final class WaveComposition {
     private WaveComposition() {}
-    public static List<FloorDefinition.Enemy> resolve(FloorDefinition.Wave wave, AbyssConfig.Pools config, RandomSource random) {
+    public static List<FloorDefinition.Enemy> resolve(FloorDefinition.Wave wave, MobCatalog.Pools config, RandomSource random) {
         List<FloorDefinition.Enemy> result = new ArrayList<>(wave.bosses());
         for (MobCategory category : MobCategory.values()) {
             int count = wave.categories().getOrDefault(category, 0);

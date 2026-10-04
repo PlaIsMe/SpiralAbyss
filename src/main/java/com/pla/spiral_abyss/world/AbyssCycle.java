@@ -1,6 +1,6 @@
 package com.pla.spiral_abyss.world;
 
-import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.encounter.data.MobCategory;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.WaveComposition;
@@ -14,10 +14,10 @@ public final class AbyssCycle {
     public static final long DAY_MILLIS = 86_400_000L;
     private long startedAt;
     private long seed;
-    private AbyssConfig.Pools pools;
+    private MobCatalog.Pools pools;
     private final Map<String, List<FloorDefinition.Enemy>> lineups = new TreeMap<>();
     public boolean initialized() { return pools != null; }
-    public AbyssConfig.Pools pools() { return pools; }
+    public MobCatalog.Pools pools() { return pools; }
     public long deadline(int days) { return days <= 0 ? -1 : startedAt + days * DAY_MILLIS; }
     public long remainingMillis(long now, int days) { return days <= 0 ? -1 : Math.max(0, deadline(days) - now); }
     public boolean due(long now, int days) { return initialized() && days > 0 && now >= deadline(days); }
@@ -25,12 +25,12 @@ public final class AbyssCycle {
         long interval = days * DAY_MILLIS;
         return startedAt + Math.max(1, (now - startedAt) / interval) * interval;
     }
-    public void start(long now, long newSeed, AbyssConfig.Pools snapshot) {
+    public void start(long now, long newSeed, MobCatalog.Pools snapshot) {
         startedAt = now; seed = newSeed; pools = snapshot; lineups.clear();
     }
     public List<FloorDefinition.Enemy> lineup(int floor, int waveNumber, FloorDefinition.Wave wave,
                                             java.util.function.Predicate<ResourceLocation> available,
-                                            AbyssConfig.Pools fallback) {
+                                            MobCatalog.Pools fallback) {
         // Intentional datapack composition edits get their own cache entry; attribute edits retain selections.
         String key = floor + ":" + waveNumber + ":" + wave.bosses();
         for (MobCategory category : MobCategory.values()) key += ":" + wave.categories().getOrDefault(category, 0);
@@ -43,7 +43,7 @@ public final class AbyssCycle {
         repair(available, fallback);
         return lineups.get(key);
     }
-    private AbyssConfig.Pools usablePools(java.util.function.Predicate<ResourceLocation> available, AbyssConfig.Pools fallback) {
+    private MobCatalog.Pools usablePools(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         var valid = pools.available(available);
         Map<MobCategory, List<ResourceLocation>> entries = new EnumMap<>(MobCategory.class);
         for (MobCategory category : MobCategory.values()) {
@@ -51,10 +51,10 @@ public final class AbyssCycle {
             if (choices.isEmpty()) choices = fallback.entries().getOrDefault(category, List.of()).stream().filter(available).toList();
             entries.put(category, choices);
         }
-        return new AbyssConfig.Pools(pools.mixMobs(), entries);
+        return new MobCatalog.Pools(pools.mixMobs(), entries);
     }
     /** Repairs only missing category entries, retaining counts and every still-available selection. */
-    public boolean repair(java.util.function.Predicate<ResourceLocation> available, AbyssConfig.Pools fallback) {
+    public boolean repair(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         var usable = usablePools(available, fallback);
         boolean changed = false;
         for (var entry : lineups.entrySet()) {
@@ -116,7 +116,7 @@ public final class AbyssCycle {
             }
             entries.put(category, ids);
         }
-        cycle.start(tag.getLong("StartedAt"), tag.getLong("Seed"), new AbyssConfig.Pools(tag.getBoolean("MixMobs"), entries));
+        cycle.start(tag.getLong("StartedAt"), tag.getLong("Seed"), new MobCatalog.Pools(tag.getBoolean("MixMobs"), entries));
         for (Tag value : tag.getList("Lineups", Tag.TAG_COMPOUND)) {
             CompoundTag roll = (CompoundTag) value;
             List<FloorDefinition.Enemy> enemies = new ArrayList<>();

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "spiral_abyss:block/abyss_gate_vertical"
+    },
+    "facing=east": {
+      "model": "spiral_abyss:block/abyss_gate_vertical",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "spiral_abyss:block/abyss_gate_vertical",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "spiral_abyss:block/abyss_gate_vertical",
+      "y": 270
+    }
+  }
+}

@@ -1,7 +1,7 @@
 package com.pla.spiral_abyss.encounter;
 
 import com.mojang.logging.LogUtils;
-import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.encounter.data.*;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.network.chat.Component;
@@ -30,13 +30,16 @@ public final class FloorController {
     private final List<Mob> enemies = new ArrayList<>();
     private State state;
     private FloorDefinition floor;
-    private AbyssConfig.Equipment equipment;
+    private MobCatalog.Equipment equipment;
     private com.pla.spiral_abyss.config.GearConfig.Floor gear;
+    private Map<net.minecraft.resources.ResourceLocation, List<FloorDefinition.RewardEntry>> mobRewards = Map.of();
+    private final Set<net.minecraft.resources.ResourceLocation> encounteredMobs = new LinkedHashSet<>();
     private UUID runId;
     private Vec3 center = new Vec3(0.5, 65, 0.5);
     private int waveIndex;
     private int delayTicks;
     private int waveEnemies;
+    private final int[] attemptStars = new int[WaveChallenges.WAVE_COUNT];
     private int revision;
 
     public FloorController(ArenaSession session, Supplier<FloorCatalog.Snapshot> catalog) {
@@ -57,7 +60,9 @@ public final class FloorController {
     public List<Mob> enemies() { return List.copyOf(enemies); }
     public AbyssNetwork.EncounterStatus hudStatus() {
         return active() ? new AbyssNetwork.EncounterStatus(true, currentFloor(), currentWave(),
-                waveEnemies - enemies.size(), waveEnemies, clock.remainingSeconds()) : AbyssNetwork.EncounterStatus.HIDDEN;
+                waveEnemies - enemies.size(), waveEnemies, clock.remainingSeconds(),
+                state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0)
+                : AbyssNetwork.EncounterStatus.HIDDEN;
     }
     public UUID runId() { return runId; }
     public boolean showsChest() { return state == State.COMPLETED || progress.pending() != null; }
@@ -67,18 +72,21 @@ public final class FloorController {
         if (player.level() != level || !session.contains(player)) return false;
         if (!player.isAlive() || player.isSpectator()) return message(player, "spectator");
         if (active()) return message(player, "already_running");
-        if (showsChest()) return message(player, "already_completed");
+        if (showsChest() && session.looting()) return message(player, "already_completed");
         if (level.getDifficulty() == Difficulty.PEACEFUL) return message(player, "peaceful");
         if (!session.partyCanEnterFloor(player, progress.floor())) return false;
         floor = catalog.get().floors().get(progress.floor());
         if (floor == null) return message(player, "missing_floor", progress.floor());
         if (!session.captureParty()) return message(player, "host_required");
-        equipment = AbyssConfig.equipment();
+        equipment = MobCatalog.equipment();
+        mobRewards = MobCatalog.rewards();
+        encounteredMobs.clear();
         gear = com.pla.spiral_abyss.config.GearConfig.load(currentFloor());
         partyScale = FloorRewards.partyScale(session.participants().size());
         runId = UUID.randomUUID();
         waveIndex = 0;
-        clock.start(floor.timeTicks());
+        delayTicks = 0;
+        Arrays.fill(attemptStars, 0);
         return startWave(player);
     }
 
@@ -87,9 +95,9 @@ public final class FloorController {
         if (player.level() != level || !session.contains(player))
             return message(player, "wrong_dimension");
         if (player.isSpectator()) return message(player, "spectator");
-        if (!session.host().equals(player.getUUID())) return message(player, "host_only");
+        if (!session.isLeader(player)) return message(player, "host_only");
         if (active()) return message(player, "already_running");
-        if (!progress.claimed() || progress.pending() != null) return message(player, "claim_first");
+        if (!session.canAdvance(player)) return message(player, "claim_first");
         if (progress.floor() >= FloorParser.MAX_FLOORS) return message(player, "last_floor");
         int next = progress.floor() + 1;
         if (!catalog.get().floors().containsKey(next)) return message(player, "missing_floor", next);
@@ -103,10 +111,12 @@ public final class FloorController {
         if (target == null) { fail("abandoned"); return; }
         if (level.getDifficulty() == Difficulty.PEACEFUL) { fail("peaceful"); return; }
         if (state == State.BETWEEN_WAVES) {
-            clock.tick(false);
             if (--delayTicks <= 0) { waveIndex++; startWave(target); }
             return;
         }
+        // Spend every combat tick, including the tick of the final kill. A wave at
+        // its five-minute deadline fails even when the final removal is observed now.
+        if (clock.tick(true)) { fail("time_up"); return; }
         for (Iterator<Mob> iterator = enemies.iterator(); iterator.hasNext();) {
             Mob mob = iterator.next();
             // Count every death/removal, regardless of attacker. Exploding creepers discard
@@ -125,13 +135,13 @@ public final class FloorController {
                 mob.setTarget(target);
         }
         if (enemies.isEmpty()) {
+            if (waveIndex < attemptStars.length) attemptStars[waveIndex] = WaveChallenges.stars(clock.elapsedTicks());
             if (waveIndex + 1 == floor.waves().size()) complete();
             else {
                 state = State.BETWEEN_WAVES;
-                delayTicks = floor.waveDelayTicks();
-                if (delayTicks == 0) { waveIndex++; startWave(target); }
+                delayTicks = WaveChallenges.TRANSITION_TICKS;
             }
-        } else if (clock.tick(true)) fail("time_up");
+        }
     }
 
     private boolean startWave(ServerPlayer target) {
@@ -141,8 +151,10 @@ public final class FloorController {
                     wave.damageScale() * partyScale, wave.categories(), wave.bosses());
             enemies.addAll(spawner.spawn(level, center, target, scaled, session.cycleLineup(currentFloor(), currentWave(), scaled), runId,
                     new WaveEquipment(equipment, gear, level.random)));
+            enemies.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
             enemies.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
             waveEnemies = enemies.size();
+            clock.start(WaveChallenges.TIME_LIMIT_TICKS);
             state = State.RUNNING;
             session.refreshDisplay();
             return true;
@@ -154,16 +166,14 @@ public final class FloorController {
     }
 
     private void complete() {
-        // Commit completion before generating rewards so repeated ticks/clicks cannot pay twice.
-        Set<UUID> eligible = session.eligibleRewards();
-        boolean replay = eligible.isEmpty();
-        if (!replay) progress.victory(FloorRewards.roll(level, center, floor.rewards(), FloorRewards.partyScale(eligible.size())), eligible);
+        // Offer rewards now; personal stars/progress are committed only on a claim.
+        session.completeChallenge(attemptStars.clone(),
+                FloorRewards.withMobRewards(floor.rewards(), encounteredMobs, mobRewards));
         session.finishAttempt();
         state = State.COMPLETED;
         clock.clear();
         runId = null;
         session.refreshDisplay();
-        announce(replay ? "replay_completed" : "completed", currentFloor());
     }
 
     private void fail(String reason) {

@@ -26,7 +26,7 @@ public final class AbyssPortalBlock extends Block {
     }
     @Override public void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
         // Clean up orphan cells if the anchor was broken while this chunk was unloaded.
-        if (level.hasChunksAt(pos.offset(-2, -5, -2), pos.offset(2, 0, 2))
+        if (level.hasChunksAt(pos.offset(-3, -5, -3), pos.offset(3, 5, 3))
                 && AbyssPortalFrame.fromOpening(level, pos, state.getValue(AXIS)).isEmpty())
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
     }

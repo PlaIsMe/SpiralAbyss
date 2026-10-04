@@ -116,3 +116,21 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// Forge otherwise loads mod classes directly from build/classes. A concurrent
+// compile can remove a class before the running game first needs it (e.g. rewards).
+// Keep each Gradle game launch on its own immutable copy, outside `gradle clean`.
+tasks.withType(JavaExec).configureEach {
+    if (name in ['runClient', 'runServer', 'runData']) {
+        dependsOn tasks.named('classes')
+        doFirst {
+            def snapshot = file("run/.mod-snapshots/${name}-${UUID.randomUUID()}")
+            project.copy {
+                from sourceSets.main.output
+                into snapshot
+            }
+            getRunConfig().get().environment('MOD_CLASSES', "${mod_id}%%${snapshot.absolutePath}")
+            logger.lifecycle("Using isolated mod classes: ${snapshot}")
+        }
+    }
+}

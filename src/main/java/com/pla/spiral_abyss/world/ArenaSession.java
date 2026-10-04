@@ -2,6 +2,7 @@ package com.pla.spiral_abyss.world;
 
 import com.pla.spiral_abyss.encounter.*;
 import com.pla.spiral_abyss.encounter.data.FloorCatalog;
+import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.entity.*;
 import com.pla.spiral_abyss.init.EntityInit;
 import net.minecraft.core.BlockPos;
@@ -23,13 +24,19 @@ public final class ArenaSession {
     private final FloorController controller;
     private final Set<UUID> participants = new LinkedHashSet<>();
     private final Set<UUID> rewardParticipants = new LinkedHashSet<>();
+    // Unclaimed results live only for this visit. Disconnecting forfeits that player's offer.
+    private int[] attemptStars = new int[3];
+    private FloorDefinition.Rewards offeredRewards;
+    private int displayedTiers;
     private final Set<UUID> defeated = new HashSet<>();
     private final Map<UUID, Vec3> lastSafe = new HashMap<>();
     private boolean displayReady;
     private final Set<UUID> admitted = new LinkedHashSet<>();
+    private UUID leader;
 
     public ArenaSession(AbyssParties parties, ServerLevel level, AbyssPlayers.Profile profile) {
         this.parties = parties; this.level = level; this.profile = profile;
+        this.leader = profile.owner;
         this.controller = new FloorController(this, FloorCatalog::snapshot);
         AbyssDimension.initializeArena(level, profile);
     }
@@ -38,15 +45,16 @@ public final class ArenaSession {
     public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
             com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycleLineup(floor, wave, definition); }
     public UUID host() { return profile.owner; }
+    /** Leadership can change without moving the arena or its saved reward bundle. */
+    public boolean isLeader(ServerPlayer player) { return player.getUUID().equals(leader); }
     public ArenaBounds bounds() { return profile.bounds(); }
     public FloorController controller() { return controller; }
     public boolean selectFloor(ServerPlayer player, int floor) { return parties.enterFloor(player, floor); }
+    public boolean canAdvance(ServerPlayer player) {
+        return !looting() && parties.profile(player.getUUID()).progress.claimed(controller.currentFloor());
+    }
     public Set<UUID> participants() { return Set.copyOf(participants); }
     public Set<UUID> rewardParticipants() { return Set.copyOf(rewardParticipants); }
-    public Set<UUID> eligibleRewards() {
-        return rewardParticipants.stream().filter(id -> parties.rewardEligible(id, profile.progress.floor()))
-                .collect(java.util.stream.Collectors.toSet());
-    }
     public boolean partyCanEnterFloor(ServerPlayer requester, int floor) {
         for (ServerPlayer player : players()) if (!parties.checkUnlocked(requester, player, floor)) return false;
         return true;
@@ -54,10 +62,61 @@ public final class ArenaSession {
     public Set<UUID> admitted() { return Set.copyOf(admitted); }
     public boolean contains(ServerPlayer player) { return admitted.contains(player.getUUID()) && player.level() == level; }
     public List<ServerPlayer> players() {
-        return level.players().stream().filter(this::contains).toList();
+        return level.players().stream().filter(this::contains).filter(p -> !p.hasDisconnected()).toList();
     }
     public boolean canAdmit(UUID player) {
-        return !controller.active() || participants.contains(player);
+        if (looting()) return admitted.contains(player) || admitted.isEmpty() && player.equals(host());
+        return !controller.active() || admitted.contains(player) && participants.contains(player);
+    }
+    public boolean looting() {
+        if (profile.progress.hasPayouts()) return true;
+        for (int tier = 1; tier <= displayedTiers; tier++) if (!eligibleForTier(tier).isEmpty()) return true;
+        return false;
+    }
+    private List<ServerPlayer> eligibleForTier(int tier) {
+        if (offeredRewards == null) return List.of();
+        var present = players().stream().filter(p -> p.isAlive() && !p.isSpectator()).toList();
+        var eligible = ChallengeRewards.eligible(rewardParticipants, present.stream().map(ServerPlayer::getUUID).toList(),
+                id -> parties.profile(id).progress, controller.currentFloor(), tier, attemptStars);
+        return present.stream().filter(p -> eligible.contains(p.getUUID())).toList();
+    }
+    public void completeChallenge(int[] stars, FloorDefinition.Rewards rewards) {
+        attemptStars = stars.clone(); offeredRewards = rewards;
+        displayedTiers = 0;
+        players().forEach(player -> player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                "message.spiral_abyss.challenge_result", controller.currentFloor(), Arrays.stream(stars).sum())));
+        for (ServerPlayer player : players()) {
+            if (!rewardParticipants.contains(player.getUUID())) continue;
+            var progress = parties.profile(player.getUUID()).progress;
+            displayedTiers = Math.max(displayedTiers, Arrays.stream(progress.projectedStars(controller.currentFloor(), stars)).sum() / 3);
+        }
+    }
+    public boolean openReward(ServerPlayer opener, int tier) {
+        if (tier < 1 || tier > displayedTiers || controller.active() || !rewardParticipants.contains(opener.getUUID())) return false;
+        var payout = profile.progress.payout(tier);
+        if (payout.chestTicks() >= 0) return false;
+        var eligible = eligibleForTier(tier);
+        if (eligible.isEmpty()) {
+            // A replay may improve a wave without crossing a new chest threshold. Clicking
+            // its already claimed chest records that improvement, but never rerolls loot.
+            var personal = parties.profile(opener.getUUID()).progress;
+            if (personal.tierClaimed(controller.currentFloor(), tier)) personal.recordStars(controller.currentFloor(), attemptStars);
+            refreshDisplay();
+            return false;
+        }
+        // One third of the solo floor budget per eligible member and per new tier.
+        // Resolve the roster now: departed clones neither increase drops nor receive credit.
+        var bundle = FloorRewards.roll(level, chestPosition(tier), offeredRewards, ChallengeRewards.scale(eligible.size()));
+        for (ServerPlayer player : eligible)
+            parties.profile(player.getUUID()).progress.commitClaim(controller.currentFloor(), tier, attemptStars);
+        var personal = parties.profile(opener.getUUID()).progress;
+        if (personal.tierClaimed(controller.currentFloor(), tier)) personal.recordStars(controller.currentFloor(), attemptStars);
+        payout.begin(bundle);
+        refreshDisplay();
+        return true;
+    }
+    private Vec3 chestPosition(int tier) {
+        return bounds().center().add(tier == 2 ? -4 : tier == 3 ? 4 : 0, 0, tier > 1 ? 2 : 0);
     }
     public void admit(ServerPlayer player) {
         admitted.add(player.getUUID());
@@ -68,18 +127,33 @@ public final class ArenaSession {
             defeated.add(player.getUUID()); markDefeated(player); player.setGameMode(GameType.SPECTATOR);
         } else if (!mark.isEmpty()) recover(player, true);
     }
-    public void remove(UUID player) { admitted.remove(player); lastSafe.remove(player); }
+    public void remove(UUID player) {
+        admitted.remove(player); lastSafe.remove(player); rewardParticipants.remove(player);
+        var remaining = players();
+        if (player.equals(leader) && !remaining.isEmpty()) {
+            ServerPlayer next = remaining.get(level.random.nextInt(remaining.size()));
+            leader = next.getUUID();
+            remaining.forEach(member -> member.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "message.spiral_abyss.host_changed", next.getDisplayName())));
+        }
+        // A departure can be the final living teammate even while spectators remain online.
+        if (controller.active() && combatants().isEmpty()) controller.defeated();
+    }
     public boolean captureParty() {
         var living = players().stream().filter(p -> p.isAlive() && !p.isSpectator()).toList();
-        if (living.stream().noneMatch(p -> p.getUUID().equals(host()))) return false;
+        if (living.stream().noneMatch(this::isLeader)) return false;
         participants.clear(); rewardParticipants.clear(); defeated.clear();
+        offeredRewards = null; attemptStars = new int[3]; displayedTiers = 0;
         living.forEach(p -> {
             participants.add(p.getUUID());
-            if (parties.rewardEligible(p.getUUID(), profile.progress.floor())) rewardParticipants.add(p.getUUID());
+            rewardParticipants.add(p.getUUID());
         });
         return true;
     }
-    public void clearParticipants() { participants.clear(); rewardParticipants.clear(); }
+    public void clearParticipants() {
+        participants.clear(); rewardParticipants.clear(); offeredRewards = null;
+        attemptStars = new int[3]; displayedTiers = 0;
+    }
     public boolean isCombatant(ServerPlayer player) {
         return contains(player) && participants.contains(player.getUUID()) && !defeated.contains(player.getUUID())
                 && player.isAlive() && !player.isSpectator();
@@ -155,39 +229,35 @@ public final class ArenaSession {
     public void tick() {
         // Entity persistence loads asynchronously. Never create replacement furniture before that finishes.
         BlockPos center = BlockPos.containing(bounds().center());
-        if (!displayReady && level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(center).toLong())) { displayReady = true; refreshDisplay(); }
+        if (!displayReady && level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(center).toLong())) {
+            clearDroppedRewards();
+            displayReady = true; refreshDisplay();
+        }
         for (ServerPlayer player : players()) {
             if (waitingForParty(player) && !player.isSpectator()) player.setGameMode(GameType.SPECTATOR);
             containPlayer(player);
         }
         if (!displayReady) return;
         controller.tick();
-        var progress = profile.progress;
-        if (progress.chestTicks() >= 0) {
-            progress.tickOpening();
-            if (progress.pending() != null && progress.chestTicks() >= RewardChestEntity.OPEN_TICKS) {
-                FloorRewards.Bundle bundle = progress.pending();
-                if (!progress.beneficiaries().isEmpty()) {
-                    // Credit the party once; keep the saved bundle until all stacks have been dispensed.
-                    parties.claim(progress.beneficiaries(), progress.floor());
-                    progress.markBeneficiariesClaimed();
-                }
-                int shakingTicks = progress.chestTicks() - RewardChestEntity.OPEN_TICKS;
+        for (int tier = 1; tier <= 3; tier++) {
+            var payout = profile.progress.payout(tier);
+            if (payout.chestTicks() < 0) continue;
+            payout.tickOpening();
+            var bundle = payout.pending();
+            if (bundle != null && payout.chestTicks() >= RewardChestEntity.OPEN_TICKS) {
+                int shakingTicks = payout.chestTicks() - RewardChestEntity.OPEN_TICKS;
                 if (shakingTicks % RewardChestEntity.DROP_INTERVAL_TICKS == 0) {
-                    var stack = progress.takeNextReward();
-                    if (stack != null) FloorRewards.releaseItem(level, bounds().center(), stack);
+                    var stack = payout.takeNextReward();
+                    if (stack != null) FloorRewards.releaseItem(level, chestPosition(tier), stack);
                 }
-                // Leave a full interval after the final pop, and shake for at least two seconds.
-                if (progress.releasedItems() >= bundle.items().size()
+                if (payout.releasedItems() >= bundle.items().size()
                         && shakingTicks >= Math.max(RewardChestEntity.SHAKE_TICKS,
                         (long) bundle.items().size() * RewardChestEntity.DROP_INTERVAL_TICKS)) {
                     int experience = bundle.experience();
-                    progress.claimOpenedChest();
-                    FloorRewards.releaseExperience(level, bounds().center(), experience);
+                    payout.complete();
+                    FloorRewards.releaseExperience(level, chestPosition(tier), experience);
                 }
             }
-            if (progress.pending() == null && progress.chestTicks() >= RewardChestEntity.OPEN_TICKS + RewardChestEntity.SHAKE_TICKS)
-                progress.finishOpening();
             refreshDisplay();
         }
         if (level.getGameTime() % 20 == 0) refreshDisplay();
@@ -219,19 +289,20 @@ public final class ArenaSession {
     public void refreshDisplay() {
         if (!displayReady) return;
         List<ArenaInteractable> furniture = level.getEntitiesOfClass(ArenaInteractable.class, bounds().structureArea());
-        boolean chest = controller.showsChest();
         boolean hide = controller.active();
-        ArenaInteractable keeper = null;
+        int chestCount = displayedTiers;
+        for (int tier = 1; tier <= 3; tier++) if (profile.progress.payout(tier).chestTicks() >= 0) chestCount = Math.max(chestCount, tier);
+        boolean showChests = controller.showsChest() && chestCount > 0;
+        KeyEntity key = null;
         ScrollEntity scroll = null;
+        Map<Integer, RewardChestEntity> chests = new HashMap<>();
         for (ArenaInteractable entity : furniture) {
-            if (entity instanceof ScrollEntity candidate) {
-                if (!hide && scroll == null && host().equals(entity.arenaHost())) scroll = candidate;
-                else entity.discard();
-                continue;
-            }
-            if (!hide && keeper == null && host().equals(entity.arenaHost())
-                    && ((chest && entity instanceof RewardChestEntity) || (!chest && entity instanceof KeyEntity))) keeper = entity;
-            else entity.discard();
+            if (hide || !host().equals(entity.arenaHost())) { entity.discard(); continue; }
+            if (entity instanceof ScrollEntity candidate && scroll == null) { scroll = candidate; continue; }
+            if (entity instanceof KeyEntity candidate && !showChests && key == null) { key = candidate; continue; }
+            if (entity instanceof RewardChestEntity candidate && showChests && candidate.tier() <= chestCount
+                    && !chests.containsKey(candidate.tier())) { chests.put(candidate.tier(), candidate); continue; }
+            entity.discard();
         }
         if (hide) return;
         if (scroll == null) {
@@ -240,30 +311,41 @@ public final class ArenaSession {
                 scroll.setArenaHost(host());
                 Vec3 position = bounds().entrance().add(0, 1, 20);
                 scroll.moveTo(position.x, position.y, position.z, 180, 0);
-                // No-AI furniture does not initialize its rendered body yaw from moveTo.
                 scroll.yBodyRot = scroll.yBodyRotO = 180;
                 scroll.yHeadRot = scroll.yHeadRotO = 180;
                 level.addFreshEntity(scroll);
             }
         }
-        if (keeper == null) {
-            keeper = chest ? EntityInit.REWARD_CHEST.get().create(level) : EntityInit.KEY_ENTITY.get().create(level);
-            if (keeper == null) return;
-            keeper.setArenaHost(host());
-            keeper.moveTo(bounds().center().x, bounds().center().y, bounds().center().z, 0, 0);
-            level.addFreshEntity(keeper);
+        if (!showChests && key == null) {
+            key = EntityInit.KEY_ENTITY.get().create(level);
+            if (key != null) {
+                key.setArenaHost(host()); key.moveTo(bounds().center().x, bounds().center().y, bounds().center().z, 0, 0);
+                level.addFreshEntity(key);
+            }
         }
-        if (keeper instanceof RewardChestEntity rewardChest) {
-            int ticks = profile.progress.chestTicks();
+        if (!showChests) return;
+        for (int tier = 1; tier <= chestCount; tier++) {
+            RewardChestEntity chest = chests.get(tier);
+            Vec3 position = chestPosition(tier);
+            if (chest == null) {
+                chest = EntityInit.REWARD_CHEST.get().create(level);
+                if (chest == null) continue;
+                chest.setArenaHost(host()); chest.setTier(tier);
+                chest.moveTo(position.x, position.y, position.z, 0, 0); level.addFreshEntity(chest);
+            } else if (chest.position().distanceToSqr(position) > 0.0001) {
+                chest.teleportTo(position.x, position.y, position.z);
+            }
+            int ticks = profile.progress.payout(tier).chestTicks();
             int phase = ticks >= 0 ? (ticks < RewardChestEntity.OPEN_TICKS ? RewardChestEntity.OPEN : RewardChestEntity.SHAKE)
-                    : profile.progress.pending() != null ? RewardChestEntity.IDLE : RewardChestEntity.LOOTED;
+                    : !eligibleForTier(tier).isEmpty() ? RewardChestEntity.IDLE : RewardChestEntity.LOOTED;
             long start = ticks < 0 ? 0 : level.getGameTime() - ticks + (phase == RewardChestEntity.SHAKE ? RewardChestEntity.OPEN_TICKS : 0);
-            rewardChest.setPhase(phase, start);
+            chest.setPhase(phase, start);
         }
     }
 
     /** Restore blocks without changing claims, pending rewards, or chest opening progress. */
     public void restoreStructure() {
+        clearDroppedRewards();
         AbyssDimension.restoreArena(level, profile);
         lastSafe.clear();
         players().forEach(this::returnToEntrance);
@@ -282,7 +364,18 @@ public final class ArenaSession {
     public void close() {
         controller.close();
         clearParticipants();
+        clearDroppedRewards();
         level.getEntitiesOfClass(ArenaInteractable.class, bounds().structureArea()).forEach(Entity::discard);
         AbyssDimension.releaseArena(level, profile);
+    }
+
+    /** All floors share the same physical slot; loose loot belongs only to the previous visit. */
+    private void clearDroppedRewards() {
+        Vec3 center = bounds().center();
+        var area = new net.minecraft.world.phys.AABB(center.x - ArenaBounds.FLIGHT_RADIUS, level.getMinBuildHeight(),
+                center.z - ArenaBounds.FLIGHT_RADIUS, center.x + ArenaBounds.FLIGHT_RADIUS,
+                level.getMaxBuildHeight(), center.z + ArenaBounds.FLIGHT_RADIUS);
+        level.getEntities((Entity) null, area, entity -> entity instanceof net.minecraft.world.entity.item.ItemEntity
+                || entity instanceof ExperienceOrb).forEach(Entity::discard);
     }
 }

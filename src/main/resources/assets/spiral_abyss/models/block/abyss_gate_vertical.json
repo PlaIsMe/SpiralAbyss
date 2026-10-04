@@ -1,0 +1,26 @@
+{
+	"format_version": "26.3",
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:block/block",
+	"render_type": "minecraft:cutout",
+	"textures": {
+		"particle": "spiral_abyss:block/abyss_gate_1",
+		"wall": "spiral_abyss:block/abyss_gate_1"
+	},
+	"elements": [
+		{
+			"name": "Center post",
+			"from": [4, 0, 0],
+			"to": [12, 16, 8],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, 0, -4]},
+			"faces": {
+				"north": {"uv": [5, 0, 11, 16], "texture": "#wall"},
+				"east": {"uv": [5, 0, 11, 16], "texture": "#wall"},
+				"south": {"uv": [5, 0, 11, 16], "texture": "#wall"},
+				"west": {"uv": [5, 0, 11, 16], "texture": "#wall"},
+				"up": {"uv": [11, 0, 16, 16], "texture": "#wall"},
+				"down": {"uv": [0, 0, 5, 16], "texture": "#wall"}
+			}
+		}
+	]
+}

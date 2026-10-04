@@ -1,0 +1,15 @@
+[
+  [
+    "minecraft:evoker",
+    {
+      "loot_table": "minecraft:chests/pillager_outpost",
+      "weight": 1,
+      "chance": 0.65
+    },
+    {
+      "loot_table": "minecraft:chests/woodland_mansion",
+      "weight": 1,
+      "chance": 0.4
+    }
+  ]
+]

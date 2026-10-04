@@ -1,0 +1,62 @@
+{
+	"format_version": "26.3",
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:block/block",
+	"ambientocclusion": false,
+	"render_type": "minecraft:cutout",
+	"textures": {
+		"1": "spiral_abyss:block/abyss_gate_activate_side",
+		"particle": "spiral_abyss:block/abyss_gate_activate_side",
+		"north": "spiral_abyss:block/abyss_gate_activate_face"
+	},
+	"elements": [
+		{
+			"from": [8, 8, -4],
+			"to": [20, 20, 8],
+			"shade_direction_override": "up",
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 8, -4]},
+			"faces": {
+				"north": {"uv": [0, 0, 16, 16], "texture": "#1"},
+				"east": {"uv": [0, 0, 16, 16], "texture": "#1"},
+				"south": {"uv": [0, 0, 16, 16], "texture": "#north"},
+				"west": {"uv": [0, 0, 16, 16], "texture": "#1"},
+				"up": {"uv": [0, 0, 16, 16], "texture": "#1"},
+				"down": {"uv": [0, 0, 16, 16], "texture": "#1"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"translation": [0, -2.5, 4.25],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"thirdperson_lefthand": {
+			"translation": [0, -2.5, 4.25],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"firstperson_righthand": {
+			"translation": [0, 0, 2.5],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"firstperson_lefthand": {
+			"translation": [0, 0, 2.5],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"ground": {
+			"translation": [0, 0, 4]
+		},
+		"gui": {
+			"rotation": [-14, -25, 0],
+			"translation": [-1.25, -5.75, 0],
+			"scale": [0.8, 0.8, 0.8]
+		},
+		"fixed": {
+			"translation": [0, -7, 0]
+		},
+		"on_shelf": {
+			"rotation": [-14, -25, 0],
+			"translation": [-1.25, -5.75, 2.75],
+			"scale": [0.8, 0.8, 0.8]
+		}
+	}
+}

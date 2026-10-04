@@ -14,11 +14,11 @@ public final class FloorParser {
 
     public static FloorDefinition parse(int number, JsonObject floor, SortedMap<Integer, JsonObject> waves) {
         require(number >= 1 && number <= MAX_FLOORS, "floor number must be 1..6");
-        require(!waves.isEmpty() && waves.size() <= 100, "a floor needs 1..100 waves");
+        require(waves.size() == 3, "a challenge floor needs exactly three waves");
         double health = scale(floor, "health_scale", 1);
         double damage = scale(floor, "damage_scale", 1);
-        int delay = integer(floor, "wave_delay", 5, 0, 300) * 20;
-        int ticks = integer(floor, "total_time", 360, 1, 86400) * 20;
+        int delay = com.pla.spiral_abyss.encounter.WaveChallenges.TRANSITION_TICKS;
+        int ticks = com.pla.spiral_abyss.encounter.WaveChallenges.TIME_LIMIT_TICKS;
         JsonObject loot = floor.has("rewards") ? object(floor.get("rewards"), "rewards") : new JsonObject();
         List<FloorDefinition.RewardEntry> entries = new ArrayList<>();
         if (loot.has("loot_tables")) {
@@ -28,26 +28,11 @@ public final class FloorParser {
         if (loot.has("entries")) {
             for (JsonElement entry : array(loot.get("entries"), "entries")) {
                 JsonObject spec = object(entry, "reward entry");
-                require(spec.has("item") != spec.has("loot_table"), "reward needs exactly one of item or loot_table");
-                boolean item = spec.has("item");
-                ResourceLocation rewardId = id(spec.get(item ? "item" : "loot_table"));
-                // Optional mod rewards are resolved at payout time, after loot tables have loaded.
-                int min = integer(spec, "min_count", integer(spec, "count", 1, 1, 4096), 1, 4096);
-                int max = integer(spec, "max_count", min, min, 4096);
-                int weight = integer(spec, "weight", 1, 1, 10000);
-                double chance = 1;
-                if (spec.has("chance")) {
-                    JsonElement value = spec.get("chance");
-                    require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber(), "chance must be a number");
-                    chance = value.getAsDouble();
-                    require(Double.isFinite(chance) && chance >= 0 && chance <= 1, "chance must be 0..1");
-                }
-                entries.add(new FloorDefinition.RewardEntry(rewardId, item, min, max, weight, chance));
+                entries.add(rewardEntry(spec, 1));
             }
         }
         require(entries.size() <= 64, "at most 64 reward entries are allowed");
         int rolls = integer(loot, "rolls", entries.isEmpty() ? 0 : 1, 0, 100);
-        require(rolls == 0 || !entries.isEmpty(), "reward rolls require entries or loot_tables");
         int experience = integer(loot, "experience", 0, 0, 100000);
         List<FloorDefinition.Wave> parsed = new ArrayList<>();
         for (var entry : waves.entrySet()) {
@@ -62,7 +47,7 @@ public final class FloorParser {
                 count += amount;
             }
             Set<String> known = new HashSet<>(List.of("total_time", "health_scale", "damage_scale", "bosses"));
-            // Accept old wave total_time fields for existing packs, but only floor.json controls the clock.
+            // Legacy total_time fields are accepted; challenge timing is fixed at five minutes per wave.
             for (MobCategory category : MobCategory.values()) known.add(category.key());
             for (String key : wave.keySet()) require(known.contains(key), "unknown wave field: " + key);
             // Explicit IDs remain supported for existing datapacks and fixed encounters.
@@ -92,6 +77,23 @@ public final class FloorParser {
         return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
     }
 
+    public static FloorDefinition.RewardEntry rewardEntry(JsonObject spec, double defaultChance) {
+        require(spec.has("item") != spec.has("loot_table"), "reward needs exactly one of item or loot_table");
+        boolean item = spec.has("item");
+        ResourceLocation rewardId = id(spec.get(item ? "item" : "loot_table"));
+        int min = integer(spec, "min_count", integer(spec, "count", 1, 1, 4096), 1, 4096);
+        int max = integer(spec, "max_count", min, min, 4096);
+        int weight = integer(spec, "weight", 1, 1, 10000);
+        double chance = defaultChance;
+        if (spec.has("chance")) {
+            JsonElement value = spec.get("chance");
+            require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber(), "chance must be a number");
+            chance = value.getAsDouble();
+            require(Double.isFinite(chance) && chance >= 0 && chance <= 1, "chance must be 0..1");
+        }
+        return new FloorDefinition.RewardEntry(rewardId, item, min, max, weight, chance);
+    }
+
     private static double scale(JsonObject obj, String key, double fallback) {
         if (!obj.has(key)) return fallback;
         JsonElement value = obj.get(key);
@@ -111,7 +113,7 @@ public final class FloorParser {
         return (int) number;
     }
 
-    private static ResourceLocation id(JsonElement element) {
+    public static ResourceLocation id(JsonElement element) {
         require(element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString(),
                 "resource ids must be strings");
         ResourceLocation id = ResourceLocation.tryParse(element.getAsString());

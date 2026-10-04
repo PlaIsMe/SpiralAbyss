@@ -1,7 +1,6 @@
 package com.pla.spiral_abyss.world;
 
-import com.pla.spiral_abyss.block.AbyssPortalAnchorBlock;
-import com.pla.spiral_abyss.block.AbyssPortalBlock;
+import com.pla.spiral_abyss.block.*;
 import com.pla.spiral_abyss.init.BlockInit;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,39 +13,50 @@ import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
-/** Seven-by-seven ring, rooted at its bottom-center slab. The axis runs across its width. */
-public record AbyssPortalFrame(BlockPos base, Direction.Axis axis) {
-    public AbyssPortalFrame { base = base.immutable(); }
+/** Five-wide, six-high gate ring, rooted at its bottom-center slab. The axis runs across its width. */
+public record AbyssPortalFrame(BlockPos base, Direction front) {
+    public static final int TOP = 5;
+    public static final int RADIUS = 2;
+    public AbyssPortalFrame {
+        base = base.immutable();
+        if (!front.getAxis().isHorizontal()) throw new IllegalArgumentException("Horizontal portal facing required");
+    }
+    public Direction.Axis axis() { return front.getAxis() == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X; }
+    public BlockPos anchor() { return at(0, TOP).relative(front); }
+    public static AbyssPortalFrame fromActivation(BlockPos pos, BlockState state) {
+        Direction front = state.getValue(AbyssGateActivationBlock.FACING);
+        return new AbyssPortalFrame(pos.relative(front.getOpposite()).below(TOP), front);
+    }
+    private boolean hasActivator(Level level) {
+        BlockState state = level.getBlockState(anchor());
+        return state.is(BlockInit.ABYSS_GATE_ACTIVATE_BLOCK.get()) && state.getValue(AbyssGateActivationBlock.FACING) == front;
+    }
 
     public BlockPos at(int across, int up) {
-        return base.offset(axis == Direction.Axis.X ? across : 0, up, axis == Direction.Axis.Z ? across : 0);
+        return base.offset(axis() == Direction.Axis.X ? across : 0, up, axis() == Direction.Axis.Z ? across : 0);
     }
 
     public List<BlockPos> opening() {
-        List<BlockPos> result = new ArrayList<>(21);
-        for (int y = 1; y <= 5; y++) {
-            int width = y == 1 || y == 5 ? 1 : 2;
+        List<BlockPos> result = new ArrayList<>(12);
+        for (int y = 1; y < TOP; y++) {
+            int width = 1;
             for (int x = -width; x <= width; x++) result.add(at(x, y));
         }
         return result;
     }
 
     public boolean loaded(Level level) {
-        return level.hasChunksAt(at(-3, 0), at(3, 6));
+        return level.hasChunksAt(at(-RADIUS, 0), at(RADIUS, TOP)) && level.hasChunkAt(anchor());
     }
 
     public boolean validFrame(Level level) {
         if (!loaded(level)) return false;
-        for (int y = 0; y <= 6; y++) {
-            for (int x = -3; x <= 3; x++) {
+        for (int y = 0; y <= TOP; y++) {
+            for (int x = -RADIUS; x <= RADIUS; x++) {
                 BlockState expected = expectedFrameState(x, y);
                 if (expected == null) continue;
                 BlockState actual = level.getBlockState(at(x, y));
-                if (x == 0 && y == 0 && actual.is(BlockInit.ABYSS_PORTAL_ANCHOR.get())) {
-                    if (actual.getValue(AbyssPortalAnchorBlock.AXIS) != axis
-                            || actual.getValue(SlabBlock.TYPE) != SlabType.BOTTOM
-                            || actual.getValue(SlabBlock.WATERLOGGED)) return false;
-                } else if (!actual.equals(expected)) return false;
+                if (!actual.equals(expected)) return false;
             }
         }
         return true;
@@ -54,40 +64,44 @@ public record AbyssPortalFrame(BlockPos base, Direction.Axis axis) {
 
     /** Null marks positions outside the frame, including its opening. */
     public BlockState expectedFrameState(int x, int y) {
-        if ((y == 0 || y == 6) && Math.abs(x) <= 1) {
+        if ((y == 0 || y == TOP) && Math.abs(x) <= 1) {
             boolean bottom = (y == 0) == (x == 0);
-            return Blocks.POLISHED_ANDESITE_SLAB.defaultBlockState()
+            return BlockInit.ABYSS_GATE_HORIZONTAL.get().defaultBlockState().setValue(AbyssGateSlabBlock.AXIS, axis())
                     .setValue(SlabBlock.TYPE, bottom ? SlabType.BOTTOM : SlabType.TOP);
         }
-        if ((y == 1 || y == 5) && Math.abs(x) == 2) {
-            Direction outward = axis == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
-            if (x < 0) outward = outward.getOpposite();
-            return Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState()
-                    .setValue(StairBlock.FACING, outward)
-                    .setValue(StairBlock.HALF, y == 1 ? Half.BOTTOM : Half.TOP)
-                    .setValue(StairBlock.SHAPE, StairsShape.STRAIGHT);
+        if ((y == 1 || y == TOP - 1) && Math.abs(x) == 2) {
+            Direction inward = axis() == Direction.Axis.X ? Direction.WEST : Direction.NORTH;
+            if (x < 0) inward = inward.getOpposite();
+            return BlockInit.ABYSS_GATE_CURVE.get().defaultBlockState()
+                    .setValue(AbyssGateCurveBlock.FACING, inward)
+                    .setValue(AbyssGateCurveBlock.HALF, y == 1 ? Half.TOP : Half.BOTTOM);
         }
-        return y >= 2 && y <= 4 && Math.abs(x) == 3 ? Blocks.POLISHED_ANDESITE.defaultBlockState() : null;
+        if (y >= 2 && y < TOP - 1 && Math.abs(x) == RADIUS) {
+            Direction outward = axis() == Direction.Axis.X ? Direction.EAST : Direction.SOUTH;
+            if (x < 0) outward = outward.getOpposite();
+            return BlockInit.ABYSS_GATE_VERTICAL.get().defaultBlockState().setValue(AbyssGateVerticalBlock.FACING, outward);
+        }
+        return null;
     }
 
     public boolean active(Level level) {
-        return level.getBlockState(base).is(BlockInit.ABYSS_PORTAL_ANCHOR.get()) && validFrame(level)
+        return loaded(level) && hasActivator(level) && level.getBlockState(anchor()).getValue(AbyssGateActivationBlock.ACTIVE) && validFrame(level)
                 && opening().stream().allMatch(p -> portalCell(level.getBlockState(p)));
     }
 
     private boolean portalCell(BlockState state) {
-        return state.is(BlockInit.ABYSS_PORTAL.get()) && state.getValue(AbyssPortalBlock.AXIS) == axis;
+        return state.is(BlockInit.ABYSS_PORTAL.get()) && state.getValue(AbyssPortalBlock.AXIS) == axis();
     }
 
     public boolean activate(ServerLevel level) {
-        if (!level.dimension().equals(Level.OVERWORLD) || !validFrame(level)
-                || !opening().stream().allMatch(p -> level.getBlockState(p).isAir())
-                || !level.getWorldBorder().isWithinBounds(at(-3, 0))
-                || !level.getWorldBorder().isWithinBounds(at(3, 6))) return false;
-        level.setBlock(base, BlockInit.ABYSS_PORTAL_ANCHOR.get().defaultBlockState()
-                .setValue(AbyssPortalAnchorBlock.AXIS, axis), Block.UPDATE_CLIENTS);
+        if (!level.dimension().equals(Level.OVERWORLD) || !validFrame(level) || !hasActivator(level)
+                || !opening().stream().allMatch(p -> (level.getBlockState(p).isAir() || portalCell(level.getBlockState(p))))
+                || !level.getWorldBorder().isWithinBounds(anchor())
+                || !level.getWorldBorder().isWithinBounds(at(-RADIUS, 0))
+                || !level.getWorldBorder().isWithinBounds(at(RADIUS, TOP))) return false;
+        level.setBlock(anchor(), level.getBlockState(anchor()).setValue(AbyssGateActivationBlock.ACTIVE, true), Block.UPDATE_CLIENTS);
         for (BlockPos pos : opening()) level.setBlock(pos, BlockInit.ABYSS_PORTAL.get().defaultBlockState()
-                .setValue(AbyssPortalBlock.AXIS, axis), Block.UPDATE_CLIENTS);
+                .setValue(AbyssPortalBlock.AXIS, axis()), Block.UPDATE_CLIENTS);
         if (active(level)) return true;
         deactivate(level);
         return false;
@@ -95,8 +109,8 @@ public record AbyssPortalFrame(BlockPos base, Direction.Axis axis) {
 
     public void deactivate(Level level) {
         clearOpening(level);
-        if (level.getBlockState(base).is(BlockInit.ABYSS_PORTAL_ANCHOR.get()))
-            level.setBlock(base, Blocks.POLISHED_ANDESITE_SLAB.defaultBlockState(), Block.UPDATE_ALL);
+        if (level.hasChunkAt(anchor()) && hasActivator(level))
+            level.setBlock(anchor(), level.getBlockState(anchor()).setValue(AbyssGateActivationBlock.ACTIVE, false), Block.UPDATE_CLIENTS);
     }
 
     public void clearOpening(Level level) {
@@ -107,24 +121,17 @@ public record AbyssPortalFrame(BlockPos base, Direction.Axis axis) {
         }
     }
 
-    public static Optional<AbyssPortalFrame> fromBottomSlab(Level level, BlockPos pos) {
-        for (Direction.Axis axis : List.of(Direction.Axis.X, Direction.Axis.Z)) {
-            var frame = new AbyssPortalFrame(pos, axis);
-            if (frame.validFrame(level)) return Optional.of(frame);
-        }
-        return Optional.empty();
-    }
-
     public static Optional<AbyssPortalFrame> fromOpening(Level level, BlockPos pos, Direction.Axis axis) {
-        for (int y = 1; y <= 5; y++) {
-            int width = y == 1 || y == 5 ? 1 : 2;
+        for (int y = 1; y < TOP; y++) {
+            int width = 1;
             for (int x = -width; x <= width; x++) {
-                var frame = new AbyssPortalFrame(pos.offset(axis == Direction.Axis.X ? -x : 0, -y,
-                        axis == Direction.Axis.Z ? -x : 0), axis);
-                if (!level.hasChunkAt(frame.base)) continue;
-                BlockState state = level.getBlockState(frame.base);
-                if (state.is(BlockInit.ABYSS_PORTAL_ANCHOR.get()) && state.getValue(AbyssPortalAnchorBlock.AXIS) == axis)
-                    return Optional.of(frame);
+                BlockPos base = pos.offset(axis == Direction.Axis.X ? -x : 0, -y, axis == Direction.Axis.Z ? -x : 0);
+                for (Direction front : Direction.Plane.HORIZONTAL) {
+                    if (front.getAxis() == axis) continue;
+                    var frame = new AbyssPortalFrame(base, front);
+                    if (level.hasChunkAt(frame.anchor()) && frame.hasActivator(level)
+                            && level.getBlockState(frame.anchor()).getValue(AbyssGateActivationBlock.ACTIVE)) return Optional.of(frame);
+                }
             }
         }
         return Optional.empty();
@@ -133,12 +140,12 @@ public record AbyssPortalFrame(BlockPos base, Direction.Axis axis) {
     /** Save a grounded return point beside the ring, rather than inside its teleport surface. */
     public Vec3 returnPosition(ServerPlayer player) {
         Level level = player.level();
-        double side = axis == Direction.Axis.X ? player.getZ() - base.getZ() - 0.5 : player.getX() - base.getX() - 0.5;
+        double side = axis() == Direction.Axis.X ? player.getZ() - base.getZ() - 0.5 : player.getX() - base.getX() - 0.5;
         int sign = side < 0 ? -1 : 1;
         for (int facing : new int[] {sign, -sign}) {
             for (int distance = 2; distance <= 4; distance++) {
-                BlockPos column = base.offset(axis == Direction.Axis.Z ? facing * distance : 0, 0,
-                        axis == Direction.Axis.X ? facing * distance : 0);
+                BlockPos column = base.offset(axis() == Direction.Axis.Z ? facing * distance : 0, 0,
+                        axis() == Direction.Axis.X ? facing * distance : 0);
                 for (int y = 2; y >= -4; y--) {
                     BlockPos floor = column.above(y);
                     if (!level.hasChunkAt(floor)) continue;

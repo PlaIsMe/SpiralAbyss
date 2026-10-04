@@ -16,17 +16,22 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
     @Override public void render(AbyssPortalBlockEntity entity, float partialTick, PoseStack pose,
                                  MultiBufferSource buffers, int light, int overlay) {
+        if (!entity.getBlockState().getValue(com.pla.spiral_abyss.block.AbyssGateActivationBlock.ACTIVE)) return;
+        pose.pushPose();
+        var offset = entity.frame().base().subtract(entity.getBlockPos());
+        pose.translate(offset.getX(), offset.getY(), offset.getZ());
         VertexConsumer vertices = buffers.getBuffer(RenderType.endPortal());
         Matrix4f matrix = pose.last().pose();
         boolean xAxis = entity.frame().axis() == Direction.Axis.X;
         strip(vertices, matrix, xAxis, 0, 1, 0.5F, 1);
         strip(vertices, matrix, xAxis, -1, 2, 1, 1.5F);
         strip(vertices, matrix, xAxis, -1.5F, 2.5F, 1.5F, 2);
-        strip(vertices, matrix, xAxis, -2, 3, 2, 5);
-        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 5, 5.5F);
-        strip(vertices, matrix, xAxis, -1, 2, 5.5F, 6);
-        strip(vertices, matrix, xAxis, 0, 1, 6, 6.5F);
+        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 2, 4);
+        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 4, 4.5F);
+        strip(vertices, matrix, xAxis, -1, 2, 4.5F, 5);
+        strip(vertices, matrix, xAxis, 0, 1, 5, 5.5F);
         renderFloor(entity, pose, buffers, xAxis);
+        pose.popPose();
     }
     private void renderFloor(AbyssPortalBlockEntity entity, PoseStack pose, MultiBufferSource buffers, boolean xAxis) {
         if (entity.displayedFloor() == 0) return;
@@ -35,7 +40,7 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
         int color = entity.hostRunning() ? 0xFF555555 : 0xFFFFFFFF;
         for (int side : new int[] {0, 1}) {
             pose.pushPose();
-            pose.translate(0.5, 3.5, 0.5);
+            pose.translate(0.5, 3, 0.5);
             pose.mulPose(Axis.YP.rotationDegrees((xAxis ? 0 : 90) + side * 180));
             pose.translate(0, 0, 0.015);
             pose.scale(0.12F, -0.12F, 0.12F);

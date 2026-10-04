@@ -1,4 +1,9 @@
 {
   "replace": false,
-  "values": ["spiral_abyss:abyss_portal_anchor"]
+  "values": [
+    "spiral_abyss:abyss_gate_vertical",
+    "spiral_abyss:abyss_gate_horizontal",
+    "spiral_abyss:abyss_gate_curve",
+    "spiral_abyss:abyss_gate_activate_block"
+  ]
 }

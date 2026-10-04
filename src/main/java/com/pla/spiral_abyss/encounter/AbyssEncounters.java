@@ -16,7 +16,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssEncounters {
     private AbyssEncounters() {}
-    @SubscribeEvent public static void reload(AddReloadListenerEvent event) { event.addListener(new FloorCatalog()); }
+    @SubscribeEvent public static void reload(AddReloadListenerEvent event) { event.addListener(new com.pla.spiral_abyss.encounter.data.MobCatalog()); event.addListener(new FloorCatalog()); }
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         var level = event.getServer().getLevel(AbyssDimension.LEVEL);
         if (level != null) AbyssParties.configure(level);

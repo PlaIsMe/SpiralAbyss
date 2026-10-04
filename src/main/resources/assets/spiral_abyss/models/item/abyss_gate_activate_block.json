@@ -1,0 +1,11 @@
+{
+  "parent": "spiral_abyss:block/abyss_gate_activate_block",
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "spiral_abyss:item/creative_tab_icon"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 package com.pla.spiral_abyss.block.entity;
 
-import com.pla.spiral_abyss.block.AbyssPortalAnchorBlock;
+import com.pla.spiral_abyss.block.AbyssGateActivationBlock;
 import com.pla.spiral_abyss.init.BlockEntityInit;
 import com.pla.spiral_abyss.world.AbyssPortalFrame;
 import com.pla.spiral_abyss.world.AbyssParties;
@@ -52,16 +52,21 @@ public final class AbyssPortalBlockEntity extends BlockEntity {
         hostRunning = tag.getBoolean("HostRunning");
     }
     public AbyssPortalBlockEntity(BlockPos pos, BlockState state) { super(BlockEntityInit.ABYSS_PORTAL.get(), pos, state); }
-    public AbyssPortalFrame frame() { return new AbyssPortalFrame(worldPosition, getBlockState().getValue(AbyssPortalAnchorBlock.AXIS)); }
+    public AbyssPortalFrame frame() { return AbyssPortalFrame.fromActivation(worldPosition, getBlockState()); }
     public static void tick(Level level, BlockPos pos, BlockState state) {
         if (level.getGameTime() % 5 == 0 && level.getBlockEntity(pos) instanceof AbyssPortalBlockEntity portal)
             portal.refreshIndicator();
         if (level.getGameTime() % 20 != 0) return;
-        var frame = new AbyssPortalFrame(pos, state.getValue(AbyssPortalAnchorBlock.AXIS));
-        if (frame.loaded(level) && (!level.dimension().equals(Level.OVERWORLD) || !frame.active(level)))
-            frame.deactivate(level);
+        var frame = AbyssPortalFrame.fromActivation(pos, state);
+        if (!frame.loaded(level)) return;
+        if (state.getValue(AbyssGateActivationBlock.ACTIVE)) {
+            if (!level.dimension().equals(Level.OVERWORLD) || !frame.active(level)) frame.deactivate(level);
+        } else if (level instanceof ServerLevel serverLevel) {
+            // Completing or repairing the frame also activates its already-placed controller.
+            frame.activate(serverLevel);
+        }
     }
     @Override public AABB getRenderBoundingBox() {
-        return new AABB(frame().at(-3, 0), frame().at(3, 6).offset(1, 1, 1));
+        return new AABB(frame().at(-AbyssPortalFrame.RADIUS, 0), frame().at(AbyssPortalFrame.RADIUS, AbyssPortalFrame.TOP).offset(1, 1, 1));
     }
 }

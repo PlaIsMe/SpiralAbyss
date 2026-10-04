@@ -16,7 +16,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
 
-/** Roll once on victory and save the result; chest opening never rerolls rewards. */
+/** Roll once when claiming a chest for its currently eligible roster, then persist the payout. */
 public final class FloorRewards {
     private FloorRewards() {}
     public static double partyScale(int players) { return players <= 0 ? 0 : 1 + 0.5 * (players - 1); }
@@ -34,6 +34,17 @@ public final class FloorRewards {
             tag.getList("Items", Tag.TAG_COMPOUND).forEach(value -> stacks.add(ItemStack.of((CompoundTag) value)));
             return new Bundle(stacks, tag.getInt("Experience"));
         }
+    }
+    /** Each encountered type contributes once per floor, regardless of counts or repeated waves. */
+    public static FloorDefinition.Rewards withMobRewards(FloorDefinition.Rewards base,
+            Set<net.minecraft.resources.ResourceLocation> encountered,
+            Map<net.minecraft.resources.ResourceLocation, List<FloorDefinition.RewardEntry>> linked) {
+        var entries = new ArrayList<>(base.entries());
+        var additions = new LinkedHashSet<FloorDefinition.RewardEntry>();
+        encountered.forEach(id -> additions.addAll(linked.getOrDefault(id, List.of())));
+        additions.removeAll(base.entries());
+        entries.addAll(additions);
+        return new FloorDefinition.Rewards(List.copyOf(entries), base.rolls(), base.experience());
     }
     public static Bundle roll(ServerLevel level, Vec3 position, FloorDefinition.Rewards rewards, double scale) {
         List<ItemStack> items = new ArrayList<>();

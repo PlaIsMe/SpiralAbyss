@@ -14,6 +14,7 @@ import java.util.*;
 
 /** Server-authoritative portal reservations. Nothing is trusted from a screen except a requested floor. */
 public final class PortalParties {
+    private static final int MENU_TIMEOUT_TICKS = 2400;
     private final AbyssParties parties;
     private final MinecraftServer server;
     private final Map<UUID, Selection> selections = new HashMap<>();
@@ -32,7 +33,7 @@ public final class PortalParties {
     }
 
     public void touch(ServerPlayer player, AbyssPortalFrame frame) {
-        if (!(player.level().getBlockEntity(frame.base()) instanceof AbyssPortalBlockEntity portal)) return;
+        if (!(player.level().getBlockEntity(frame.anchor()) instanceof AbyssPortalBlockEntity portal)) return;
         tick();
         UUID host = portal.host();
         ArenaSession bound = boundSession(portal);
@@ -50,8 +51,9 @@ public final class PortalParties {
         if (own != null) { tell(player, "portal_busy"); return; }
         UUID token = UUID.randomUUID();
         selections.put(player.getUUID(), new Selection(token, portal.portalId(), player.getUUID(), player.level().dimension(),
-                frame.base(), frame.returnPosition(player), server.getTickCount() + 2400));
-        sendHostScreen(player, token, false);
+                frame.anchor(), frame.returnPosition(player), server.getTickCount() + MENU_TIMEOUT_TICKS));
+        AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), floorChoices(player),
+                126, false);
     }
 
     public boolean openArenaMenu(ServerPlayer player) {
@@ -60,14 +62,11 @@ public final class PortalParties {
         UUID token = UUID.randomUUID();
         UUID following = parties.followedHost(player);
         int available = 0;
-        if (!session.controller().active() && session.profile().progress.pending() == null) available = floorChoices(player);
+        if (!session.controller().active() && !session.looting()) available = floorChoices(player);
         arenaMenus.put(player.getUUID(), new ArenaMenu(token, session.host(), session.controller().currentFloor(),
-                following, parties.profile(player.getUUID()).personalRun, available, server.getTickCount() + 2400));
-        Component hint = following == null ? Component.translatable("screen.spiral_abyss.hint")
-                : parties.profile(player.getUUID()).personalRun ? Component.translatable("screen.spiral_abyss.personal_hint")
-                : Component.translatable("screen.spiral_abyss.guest_hint", parties.profile(following).progress.floor());
-        AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.claimedMask(), available,
-                126, true, hint);
+                following, parties.profile(player.getUUID()).personalRun, available, server.getTickCount() + MENU_TIMEOUT_TICKS));
+        AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), available,
+                126, true);
         return true;
     }
 
@@ -77,28 +76,44 @@ public final class PortalParties {
         for (int floor : FloorCatalog.snapshot().floors().keySet()) if (progress.canSelectFloor(floor)) available |= 1 << floor;
         return available;
     }
-    private void sendHostScreen(ServerPlayer player, UUID token, boolean inside) {
-        AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.claimedMask(), floorChoices(player),
-                126, inside, Component.translatable("screen.spiral_abyss.hint"));
+    /** Renew only a still-valid issued token; a heartbeat cannot reopen or authorize a menu. */
+    public void keepOpen(ServerPlayer player, UUID token) {
+        Selection selection = selections.get(player.getUUID());
+        if (selection != null && selection.token.equals(token) && valid(selection, player)) {
+            selections.put(player.getUUID(), new Selection(selection.token, selection.portal, selection.player,
+                    selection.dimension, selection.base, selection.returnPosition, server.getTickCount() + MENU_TIMEOUT_TICKS));
+            return;
+        }
+        ArenaMenu menu = arenaMenus.get(player.getUUID());
+        if (menu != null && menu.token.equals(token) && valid(menu, player))
+            arenaMenus.put(player.getUUID(), new ArenaMenu(menu.token, menu.arenaHost, menu.floor, menu.followingHost,
+                    menu.personalRun, menu.selectable, server.getTickCount() + MENU_TIMEOUT_TICKS));
     }
-
+    private boolean valid(ArenaMenu menu, ServerPlayer player) {
+        ArenaSession session = parties.sessionFor(player);
+        return menu.expires >= server.getTickCount() && player.isAlive() && !player.isSpectator() && !player.hasDisconnected()
+                && session != null && session.host().equals(menu.arenaHost) && session.controller().currentFloor() == menu.floor
+                && Objects.equals(parties.followedHost(player), menu.followingHost)
+                && parties.profile(player.getUUID()).personalRun == menu.personalRun;
+    }
     public void choose(ServerPlayer player, UUID token, int floor) {
         ArenaMenu menu = arenaMenus.get(player.getUUID());
         if (menu != null && menu.token.equals(token)) {
             arenaMenus.remove(player.getUUID());
             ArenaSession session = parties.sessionFor(player);
-            if (menu.expires < server.getTickCount() || session == null || !session.host().equals(menu.arenaHost) || session.controller().currentFloor() != menu.floor
-                    || !Objects.equals(parties.followedHost(player), menu.followingHost)
-                    || parties.profile(player.getUUID()).personalRun != menu.personalRun) return;
+            if (!valid(menu, player)) { if (floor != 0) tell(player, "selection_expired"); return; }
             if (floor == -1) { parties.leave(player); return; }
             if (floor <= 0 || (menu.selectable & (1 << floor)) == 0 || session.controller().active()
-                    || session.profile().progress.pending() != null) return;
-            if (menu.followingHost != null) parties.followFloor(player, floor);
-            else if (session.host().equals(player.getUUID())) parties.enterFloor(player, floor);
+                    || session.looting()) return;
+            if (session.isLeader(player)) parties.enterFloor(player, floor);
+            else if (menu.followingHost != null) parties.followFloor(player, floor);
             return;
         }
         Selection selection = selections.get(player.getUUID());
-        if (selection == null || !selection.token.equals(token)) return;
+        if (selection == null || !selection.token.equals(token)) {
+            if (floor != 0) tell(player, "selection_expired");
+            return;
+        }
         selections.remove(player.getUUID());
         player.setPortalCooldown();
         if (floor <= 0) return;
@@ -112,7 +127,7 @@ public final class PortalParties {
     }
 
     private boolean valid(Selection selection, ServerPlayer player) {
-        if (selection.expires < server.getTickCount() || !player.isAlive() || player.isSpectator()
+        if (selection.expires < server.getTickCount() || !player.isAlive() || player.isSpectator() || player.hasDisconnected()
                 || !player.level().dimension().equals(selection.dimension)
                 || player.distanceToSqr(Vec3.atCenterOf(selection.base)) > 100
                 || !player.level().hasChunkAt(selection.base)) return false;

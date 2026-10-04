@@ -1,0 +1,35 @@
+[
+  "minecraft:zombie",
+  "minecraft:skeleton",
+  "minecraft:husk",
+  "minecraft:stray",
+  "minecraft:zombie_villager",
+  [
+    "minecraft:drowned",
+    {
+      "loot_table": "minecraft:chests/underwater_ruin_small",
+      "weight": 1,
+      "chance": 0.7
+    },
+    {
+      "loot_table": "minecraft:chests/underwater_ruin_big",
+      "weight": 1,
+      "chance": 0.6
+    },
+    {
+      "loot_table": "minecraft:chests/shipwreck_map",
+      "weight": 1,
+      "chance": 0.65
+    },
+    {
+      "loot_table": "minecraft:chests/shipwreck_supply",
+      "weight": 1,
+      "chance": 0.7
+    },
+    {
+      "loot_table": "minecraft:chests/shipwreck_treasure",
+      "weight": 1,
+      "chance": 0.5
+    }
+  ]
+]

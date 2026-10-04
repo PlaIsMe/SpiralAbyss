@@ -2,6 +2,7 @@ package com.pla.spiral_abyss.encounter;
 
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.config.*;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.*;
@@ -13,12 +14,12 @@ import java.util.*;
 /** A wave chooses one complete armor set; each eligible mob rolls whether to wear it. */
 public final class WaveEquipment {
     private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
-    private final AbyssConfig.Equipment whitelist;
+    private final MobCatalog.Equipment whitelist;
     private final GearConfig.Floor floor;
     private final List<Item> armor;
     private final List<Item> weapons;
 
-    public WaveEquipment(AbyssConfig.Equipment whitelist, GearConfig.Floor floor, RandomSource random) {
+    public WaveEquipment(MobCatalog.Equipment whitelist, GearConfig.Floor floor, RandomSource random) {
         this.whitelist = whitelist; this.floor = floor;
         List<List<Item>> sets = new ArrayList<>();
         for (var ids : floor.armorSets()) {
@@ -39,7 +40,6 @@ public final class WaveEquipment {
     public void apply(Mob mob) {
         mob.setCanPickUpLoot(false);
         for (EquipmentSlot slot : EquipmentSlot.values()) mob.setDropChance(slot, 0);
-        if (!whitelist.enabled()) return;
         var id = ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
         RandomSource random = mob.getRandom();
         if (whitelist.armor().contains(id)) {

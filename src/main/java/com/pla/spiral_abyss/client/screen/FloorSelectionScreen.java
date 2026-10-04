@@ -1,101 +1,280 @@
 package com.pla.spiral_abyss.client.screen;
 
 import com.pla.spiral_abyss.SpiralAbyss;
+import com.pla.spiral_abyss.client.overlay.AbyssClockRenderer;
 import com.pla.spiral_abyss.network.AbyssNetwork;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import java.util.List;
 
-/** Six centered texture cards; selectable floors come exclusively from the server. */
+/** One menu and authorization token; detail navigation never submits or cancels a selection. */
 public final class FloorSelectionScreen extends Screen {
-    private static final ResourceLocation BACKGROUND = texture("background");
-    private static final ResourceLocation EARTH = texture("earth_image");
+    private static final ResourceLocation BACKGROUND = texture("background"), EARTH = texture("earth_image");
+    private static final ItemStack STAR = new ItemStack(Items.NETHER_STAR);
+    private static final float ARTWORK_BUTTON_SCALE = 0.5F;
+    private static final float WAVE_BUTTON_SCALE = 0.8F;
     private final AbyssNetwork.OpenFloors state;
-    private boolean replied;
+    private final EnemyPreviewRenderer previews = new EnemyPreviewRenderer();
     private final long openedAt = net.minecraft.Util.getMillis();
-    private int resetRowY;
+    private boolean replied;
+    private int keepOpenTicks;
+    private int selectedFloor, selectedWave, resetRowY;
+    private int panelX, panelY, panelWidth, panelHeight, gridTop, gridBottom, scroll, maxScroll, waveContentY;
+
     public static void closeForReset() {
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
-            screen.replied = true; screen.onClose();
+            screen.replied = true; screen.minecraft.setScreen(null);
         }
     }
     public FloorSelectionScreen(AbyssNetwork.OpenFloors state) {
         super(Component.translatable("screen.spiral_abyss.floors")); this.state = state;
     }
     public static void open(AbyssNetwork.OpenFloors state) { Minecraft.getInstance().setScreen(new FloorSelectionScreen(state)); }
-    private static ResourceLocation texture(String name) { return new ResourceLocation(SpiralAbyss.MOD_ID, "textures/gui/floors/" + name + ".png"); }
+    private static ResourceLocation texture(String name) { return ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "textures/gui/floors/" + name + ".png"); }
+    private boolean selectable(int floor) { return (state.selectable() & (1 << floor)) != 0; }
+    private ResourceLocation floorTexture(int floor) {
+        String suffix = (state.claimed() & (1 << floor)) != 0 ? "_looted" : selectable(floor) || floor == 1 ? "" : "_locked";
+        return texture("floor_" + floor + suffix);
+    }
+    private AbyssNetwork.FloorPreview floor() {
+        return state.floors().stream().filter(f -> f.floor() == selectedFloor).findFirst().orElse(null);
+    }
+    private AbyssNetwork.WavePreview wave(int number) {
+        var floor = floor();
+        return floor == null ? null : floor.waves().stream().filter(w -> w.wave() == number).findFirst().orElse(null);
+    }
+    private void navigate(int floor, int wave) {
+        selectedFloor = floor; selectedWave = wave; scroll = 0; setFocused(null); clearWidgets(); init();
+    }
     @Override protected void init() {
+        if (selectedFloor == 0) initOverview();
+        else if (selectedWave == 0) initFloor();
+        else initWave();
+    }
+    @Override public void tick() {
+        super.tick();
+        // All three pages share a token. Reading previews must not expire travel.
+        if (!replied && keepOpenTicks-- <= 0) {
+            AbyssNetwork.keepFloorsOpen(state.token());
+            keepOpenTicks = 199;
+        }
+    }
+    private void initOverview() {
         int gap = Math.max(2, Math.min(12, width / 80));
         int count = Integer.bitCount(state.visible() & 126);
-        int cardWidth = Math.max(1, Math.min((width - 24 - 5 * gap) / 6, (height - 132) * 256 / 455));
+        int cardWidth = Math.max(1, Math.min((width - 24 - 5 * gap) / 6, Math.max(1, height - 132) * 256 / 455));
         int cardHeight = cardWidth * 455 / 256;
         int left = (width - count * cardWidth - Math.max(0, count - 1) * gap) / 2;
-        int top = (height - cardHeight) / 2 - 12;
-        int index = 0;
+        int top = Math.max(48, (height - cardHeight) / 2 - 12), index = 0;
         for (int floor = 1; floor <= 6; floor++) {
             if ((state.visible() & (1 << floor)) == 0) continue;
             final int number = floor;
-            boolean claimed = (state.claimed() & (1 << floor)) != 0;
-            boolean selectable = (state.selectable() & (1 << floor)) != 0;
-            String suffix = claimed ? "_looted" : selectable || floor == 1 ? "" : "_locked";
-            Component label = Component.translatable("screen.spiral_abyss.floor", floor);
-            ResourceLocation icon = texture("floor_" + floor + suffix);
-            var card = new Button(left + index++ * (cardWidth + gap), top, cardWidth, cardHeight,
-                    label, button -> submit(number), narration -> narration.get()) {
-                @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-                    RenderSystem.enableBlend();
-                    graphics.blit(icon, getX(), getY(), getWidth(), getHeight(), 0, 0, 256, 455, 256, 455);
-                    if (isHoveredOrFocused()) graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), active ? 0xFFF2D58C : 0xFF718292);
-                    RenderSystem.disableBlend();
-                }
-            };
-            card.active = selectable;
-            card.setTooltip(Tooltip.create(Component.translatable(claimed ? "screen.spiral_abyss.claimed"
-                    : selectable ? "screen.spiral_abyss.available" : "screen.spiral_abyss.locked")));
-            addRenderableWidget(card);
+            var card = imageButton(left + index++ * (cardWidth + gap), top, cardWidth, cardHeight,
+                    Component.translatable("screen.spiral_abyss.floor", floor), floorTexture(floor), 256, 455, () -> navigate(number, 0));
+            card.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.view_floor", floor)));
         }
         int buttonY = Math.min(height - 60, top + cardHeight + 15);
         resetRowY = buttonY + 37;
-        Component exitLabel = Component.translatable(state.inside()
-                ? "screen.spiral_abyss.return_overworld" : "screen.spiral_abyss.close");
-        var exit = new Button(width / 2 - 16, buttonY, 32, 32,
-                exitLabel, button -> submit(state.inside() ? -1 : 0), narration -> narration.get()) {
+        Component exitLabel = Component.translatable(state.inside() ? "screen.spiral_abyss.return_overworld" : "screen.spiral_abyss.close");
+        var exit = imageButton(width / 2 - 16, buttonY, 32, 27, exitLabel, EARTH, 564, 468, () -> submit(state.inside() ? -1 : 0));
+        exit.setTooltip(Tooltip.create(exitLabel));
+    }
+    private void layoutPanel() {
+        panelWidth = Math.min(660, Math.max(120, width - 24));
+        panelHeight = Math.min(360, Math.max(140, height - 24));
+        panelX = (width - panelWidth) / 2; panelY = (height - panelHeight) / 2;
+    }
+    private void initFloor() {
+        layoutPanel();
+        int cardHeight = Math.min(panelHeight - 48, (panelWidth / 4) * 455 / 256);
+        int cardWidth = cardHeight * 256 / 455;
+        int right = panelX + cardWidth + 32, rightWidth = panelWidth - cardWidth - 48;
+        int rowHeight = Math.max(24, Math.min(42, (panelHeight - 103) / 3));
+        int rowGap = Math.max(5, Math.min(12, panelHeight / 28));
+        for (int i = 1; i <= 3; i++) {
+            final int number = i;
+            var row = new Button(right, panelY + 41 + (i - 1) * (rowHeight + rowGap), rightWidth, rowHeight,
+                    Component.translatable("screen.spiral_abyss.wave", i), button -> navigate(selectedFloor, number), narration -> narration.get()) {
+                @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+                    graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(),
+                            isHoveredOrFocused() ? 0xEE526680 : 0xDD394B62);
+                    graphics.renderOutline(getX(), getY(), getWidth(), getHeight(),
+                            isHoveredOrFocused() ? 0xFFF2D58C : 0xFF8B9AAD);
+                    graphics.drawString(font, getMessage(), getX() + 12,
+                            getY() + (getHeight() - font.lineHeight) / 2, 0xFFFFFFFF, false);
+                    var preview = wave(number);
+                    stars(graphics, getX() + getWidth() - 62, getY() + (getHeight() - 16) / 2, preview == null ? 0 : preview.stars());
+                }
+            };
+            var preview = wave(number);
+            row.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.wave_stars", preview == null ? 0 : preview.stars())));
+            addRenderableWidget(row);
+        }
+        int rowsBottom = panelY + 41 + 3 * rowHeight + 2 * rowGap;
+        int actionHeight = Math.round(ARTWORK_BUTTON_SCALE * Math.max(18, Math.min(44, panelY + panelHeight - rowsBottom - 16)));
+        int actionY = rowsBottom + Math.max(4, (panelY + panelHeight - rowsBottom - actionHeight) / 2);
+        artworkButton(right, actionY, Math.max(20, rightWidth / 4), actionHeight,
+                Component.translatable("gui.back"), ButtonArtwork.BACK, false, () -> navigate(0, 0));
+        int fightWidth = ButtonArtwork.FIGHT.fittedWidth(Math.max(1, Math.round(rightWidth / 2F * ARTWORK_BUTTON_SCALE)), actionHeight);
+        var start = artworkButton(right + rightWidth - fightWidth, actionY, fightWidth, actionHeight,
+                Component.translatable("screen.spiral_abyss.fight"), ButtonArtwork.FIGHT, false, () -> submit(selectedFloor));
+        start.active = selectable(selectedFloor);
+        if (!start.active) start.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.unavailable")));
+    }
+    private void initWave() {
+        layoutPanel();
+        int tabWidth = (panelWidth - 32) / 3;
+        int tabHeight = Math.round(WAVE_BUTTON_SCALE * Math.max(18, Math.min(36, (panelHeight - 120) / 4)));
+        for (int i = 1; i <= 3; i++) {
+            final int number = i;
+            ButtonArtwork artwork = ButtonArtwork.WAVE;
+            int imageWidth = artwork.fittedWidth(Math.max(1, Math.round(tabWidth * WAVE_BUTTON_SCALE)), tabHeight);
+            var tab = artworkButton(panelX + 12 + (i - 1) * (tabWidth + 4) + (tabWidth - imageWidth) / 2,
+                    panelY + 10, imageWidth, tabHeight, Component.translatable("screen.spiral_abyss.wave", i),
+                    artwork, i == selectedWave, () -> navigate(selectedFloor, number));
+            tab.active = i != selectedWave;
+        }
+        waveContentY = panelY + 20 + tabHeight;
+        gridTop = waveContentY + 82; gridBottom = panelY + panelHeight - 44;
+        int backHeight = Math.round(30 * ARTWORK_BUTTON_SCALE);
+        artworkButton(panelX + 14, panelY + panelHeight - 38 + (30 - backHeight) / 2,
+                Math.round(24 * ARTWORK_BUTTON_SCALE), backHeight,
+                Component.translatable("gui.back"), ButtonArtwork.BACK, false, () -> navigate(selectedFloor, 0));
+    }
+    private Button artworkButton(int x, int y, int maxWidth, int maxHeight, Component label,
+                                 ButtonArtwork artwork, boolean selected, Runnable action) {
+        int width = artwork.fittedWidth(maxWidth, maxHeight), height = artwork.fittedHeight(width);
+        var button = addRenderableWidget(new Button(x, y + (maxHeight - height) / 2, width, height, label,
+                pressed -> action.run(), narration -> narration.get()) {
+            @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+                artwork.render(graphics, getX(), getY(), getWidth(), getHeight(), isHoveredOrFocused(), selected, active);
+                if (artwork == ButtonArtwork.WAVE || artwork == ButtonArtwork.FIGHT) {
+                    int textWidth = font.width(getMessage());
+                    float scale = Math.min(1F, Math.min(getWidth() * 0.76F / Math.max(1, textWidth),
+                            getHeight() * 0.65F / font.lineHeight));
+                    graphics.pose().pushPose();
+                    graphics.pose().translate(getX() + getWidth() / 2F, getY() + getHeight() / 2F, 0);
+                    graphics.pose().scale(scale, scale, 1);
+                    graphics.drawString(font, getMessage(), -textWidth / 2, -font.lineHeight / 2,
+                            active || selected ? 0xFF1D2633 : 0xFFAAAAAA, false);
+                    graphics.pose().popPose();
+                }
+            }
+        });
+        button.setTooltip(Tooltip.create(label));
+        return button;
+    }
+    private Button imageButton(int x, int y, int w, int h, Component label, ResourceLocation icon, int sourceW, int sourceH, Runnable action) {
+        return addRenderableWidget(new Button(x, y, w, h, label, button -> action.run(), narration -> narration.get()) {
             @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                 RenderSystem.enableBlend();
-                graphics.blit(EARTH, getX(), getY() + 3, getWidth(), 26, 0, 0, 564, 468, 564, 468);
-                if (isHoveredOrFocused()) graphics.renderOutline(getX() - 1, getY() - 1, getWidth() + 2, getHeight() + 2, 0xFFF2D58C);
+                graphics.blit(icon, getX(), getY(), getWidth(), getHeight(), 0, 0, sourceW, sourceH, sourceW, sourceH);
+                if (isHoveredOrFocused()) graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFFF2D58C);
                 RenderSystem.disableBlend();
             }
-        };
-        exit.setTooltip(Tooltip.create(exitLabel));
-        addRenderableWidget(exit);
+        });
+    }
+    private void stars(GuiGraphics graphics, int x, int y, int earned) {
+        for (int i = 0; i < 3; i++) {
+            graphics.renderItem(STAR, x + i * 19, y);
+            if (i >= earned) {
+                graphics.pose().pushPose(); graphics.pose().translate(0, 0, 200);
+                graphics.fill(x + i * 19, y, x + i * 19 + 16, y + 16, 0xCC29384D);
+                graphics.pose().popPose();
+            }
+        }
     }
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         float scale = Math.max(width / 2560F, height / 1440F);
         int imageWidth = (int) Math.ceil(2560 * scale), imageHeight = (int) Math.ceil(1440 * scale);
         graphics.blit(BACKGROUND, (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight, 0, 0, 2560, 1440, 2560, 1440);
         graphics.fill(0, 0, width, height, 0x55081529);
-        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFF3D7);
-        int hintY = 27;
-        for (var line : font.split(state.hint(), Math.max(1, width - 24))) {
-            graphics.drawCenteredString(font, line, width / 2, hintY, 0xD8E9FA); hintY += 10;
+        if (selectedFloor == 0) renderOverview(graphics);
+        else {
+            graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xEE25354D);
+            graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, 0xFF738297);
+            if (selectedWave == 0) renderFloor(graphics);
+            else renderWave(graphics, mouseX, mouseY);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
-        long remaining = state.resetRemainingMillis() < 0 ? -1
-                : Math.max(0, state.resetRemainingMillis() - (net.minecraft.Util.getMillis() - openedAt));
-        com.pla.spiral_abyss.client.overlay.AbyssClockRenderer.reset(graphics, font, width / 2, resetRowY, width - 24, remaining);
+    }
+    private void renderOverview(GuiGraphics graphics) {
+        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFF3D7);
+        long remaining = state.resetRemainingMillis() < 0 ? -1 : Math.max(0, state.resetRemainingMillis() - (net.minecraft.Util.getMillis() - openedAt));
+        AbyssClockRenderer.reset(graphics, font, width / 2, resetRowY, width - 24, remaining);
+    }
+    private void renderFloor(GuiGraphics graphics) {
+        int cardHeight = Math.min(panelHeight - 48, (panelWidth / 4) * 455 / 256), cardWidth = cardHeight * 256 / 455;
+        RenderSystem.enableBlend();
+        graphics.blit(floorTexture(selectedFloor), panelX + 12, panelY + 12, cardWidth, cardHeight, 0, 0, 256, 455, 256, 455);
+        RenderSystem.disableBlend();
+        graphics.drawString(font, Component.translatable("screen.spiral_abyss.floor", selectedFloor), panelX + cardWidth + 32, panelY + 17, 0xFFFFFFFF, false);
+    }
+    private void renderWave(GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"), panelX + 15, waveContentY, 0xFFFFFFFF, false);
+        for (int i = 0; i < 3; i++) {
+            int y = waveContentY + 13 + i * 16;
+            graphics.renderItem(STAR, panelX + 14, y - 3);
+            drawFitted(graphics, Component.translatable(i == 2 ? "screen.spiral_abyss.wave_objective_one" : "screen.spiral_abyss.wave_objective", 3 - i), panelX + 36, y, panelWidth - 50, 0xFFFFFFFF);
+        }
+        graphics.drawString(font, Component.translatable("screen.spiral_abyss.enemies"), panelX + 15, waveContentY + 67, 0xFFFFFFFF, false);
+        var preview = wave(selectedWave);
+        List<AbyssNetwork.EnemyPreview> enemies = preview == null ? List.of() : preview.enemies();
+        int columns = Math.max(1, (panelWidth - 30) / 86), tileWidth = (panelWidth - 30) / columns;
+        int tileHeight = Math.max(36, Math.min(88, gridBottom - gridTop));
+        int rows = (enemies.size() + columns - 1) / columns;
+        maxScroll = Math.max(0, rows * tileHeight - Math.max(1, gridBottom - gridTop)); scroll = Math.min(scroll, maxScroll);
+        Component hovered = null;
+        graphics.enableScissor(panelX + 10, gridTop, panelX + panelWidth - 10, Math.max(gridTop, gridBottom));
+        for (int index = 0; index < enemies.size(); index++) {
+            int x = panelX + 14 + index % columns * tileWidth, y = gridTop + index / columns * tileHeight - scroll;
+            if (y + tileHeight < gridTop || y > gridBottom) continue;
+            var enemy = enemies.get(index);
+            graphics.fill(x, y, x + tileWidth - 4, y + tileHeight - 5, 0x6034455E);
+            previews.render(graphics, enemy.id(), x + 4, y + 3, tileWidth - 12, tileHeight - 24);
+            graphics.drawCenteredString(font, Component.translatable("screen.spiral_abyss.enemy_count", enemy.count()), x + (tileWidth - 4) / 2, y + tileHeight - 18, 0xFFFFFFFF);
+            if (mouseX >= x && mouseX < x + tileWidth - 4 && mouseY >= Math.max(y, gridTop) && mouseY < Math.min(y + tileHeight - 5, gridBottom)) hovered = previews.name(enemy.id());
+        }
+        graphics.disableScissor();
+        if (enemies.isEmpty()) graphics.drawCenteredString(font, Component.translatable("screen.spiral_abyss.preview_unavailable"), width / 2, gridTop + 12, 0xD8E9FA);
+        if (maxScroll > 0) {
+            int track = Math.max(1, gridBottom - gridTop), thumb = Math.max(12, track * track / Math.max(1, rows * tileHeight));
+            int y = gridTop + (track - thumb) * scroll / maxScroll;
+            graphics.fill(panelX + panelWidth - 7, gridTop, panelX + panelWidth - 4, gridBottom, 0xFF35455B);
+            graphics.fill(panelX + panelWidth - 7, y, panelX + panelWidth - 4, y + thumb, 0xFFB2C1D3);
+        }
+        if (hovered != null) graphics.renderTooltip(font, hovered, mouseX, mouseY);
+    }
+    private void drawFitted(GuiGraphics graphics, Component text, int x, int y, int available, int color) {
+        float scale = Math.min(1, (float) available / Math.max(1, font.width(text)));
+        graphics.pose().pushPose(); graphics.pose().translate(x, y, 0); graphics.pose().scale(scale, scale, 1);
+        graphics.drawString(font, text, 0, 0, color, false); graphics.pose().popPose();
+    }
+    @Override public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (selectedWave != 0 && mouseX >= panelX && mouseX < panelX + panelWidth && mouseY >= gridTop && mouseY < gridBottom) {
+            scroll = Math.max(0, Math.min(maxScroll, scroll - (int) (amount * 30))); return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
     private void submit(int floor) {
         if (replied) return;
-        replied = true; AbyssNetwork.select(state.token(), floor); onClose();
+        replied = true; AbyssNetwork.select(state.token(), floor); minecraft.setScreen(null);
+    }
+    @Override public void onClose() {
+        if (selectedWave != 0) navigate(selectedFloor, 0);
+        else if (selectedFloor != 0) navigate(0, 0);
+        else minecraft.setScreen(null);
     }
     @Override public void removed() {
         if (!replied) { replied = true; AbyssNetwork.select(state.token(), 0); }
+        previews.clear();
     }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public boolean shouldCloseOnEsc() { return true; }
 }
