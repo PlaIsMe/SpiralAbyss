@@ -398,10 +398,11 @@ public final class AbyssParties {
         }
         return true;
     }
-    public boolean openChest(ServerPlayer player, RewardChestEntity chest) {
+    public boolean openChest(ServerPlayer player, LootChestEntity chest) {
         ArenaSession session = sessionFor(player);
         if (!validInteraction(player, chest, session)) return false;
         if (player.isShiftKeyDown()) return portals.openArenaMenu(player);
+        if (chest.phase() == LootChestEntity.SPAWN) return false;
         return session.openReward(player, chest.tier());
     }
     private boolean validInteraction(ServerPlayer player, ArenaInteractable entity, ArenaSession session) {

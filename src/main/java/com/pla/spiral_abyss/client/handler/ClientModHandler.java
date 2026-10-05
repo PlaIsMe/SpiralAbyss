@@ -16,6 +16,9 @@ public final class ClientModHandler {
         event.registerEntityRenderer(EntityInit.SCROLL_ENTITY.get(), com.pla.spiral_abyss.client.renderer.ScrollEntityRenderer::new);
         event.registerBlockEntityRenderer(com.pla.spiral_abyss.init.BlockEntityInit.ABYSS_PORTAL.get(),
                 com.pla.spiral_abyss.client.renderer.AbyssPortalRenderer::new);
-        event.registerEntityRenderer(EntityInit.REWARD_CHEST.get(), com.pla.spiral_abyss.client.renderer.RewardChestRenderer::new);
+        event.registerEntityRenderer(EntityInit.COPPER_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::copper);
+        event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::iron);
+        event.registerEntityRenderer(EntityInit.GOLDEN_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::golden);
+        event.registerEntityRenderer(EntityInit.CHEST_LOOT.get(), com.pla.spiral_abyss.client.renderer.ChestLootRenderer::new);
     }
 }

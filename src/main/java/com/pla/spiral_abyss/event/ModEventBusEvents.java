@@ -13,7 +13,9 @@ public class ModEventBusEvents {
     @SubscribeEvent
     public static void registerAttributes(EntityAttributeCreationEvent event) {
         event.put(EntityInit.KEY_ENTITY.get(), KeyEntity.createAttributes().build());
-        event.put(EntityInit.REWARD_CHEST.get(), KeyEntity.createAttributes().build());
+        event.put(EntityInit.COPPER_CHEST.get(), KeyEntity.createAttributes().build());
+        event.put(EntityInit.IRON_CHEST.get(), KeyEntity.createAttributes().build());
+        event.put(EntityInit.GOLDEN_CHEST.get(), KeyEntity.createAttributes().build());
         event.put(EntityInit.SCROLL_ENTITY.get(), KeyEntity.createAttributes().build());
     }
 }

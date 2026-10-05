@@ -2,7 +2,7 @@ package com.pla.spiral_abyss.init;
 
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.entity.KeyEntity;
-import com.pla.spiral_abyss.entity.RewardChestEntity;
+import com.pla.spiral_abyss.entity.*;
 import com.pla.spiral_abyss.entity.ScrollEntity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -20,9 +20,21 @@ public class EntityInit {
                     .sized(2.5f, 4.0f)
                     .build("key_entity"));
 
-    public static final RegistryObject<EntityType<RewardChestEntity>> REWARD_CHEST =
-            ENTITY_TYPES.register("reward_chest", () -> EntityType.Builder.of(RewardChestEntity::new, MobCategory.MISC)
-                    .sized(1.8f, 1.4f).build("reward_chest"));
+    public static final RegistryObject<EntityType<CopperChestEntity>> COPPER_CHEST =
+            ENTITY_TYPES.register("copper_chest", () -> EntityType.Builder.of(CopperChestEntity::new, MobCategory.MISC)
+                    .sized(1.3f, 1.0f).build("copper_chest"));
+
+    public static final RegistryObject<EntityType<IronChestEntity>> IRON_CHEST =
+            ENTITY_TYPES.register("iron_chest", () -> EntityType.Builder.of(IronChestEntity::new, MobCategory.MISC)
+                    .sized(1.3f, 1.0f).build("iron_chest"));
+
+    public static final RegistryObject<EntityType<GoldenChestEntity>> GOLDEN_CHEST =
+            ENTITY_TYPES.register("golden_chest", () -> EntityType.Builder.of(GoldenChestEntity::new, MobCategory.MISC)
+                    .sized(1.3f, 1.0f).build("golden_chest"));
+
+    public static final RegistryObject<EntityType<ChestLootEntity>> CHEST_LOOT =
+            ENTITY_TYPES.register("chest_loot", () -> EntityType.Builder.<ChestLootEntity>of(ChestLootEntity::new, MobCategory.MISC)
+                    .sized(0.25f, 0.25f).clientTrackingRange(8).updateInterval(1).build("chest_loot"));
 
     public static void register(IEventBus eventBus) {
         ENTITY_TYPES.register(eventBus);

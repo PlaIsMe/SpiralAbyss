@@ -28,6 +28,5 @@ All Rights Reserved
 
 ## Credits
 
-- Reward chest model adapted from [Golden Chest](https://voxelwave.art/product/golden-chest) by GriddenFox.
 - Earth button artwork adapted from [earth-cube](https://sketchfab.com/3d-models/earth-cube-ed594f0b3a5b4bcc947561af91a9742e) by madexc, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was rendered for the menu button.
 - Scroll entity model adapted from [Minecraft style scroll | Blockbench](https://sketchfab.com/3d-models/minecraft-style-scroll-blockbench-71ad2da73cd9409a81c8e17721fc797e) by 3DartSam (samirdevuz), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was adapted for the animated entity.

@@ -17,14 +17,12 @@ public final class ChallengeRewards {
         }).toList();
     }
 
-    /** Split the floor's XP and nominal item rolls across three tiers per eligible player. */
+    /** Preserve the floor's XP budget across three tiers per eligible player. */
     public static double scale(int eligiblePlayers) { return Math.max(0, eligiblePlayers) / 3.0; }
 
-    /** A claimed chest with a positive reward budget always gets to try its loot pool. */
-    public static int rollCount(int floorRolls, double scale, double randomFraction) {
-        if (floorRolls <= 0 || scale <= 0) return 0;
-        double scaled = floorRolls * scale;
-        int rolls = (int) scaled + (randomFraction < scaled % 1 ? 1 : 0);
-        return Math.max(1, rolls);
+    /** Copper, iron and golden chests try one, two and three tables per live claimant. */
+    public static int rollCount(int tier, int eligiblePlayers) {
+        if (tier < 1 || tier > 3 || eligiblePlayers <= 0) return 0;
+        return Math.multiplyExact(tier, eligiblePlayers);
     }
 }

@@ -31,6 +31,7 @@ public final class ArenaSession {
     private final Set<UUID> defeated = new HashSet<>();
     private final Map<UUID, Vec3> lastSafe = new HashMap<>();
     private boolean displayReady;
+    private long nextDisplayRefresh = Long.MAX_VALUE;
     private final Set<UUID> admitted = new LinkedHashSet<>();
     private UUID leader;
 
@@ -105,10 +106,9 @@ public final class ArenaSession {
             refreshDisplay();
             return false;
         }
-        // Split each eligible member's floor budget across three tiers. A positive item
-        // budget still attempts at least one roll per chest; XP keeps the exact scale.
+        // Each eligible member contributes the chest tier in table rolls.
         // Resolve the roster now: departed clones neither increase drops nor receive credit.
-        var bundle = FloorRewards.roll(level, chestPosition(tier), offeredRewards, ChallengeRewards.scale(eligible.size()));
+        var bundle = FloorRewards.roll(level, chestPosition(tier), offeredRewards, tier, eligible.size());
         for (ServerPlayer player : eligible)
             parties.profile(player.getUUID()).progress.commitClaim(controller.currentFloor(), tier, attemptStars);
         var personal = parties.profile(opener.getUUID()).progress;
@@ -118,7 +118,7 @@ public final class ArenaSession {
         return true;
     }
     private Vec3 chestPosition(int tier) {
-        return bounds().center().add(tier == 2 ? -4 : tier == 3 ? 4 : 0, 0, tier > 1 ? 2 : 0);
+        return bounds().center().add(tier == 2 ? -4 : tier == 1 ? 4 : 0, 0, tier == 3 ? 0 : 2);
     }
     public void admit(ServerPlayer player) {
         admitted.add(player.getUUID());
@@ -248,15 +248,15 @@ public final class ArenaSession {
             if (payout.chestTicks() < 0) continue;
             payout.tickOpening();
             var bundle = payout.pending();
-            if (bundle != null && payout.chestTicks() >= RewardChestEntity.OPEN_TICKS) {
-                int shakingTicks = payout.chestTicks() - RewardChestEntity.OPEN_TICKS;
-                if (shakingTicks % RewardChestEntity.DROP_INTERVAL_TICKS == 0) {
+            if (bundle != null && payout.chestTicks() >= LootChestEntity.OPEN_TICKS) {
+                int dispensingTicks = payout.chestTicks() - LootChestEntity.OPEN_TICKS;
+                if (dispensingTicks % LootChestEntity.DROP_INTERVAL_TICKS == 0) {
+                    boolean rare = bundle.rare(payout.releasedItems());
                     var stack = payout.takeNextReward();
-                    if (stack != null) FloorRewards.releaseItem(level, chestPosition(tier), stack);
+                    if (stack != null) FloorRewards.releaseItem(level, chestPosition(tier), stack, rare);
                 }
                 if (payout.releasedItems() >= bundle.items().size()
-                        && shakingTicks >= Math.max(RewardChestEntity.SHAKE_TICKS,
-                        (long) bundle.items().size() * RewardChestEntity.DROP_INTERVAL_TICKS)) {
+                        && dispensingTicks >= (long) bundle.items().size() * LootChestEntity.DROP_INTERVAL_TICKS) {
                     int experience = bundle.experience();
                     payout.complete();
                     FloorRewards.releaseExperience(level, chestPosition(tier), experience);
@@ -264,7 +264,7 @@ public final class ArenaSession {
             }
             refreshDisplay();
         }
-        if (level.getGameTime() % 20 == 0) refreshDisplay();
+        if (level.getGameTime() >= nextDisplayRefresh || level.getGameTime() % 20 == 0) refreshDisplay();
     }
 
     public void containPlayer(ServerPlayer player) {
@@ -292,6 +292,7 @@ public final class ArenaSession {
 
     public void refreshDisplay() {
         if (!displayReady) return;
+        nextDisplayRefresh = Long.MAX_VALUE;
         List<ArenaInteractable> furniture = level.getEntitiesOfClass(ArenaInteractable.class, bounds().structureArea());
         boolean hide = controller.active();
         int chestCount = displayedTiers;
@@ -299,12 +300,12 @@ public final class ArenaSession {
         boolean showChests = controller.showsChest() && chestCount > 0;
         KeyEntity key = null;
         ScrollEntity scroll = null;
-        Map<Integer, RewardChestEntity> chests = new HashMap<>();
+        Map<Integer, LootChestEntity> chests = new HashMap<>();
         for (ArenaInteractable entity : furniture) {
             if (hide || !host().equals(entity.arenaHost())) { entity.discard(); continue; }
             if (entity instanceof ScrollEntity candidate && scroll == null) { scroll = candidate; continue; }
             if (entity instanceof KeyEntity candidate && !showChests && key == null) { key = candidate; continue; }
-            if (entity instanceof RewardChestEntity candidate && showChests && candidate.tier() <= chestCount
+            if (entity instanceof LootChestEntity candidate && showChests && candidate.tier() <= chestCount
                     && !chests.containsKey(candidate.tier())) { chests.put(candidate.tier(), candidate); continue; }
             entity.discard();
         }
@@ -329,21 +330,29 @@ public final class ArenaSession {
         }
         if (!showChests) return;
         for (int tier = 1; tier <= chestCount; tier++) {
-            RewardChestEntity chest = chests.get(tier);
+            LootChestEntity chest = chests.get(tier);
             Vec3 position = chestPosition(tier);
             if (chest == null) {
-                chest = EntityInit.REWARD_CHEST.get().create(level);
+                chest = (tier == 1 ? EntityInit.COPPER_CHEST.get() : tier == 2 ? EntityInit.IRON_CHEST.get()
+                        : EntityInit.GOLDEN_CHEST.get()).create(level);
                 if (chest == null) continue;
-                chest.setArenaHost(host()); chest.setTier(tier);
+                chest.setArenaHost(host());
+                chest.setPhase(LootChestEntity.SPAWN, level.getGameTime());
                 chest.moveTo(position.x, position.y, position.z, 0, 0); level.addFreshEntity(chest);
             } else if (chest.position().distanceToSqr(position) > 0.0001) {
                 chest.teleportTo(position.x, position.y, position.z);
             }
             int ticks = profile.progress.payout(tier).chestTicks();
-            int phase = ticks >= 0 ? (ticks < RewardChestEntity.OPEN_TICKS ? RewardChestEntity.OPEN : RewardChestEntity.SHAKE)
-                    : !eligibleForTier(tier).isEmpty() ? RewardChestEntity.IDLE : RewardChestEntity.LOOTED;
-            long start = ticks < 0 ? 0 : level.getGameTime() - ticks + (phase == RewardChestEntity.SHAKE ? RewardChestEntity.OPEN_TICKS : 0);
-            chest.setPhase(phase, start);
+            int phase = ticks >= 0 ? (ticks < LootChestEntity.OPEN_TICKS ? LootChestEntity.OPEN : LootChestEntity.DISPENSING)
+                    : !eligibleForTier(tier).isEmpty() ? LootChestEntity.IDLE : LootChestEntity.LOOTED;
+            long start = ticks < 0 ? 0 : level.getGameTime() - ticks + (phase == LootChestEntity.DISPENSING ? LootChestEntity.OPEN_TICKS : 0);
+            if (ticks >= 0) chest.setRarePayout(profile.progress.payout(tier).pending().hasRareItems());
+            if (ticks < 0 && chest.phase() == LootChestEntity.SPAWN
+                    && level.getGameTime() - chest.phaseStart() < LootChestEntity.SPAWN_TICKS) {
+                nextDisplayRefresh = Math.min(nextDisplayRefresh, chest.phaseStart() + LootChestEntity.SPAWN_TICKS);
+                continue;
+            }
+            if (ticks >= 0 || chest.phase() != phase) chest.setPhase(phase, ticks < 0 ? level.getGameTime() : start);
         }
     }
 

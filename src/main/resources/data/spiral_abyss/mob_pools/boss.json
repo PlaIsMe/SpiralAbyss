@@ -15,6 +15,11 @@
   [
     "minecraft:wither",
     {
+      "item": "minecraft:nether_star",
+      "count": 1,
+      "chance": 0.15
+    },
+    {
       "loot_table": "minecraft:chests/nether_bridge",
       "weight": 1,
       "chance": 0.65

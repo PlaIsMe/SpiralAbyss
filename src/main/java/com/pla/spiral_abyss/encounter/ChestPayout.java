@@ -31,7 +31,7 @@ public final class ChestPayout {
         dirty.run();
         return stack;
     }
-    /** Call once when releasing the saved XP after the final stack and shake animation. */
+    /** Call once when releasing the saved XP after the final stack and dispensing effect. */
     public void complete() {
         pending = null; chestTicks = -1; releasedItems = 0; dirty.run();
     }

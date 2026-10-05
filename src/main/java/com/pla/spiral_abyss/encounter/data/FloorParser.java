@@ -66,8 +66,11 @@ public final class FloorParser {
                         "players cannot be wave enemies");
                 require(!mobId.equals(new ResourceLocation("spiral_abyss", "key_entity"))
                         && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest"))
+                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "copper_chest"))
+                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "iron_chest"))
+                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest"))
                         && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "scroll_entity")),
-                        "the key cannot be a wave enemy");
+                        "arena furniture cannot be a wave enemy");
                 enemies.add(new FloorDefinition.Enemy(mobId, amount));
                 count += amount;
             }

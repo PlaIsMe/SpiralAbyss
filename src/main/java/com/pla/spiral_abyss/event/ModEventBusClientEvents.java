@@ -25,7 +25,11 @@ public class ModEventBusClientEvents {
         event.registerLayerDefinition(ModModelLayers.KEY_ENTITY_LAYER, KeyEntityModel::createBodyLayer);
         event.registerLayerDefinition(com.pla.spiral_abyss.client.renderer.ScrollEntityModel.LAYER_LOCATION,
                 com.pla.spiral_abyss.client.renderer.ScrollEntityModel::createBodyLayer);
-        event.registerLayerDefinition(com.pla.spiral_abyss.client.renderer.RewardChestModel.LAYER_LOCATION,
-                com.pla.spiral_abyss.client.renderer.RewardChestModel::createBodyLayer);
+        event.registerLayerDefinition(com.pla.spiral_abyss.client.renderer.CopperChestModel.LAYER_LOCATION,
+                com.pla.spiral_abyss.client.renderer.CopperChestModel::createBodyLayer);
+        event.registerLayerDefinition(com.pla.spiral_abyss.client.renderer.IronChestModel.LAYER_LOCATION,
+                com.pla.spiral_abyss.client.renderer.IronChestModel::createBodyLayer);
+        event.registerLayerDefinition(com.pla.spiral_abyss.client.renderer.GoldenChestModel.LAYER_LOCATION,
+                com.pla.spiral_abyss.client.renderer.GoldenChestModel::createBodyLayer);
     }
 }

@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "9";
+    private static final String VERSION = "10";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int selectable, int visible, boolean inside,

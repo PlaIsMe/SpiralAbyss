@@ -53,6 +53,8 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     public static boolean availableMob(ResourceLocation id) {
         return ForgeRegistries.ENTITY_TYPES.containsKey(id)
                 && !id.toString().equals("minecraft:player") && !id.toString().equals("spiral_abyss:key_entity")
+                && !id.toString().equals("spiral_abyss:copper_chest") && !id.toString().equals("spiral_abyss:iron_chest")
+                && !id.toString().equals("spiral_abyss:golden_chest")
                 && !id.toString().equals("spiral_abyss:reward_chest") && !id.toString().equals("spiral_abyss:scroll_entity");
     }
 
@@ -75,8 +77,12 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                 // Strings resolve to installed items, otherwise chest table IDs. Objects remove ambiguity.
                 if (reward.isJsonPrimitive()) {
                     ResourceLocation id = FloorParser.id(reward);
-                    bonuses.add(new FloorDefinition.RewardEntry(id, isItem.test(id), 1, 1, 1, 0.25));
-                } else bonuses.add(FloorParser.rewardEntry(reward.getAsJsonObject(), 0.25));
+                    boolean item = isItem.test(id);
+                    bonuses.add(new FloorDefinition.RewardEntry(id, item, 1, 1, 1, item ? 0.15 : 0.25));
+                } else {
+                    JsonObject object = reward.getAsJsonObject();
+                    bonuses.add(FloorParser.rewardEntry(object, object.has("item") ? 0.15 : 0.25));
+                }
             }
         }
         return new Pool(List.copyOf(mobs), rewards);

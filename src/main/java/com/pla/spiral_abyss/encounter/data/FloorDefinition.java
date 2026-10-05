@@ -20,7 +20,12 @@ public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rew
     }
 
     public record RewardEntry(ResourceLocation id, boolean item, int minCount, int maxCount,
-                              int weight, double chance) {}
+                              int weight, double chance, boolean rare) {
+        public RewardEntry(ResourceLocation id, boolean item, int minCount, int maxCount,
+                           int weight, double chance) {
+            this(id, item, minCount, maxCount, weight, chance, false);
+        }
+    }
 
     public record Rewards(List<RewardEntry> entries, int rolls, int experience) {
         public Rewards { entries = List.copyOf(entries); }

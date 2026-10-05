@@ -6,6 +6,7 @@
   "refmap": "spiral_abyss.refmap.json",
   "mixins": [
     "EntityDropMixin",
+    "ChestLootMergeMixin",
     "LivingEntityDropMixin",
     "AbyssEnvironmentMixin",
     "AbyssDrownedTridentMixin",
