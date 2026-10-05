@@ -16,8 +16,8 @@ public final class AbyssGateCurveBlock extends HorizontalDirectionalBlock implem
     private static final VoxelShape[][] SHAPES = new VoxelShape[2][4];
     static {
         for (Direction facing : Direction.Plane.HORIZONTAL) {
-            SHAPES[0][facing.get2DDataValue()] = GateShapes.turn(GateShapes.CURVE, facing);
-            SHAPES[1][facing.get2DDataValue()] = GateShapes.turn(GateShapes.upsideDown(GateShapes.CURVE), facing);
+            SHAPES[0][facing.get2DDataValue()] = GateShapes.turn(GateShapes.CURVE_BOTTOM, facing);
+            SHAPES[1][facing.get2DDataValue()] = GateShapes.turn(GateShapes.CURVE_TOP, facing);
         }
     }
     public AbyssGateCurveBlock(Properties properties) {

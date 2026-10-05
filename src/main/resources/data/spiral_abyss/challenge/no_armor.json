@@ -1,0 +1,51 @@
+{
+  "easy": {
+    "target": 1,
+    "slot_sets": [
+      [
+        "head",
+        "feet"
+      ]
+    ]
+  },
+  "medium": {
+    "target": 1,
+    "slot_sets": [
+      [
+        "chest",
+        "head"
+      ],
+      [
+        "chest",
+        "feet"
+      ],
+      [
+        "legs",
+        "head"
+      ],
+      [
+        "legs",
+        "feet"
+      ]
+    ]
+  },
+  "hard": {
+    "target": 1,
+    "slot_sets": [
+      [
+        "chest",
+        "legs"
+      ],
+      [
+        "head",
+        "chest",
+        "feet"
+      ],
+      [
+        "head",
+        "legs",
+        "feet"
+      ]
+    ]
+  }
+}

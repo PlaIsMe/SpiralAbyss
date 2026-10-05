@@ -19,7 +19,8 @@ public class BlockInit {
             DeferredRegister.create(ForgeRegistries.BLOCKS, SpiralAbyss.MOD_ID);
 
     public static final RegistryObject<AbyssPortalBlock> ABYSS_PORTAL = BLOCKS.register("abyss_portal",
-            () -> new AbyssPortalBlock(BlockBehaviour.Properties.copy(Blocks.NETHER_PORTAL).noLootTable()));
+            () -> new AbyssPortalBlock(BlockBehaviour.Properties.copy(Blocks.NETHER_PORTAL).noLootTable()
+                    .lightLevel(state -> 15)));
     public static final RegistryObject<Block> SPINNING_BLOCK = BLOCKS.register("spinning_block",
             () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEDROCK)));
 
@@ -59,7 +60,8 @@ public class BlockInit {
 
     private static BlockBehaviour.Properties gateProperties() {
         return BlockBehaviour.Properties.copy(Blocks.COBBLESTONE).noOcclusion()
-                .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK);
+                .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK)
+                .lightLevel(state -> 15);
     }
 
     private static BlockBehaviour.Properties unbreakable() {

@@ -1,291 +1,78 @@
 {
-  "credit": "Made with Blockbench",
-  "textures": {
-    "particle": "spiral_abyss:block/abyss_gate_2",
-    "wall": "spiral_abyss:block/abyss_gate_2"
-  },
-  "elements": [
-    {
-      "name": "Center post",
-      "from": [
-        4,
-        8,
-        8
-      ],
-      "to": [
-        12,
-        16,
-        16
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5,
-            16,
-            11,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "east": {
-          "uv": [
-            5,
-            16,
-            11,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "south": {
-          "uv": [
-            5,
-            16,
-            11,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "west": {
-          "uv": [
-            5,
-            16,
-            11,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "down": {
-          "uv": [
-            11,
-            16,
-            16,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "up": {
-          "uv": [
-            0,
-            16,
-            5,
-            8
-          ],
-          "texture": "#wall"
-        }
-      }
-    },
-    {
-      "name": "Center post",
-      "from": [
-        4,
-        8,
-        4
-      ],
-      "to": [
-        12,
-        10,
-        8
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            6,
-            16,
-            10,
-            12
-          ],
-          "texture": "#wall"
-        },
-        "east": {
-          "uv": [
-            10,
-            8,
-            11,
-            4
-          ],
-          "texture": "#wall"
-        },
-        "south": {
-          "uv": [
-            6,
-            4,
-            10,
-            0
-          ],
-          "texture": "#wall"
-        },
-        "west": {
-          "uv": [
-            5,
-            12,
-            6,
-            8
-          ],
-          "texture": "#wall"
-        },
-        "down": {
-          "uv": [
-            6,
-            4,
-            10,
-            0
-          ],
-          "texture": "#wall"
-        },
-        "up": {
-          "uv": [
-            6,
-            16,
-            10,
-            12
-          ],
-          "texture": "#wall"
-        }
-      }
-    },
-    {
-      "name": "Center post",
-      "from": [
-        4,
-        6,
-        8
-      ],
-      "to": [
-        12,
-        8,
-        12
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            6,
-            4,
-            10,
-            0
-          ],
-          "texture": "#wall"
-        },
-        "east": {
-          "uv": [
-            5,
-            8,
-            6,
-            4
-          ],
-          "texture": "#wall"
-        },
-        "south": {
-          "uv": [
-            6,
-            4,
-            10,
-            0
-          ],
-          "texture": "#wall"
-        },
-        "west": {
-          "uv": [
-            10,
-            9,
-            11,
-            5
-          ],
-          "texture": "#wall"
-        },
-        "down": {
-          "uv": [
-            6,
-            16,
-            10,
-            12
-          ],
-          "texture": "#wall"
-        },
-        "up": {
-          "uv": [
-            6,
-            4,
-            10,
-            0
-          ],
-          "texture": "#wall"
-        }
-      }
-    },
-    {
-      "name": "Center post",
-      "from": [
-        4,
-        0,
-        0
-      ],
-      "to": [
-        12,
-        8,
-        8
-      ],
-      "faces": {
-        "up": {
-          "uv": [
-            5,
-            8,
-            11,
-            0
-          ],
-          "texture": "#wall",
-          "rotation": 180
-        },
-        "east": {
-          "uv": [
-            5,
-            8,
-            11,
-            0
-          ],
-          "texture": "#wall",
-          "rotation": 270
-        },
-        "down": {
-          "uv": [
-            5,
-            8,
-            11,
-            0
-          ],
-          "texture": "#wall"
-        },
-        "west": {
-          "uv": [
-            5,
-            8,
-            11,
-            0
-          ],
-          "texture": "#wall",
-          "rotation": 90
-        },
-        "north": {
-          "uv": [
-            11,
-            8,
-            16,
-            0
-          ],
-          "texture": "#wall",
-          "rotation": 180
-        },
-        "south": {
-          "uv": [
-            0,
-            8,
-            5,
-            0
-          ],
-          "texture": "#wall"
-        }
-      }
-    }
-  ],
-  "parent": "minecraft:block/block",
-  "render_type": "minecraft:cutout"
+	"format_version": "26.3",
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:block/block",
+	"render_type": "minecraft:cutout",
+	"textures": {
+		"particle": "spiral_abyss:block/abyss_gate_2",
+		"wall": "spiral_abyss:block/abyss_gate_2"
+	},
+	"elements": [
+		{
+			"name": "Thick top curve upper segment",
+			"from": [2, 6, 6],
+			"to": [14, 6, 16],
+			"faces": {
+				"north": {"uv": [5, 8, 11, 8], "texture": "#wall"},
+				"east": {"uv": [5, 8, 11, 8], "texture": "#wall"},
+				"south": {"uv": [5, 8, 11, 8], "texture": "#wall"},
+				"west": {"uv": [5, 8, 11, 8], "texture": "#wall"},
+				"up": {"uv": [0, 16, 5, 8], "texture": "#wall"},
+				"down": {"uv": [11, 16, 16, 8], "texture": "#wall"}
+			}
+		},
+		{
+			"name": "Thick top curve inner bridge",
+			"from": [2, 2, 10],
+			"to": [14, 6, 14],
+			"rotation": {"angle": 0, "axis": "y", "origin": [0, -2, 7]},
+			"faces": {
+				"north": {"uv": [6, 16, 10, 12], "texture": "#wall"},
+				"east": {"uv": [6, 4, 10, 0], "texture": "#wall"},
+				"south": {"uv": [6, 4, 10, 0], "texture": "#wall"},
+				"west": {"uv": [6, 16, 10, 12], "texture": "#wall"},
+				"up": {"uv": [6, 16, 10, 12], "texture": "#wall"},
+				"down": {"uv": [6, 4, 10, 0], "texture": "#wall"}
+			}
+		},
+		{
+			"name": "Thick top curve lower segment",
+			"from": [2, 0, 0],
+			"to": [14, 10, 6],
+			"faces": {
+				"north": {"uv": [11, 8, 16, 0], "rotation": 180, "texture": "#wall"},
+				"east": {"uv": [5, 4.8, 11, 0], "rotation": 270, "texture": "#wall"},
+				"south": {"uv": [0, 8, 5, 0], "texture": "#wall"},
+				"west": {"uv": [5, 4.8, 11, 0], "rotation": 90, "texture": "#wall"},
+				"up": {"uv": [5, 4.8, 11, 0], "rotation": 180, "texture": "#wall"},
+				"down": {"uv": [5, 4.8, 11, 0], "texture": "#wall"}
+			}
+		},
+		{
+			"name": "Thick top curve lower segment",
+			"from": [2, 0, 6],
+			"to": [14, 6, 10],
+			"faces": {
+				"north": {"uv": [11, 8, 16, 3.2], "rotation": 180, "texture": "#wall"},
+				"east": {"uv": [5, 8, 8.6, 4.8], "rotation": 270, "texture": "#wall"},
+				"south": {"uv": [0, 4.8, 5, 0], "texture": "#wall"},
+				"west": {"uv": [7.4, 8, 11, 4.8], "rotation": 90, "texture": "#wall"},
+				"up": {"uv": [5, 8, 11, 4.8], "rotation": 180, "texture": "#wall"},
+				"down": {"uv": [5, 8, 11, 4.8], "texture": "#wall"}
+			}
+		},
+		{
+			"name": "Thick top curve upper segment",
+			"from": [2, 6, 6],
+			"to": [14, 16, 18],
+			"faces": {
+				"north": {"uv": [3, 16, 13, 8], "texture": "#wall"},
+				"east": {"uv": [3, 16, 13, 8], "texture": "#wall"},
+				"south": {"uv": [3, 16, 13, 8], "texture": "#wall"},
+				"west": {"uv": [3, 16, 13, 8], "texture": "#wall"},
+				"up": {"uv": [0, 16, 5, 8], "texture": "#wall"},
+				"down": {"uv": [11, 16, 16, 8], "texture": "#wall"}
+			}
+		}
+	]
 }

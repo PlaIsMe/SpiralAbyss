@@ -1,6 +1,19 @@
 {
   "variants": {
-    "axis=z,type=bottom": {
+    "axis=z,type=bottom,extension=none": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal"
+    },
+    "axis=z,type=bottom,extension=north": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_activate"
+    },
+    "axis=z,type=bottom,extension=south": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_activate",
+      "y": 180
+    },
+    "axis=z,type=bottom,extension=east": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal"
+    },
+    "axis=z,type=bottom,extension=west": {
       "model": "spiral_abyss:block/abyss_gate_horizontal"
     },
     "axis=z,type=top": {
@@ -9,7 +22,23 @@
     "axis=z,type=double": {
       "model": "spiral_abyss:block/abyss_gate_horizontal_double"
     },
-    "axis=x,type=bottom": {
+    "axis=x,type=bottom,extension=none": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal",
+      "y": 90
+    },
+    "axis=x,type=bottom,extension=east": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_activate",
+      "y": 90
+    },
+    "axis=x,type=bottom,extension=west": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal_activate",
+      "y": 270
+    },
+    "axis=x,type=bottom,extension=north": {
+      "model": "spiral_abyss:block/abyss_gate_horizontal",
+      "y": 90
+    },
+    "axis=x,type=bottom,extension=south": {
       "model": "spiral_abyss:block/abyss_gate_horizontal",
       "y": 90
     },

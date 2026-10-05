@@ -1,0 +1,17 @@
+{
+  "hard": {
+    "target": 1,
+    "pool": [
+      "minecraft:unbreaking",
+      "minecraft:protection",
+      "minecraft:mending",
+      "minecraft:fire_protection",
+      "minecraft:blast_protection",
+      "minecraft:projectile_protection",
+      "minecraft:binding_curse",
+      "minecraft:vanishing_curse",
+      "minecraft:thorns"
+    ],
+    "choose": 1
+  }
+}

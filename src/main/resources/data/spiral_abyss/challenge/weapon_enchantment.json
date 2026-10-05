@@ -1,0 +1,16 @@
+{
+  "hard": {
+    "percentage": 33.333333333333336,
+    "pool": [
+      "minecraft:sharpness",
+      "minecraft:unbreaking",
+      "minecraft:sweeping",
+      "minecraft:mending",
+      "minecraft:looting",
+      "minecraft:fire_aspect",
+      "minecraft:knockback",
+      "minecraft:vanishing_curse"
+    ],
+    "choose": 1
+  }
+}

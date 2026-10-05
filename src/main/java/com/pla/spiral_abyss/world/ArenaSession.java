@@ -42,6 +42,7 @@ public final class ArenaSession {
     }
     public ServerLevel level() { return level; }
     public AbyssPlayers.Profile profile() { return profile; }
+    public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) { return parties.challenges(floor); }
     public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
             com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycleLineup(floor, wave, definition); }
     public UUID host() { return profile.owner; }
@@ -104,7 +105,8 @@ public final class ArenaSession {
             refreshDisplay();
             return false;
         }
-        // One third of the solo floor budget per eligible member and per new tier.
+        // Split each eligible member's floor budget across three tiers. A positive item
+        // budget still attempts at least one roll per chest; XP keeps the exact scale.
         // Resolve the roster now: departed clones neither increase drops nor receive credit.
         var bundle = FloorRewards.roll(level, chestPosition(tier), offeredRewards, ChallengeRewards.scale(eligible.size()));
         for (ServerPlayer player : eligible)
@@ -212,6 +214,7 @@ public final class ArenaSession {
         lastSafe.put(player.getUUID(), entrance);
     }
     public void finishAttempt() {
+        com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
         // Includes boss summons and lingering attacks, so recovery is safe after a team wipe.
         var area = new net.minecraft.world.phys.AABB(bounds().center().x - ArenaBounds.FLIGHT_RADIUS, 0,
                 bounds().center().z - ArenaBounds.FLIGHT_RADIUS, bounds().center().x + ArenaBounds.FLIGHT_RADIUS,
@@ -230,6 +233,7 @@ public final class ArenaSession {
         // Entity persistence loads asynchronously. Never create replacement furniture before that finishes.
         BlockPos center = BlockPos.containing(bounds().center());
         if (!displayReady && level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(center).toLong())) {
+            com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
             clearDroppedRewards();
             displayReady = true; refreshDisplay();
         }
@@ -345,6 +349,7 @@ public final class ArenaSession {
 
     /** Restore blocks without changing claims, pending rewards, or chest opening progress. */
     public void restoreStructure() {
+        com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
         clearDroppedRewards();
         AbyssDimension.restoreArena(level, profile);
         lastSafe.clear();

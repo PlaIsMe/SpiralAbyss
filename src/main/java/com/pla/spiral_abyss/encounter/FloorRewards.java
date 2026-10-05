@@ -50,8 +50,7 @@ public final class FloorRewards {
         List<ItemStack> items = new ArrayList<>();
         LootParams params = new LootParams.Builder(level).withParameter(LootContextParams.ORIGIN, position)
                 .create(LootContextParamSets.CHEST);
-        double scaledRolls = rewards.rolls() * scale;
-        int rolls = (int) scaledRolls + (level.random.nextDouble() < scaledRolls % 1 ? 1 : 0);
+        int rolls = ChallengeRewards.rollCount(rewards.rolls(), scale, level.random.nextDouble());
         var pool = new RewardPool(rewards.entries(), entry -> entry.item() ? availableItem(entry)
                 : level.getServer().getLootData().getElement(new LootDataId<>(LootDataType.TABLE, entry.id())) != null);
         var bonuses = rewards.entries().stream().filter(FloorDefinition.RewardEntry::item).toList();

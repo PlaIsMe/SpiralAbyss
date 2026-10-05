@@ -22,7 +22,7 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.phys.shapes.*;
 
-/** The outward-facing controller mounted in front of the top-center gate slab. */
+/** The outward-facing controller between the two top horizontal gate slabs. */
 public final class AbyssGateActivationBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
     private static final VoxelShape[] SHAPES = new VoxelShape[4];

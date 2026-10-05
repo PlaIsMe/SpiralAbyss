@@ -17,6 +17,14 @@ public final class ChallengeRewards {
         }).toList();
     }
 
-    /** Three tiers together retain one full solo floor budget per eligible participant. */
+    /** Split the floor's XP and nominal item rolls across three tiers per eligible player. */
     public static double scale(int eligiblePlayers) { return Math.max(0, eligiblePlayers) / 3.0; }
+
+    /** A claimed chest with a positive reward budget always gets to try its loot pool. */
+    public static int rollCount(int floorRolls, double scale, double randomFraction) {
+        if (floorRolls <= 0 || scale <= 0) return 0;
+        double scaled = floorRolls * scale;
+        int rolls = (int) scaled + (randomFraction < scaled % 1 ? 1 : 0);
+        return Math.max(1, rolls);
+    }
 }

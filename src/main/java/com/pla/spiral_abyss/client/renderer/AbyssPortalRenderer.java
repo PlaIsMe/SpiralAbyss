@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 import com.mojang.math.Axis;
 import org.joml.Matrix4f;
 
-/** One continuous, double-sided End Portal surface, clipped around the slabs and stair treads. */
+/** One continuous, double-sided End Portal surface, clipped around the gate frame and controller. */
 public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
     private final Font font;
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
@@ -29,7 +29,6 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
         strip(vertices, matrix, xAxis, -1.5F, 2.5F, 2, 4);
         strip(vertices, matrix, xAxis, -1.5F, 2.5F, 4, 4.5F);
         strip(vertices, matrix, xAxis, -1, 2, 4.5F, 5);
-        strip(vertices, matrix, xAxis, 0, 1, 5, 5.5F);
         renderFloor(entity, pose, buffers, xAxis);
         pose.popPose();
     }

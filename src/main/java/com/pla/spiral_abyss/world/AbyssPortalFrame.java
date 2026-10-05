@@ -22,10 +22,12 @@ public record AbyssPortalFrame(BlockPos base, Direction front) {
         if (!front.getAxis().isHorizontal()) throw new IllegalArgumentException("Horizontal portal facing required");
     }
     public Direction.Axis axis() { return front.getAxis() == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X; }
-    public BlockPos anchor() { return at(0, TOP).relative(front); }
+    public BlockPos anchor() { return at(0, TOP); }
     public static AbyssPortalFrame fromActivation(BlockPos pos, BlockState state) {
         Direction front = state.getValue(AbyssGateActivationBlock.FACING);
-        return new AbyssPortalFrame(pos.relative(front.getOpposite()).below(TOP), front);
+        // The controller's north/south model faces point out of the portal plane;
+        // validFrame requires both flanking slabs along the perpendicular axis.
+        return new AbyssPortalFrame(pos.below(TOP), front);
     }
     private boolean hasActivator(Level level) {
         BlockState state = level.getBlockState(anchor());
@@ -56,6 +58,9 @@ public record AbyssPortalFrame(BlockPos base, Direction front) {
                 BlockState expected = expectedFrameState(x, y);
                 if (expected == null) continue;
                 BlockState actual = level.getBlockState(at(x, y));
+                // The slab's extension is derived from adjacent blocks, not the gate frame layout.
+                if (actual.is(BlockInit.ABYSS_GATE_HORIZONTAL.get()))
+                    actual = actual.setValue(AbyssGateSlabBlock.EXTENSION, AbyssGateSlabBlock.Extension.NONE);
                 if (!actual.equals(expected)) return false;
             }
         }
@@ -64,7 +69,8 @@ public record AbyssPortalFrame(BlockPos base, Direction front) {
 
     /** Null marks positions outside the frame, including its opening. */
     public BlockState expectedFrameState(int x, int y) {
-        if ((y == 0 || y == TOP) && Math.abs(x) <= 1) {
+        // The activation block occupies the top-center gap between the two bottom slabs.
+        if ((y == 0 || y == TOP && x != 0) && Math.abs(x) <= 1) {
             boolean bottom = (y == 0) == (x == 0);
             return BlockInit.ABYSS_GATE_HORIZONTAL.get().defaultBlockState().setValue(AbyssGateSlabBlock.AXIS, axis())
                     .setValue(SlabBlock.TYPE, bottom ? SlabType.BOTTOM : SlabType.TOP);

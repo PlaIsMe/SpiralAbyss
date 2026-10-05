@@ -1,5 +1,5 @@
 {
-  "fodder_mob": 29,
-  "champion_mob": 3,
-  "mini_boss": 2
+  "common_mob": 10,
+  "champion_mob": 5,
+  "boss": 1
 }

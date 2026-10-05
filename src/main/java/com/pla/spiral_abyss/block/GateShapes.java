@@ -4,13 +4,15 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-/** Collision follows the imported models, including their narrow profile. */
+/** Shapes in model pixels for the unrotated blockstate variants. */
 final class GateShapes {
-    static final VoxelShape VERTICAL = box(4, 0, 0, 12, 16, 8);
-    static final VoxelShape CURVE = Shapes.or(box(4, 0, 8, 12, 8, 16),
-            box(4, 6, 4, 12, 8, 8), box(4, 8, 8, 12, 10, 12), box(4, 8, 0, 12, 16, 8));
-    // Runtime model: [8,8,-4]..[20,20,8], rotated 45 degrees about [8,8,-4].
-    // Its south-facing depth -4..8 becomes 8..20 for canonical north.
+    static final VoxelShape VERTICAL = box(2, 0, -2, 14, 16, 10);
+    static final VoxelShape CURVE_BOTTOM = Shapes.or(box(2, 0, 6, 14, 10, 18),
+            box(2, 10, 10, 14, 14, 14), box(2, 6, 0, 14, 16, 6), box(2, 10, 6, 14, 16, 10));
+    static final VoxelShape CURVE_TOP = Shapes.or(box(2, 2, 10, 14, 6, 14),
+            box(2, 0, 0, 14, 10, 6), box(2, 0, 6, 14, 6, 10), box(2, 6, 6, 14, 16, 18));
+    // Model [8,0,0]..[24,16,16], rotated 45 degrees around [8,0,0].
+    // The model faces south; canonical north is the blockstate's 180-degree rotation.
     static final VoxelShape ACTIVATION = diamond();
 
     private GateShapes() {}
@@ -27,21 +29,14 @@ final class GateShapes {
         }
         return shape;
     }
-    static VoxelShape upsideDown(VoxelShape shape) {
-        VoxelShape[] result = {Shapes.empty()};
-        shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> result[0] = Shapes.or(result[0],
-                Shapes.box(x1, 1 - y2, z1, x2, 1 - y1, z2)));
-        return result[0];
-    }
     private static VoxelShape diamond() {
-        // Java collision uses axis-aligned boxes. Thin slices approximate the 45-degree
-        // square without a full-cube invisible wall. Preserve the exported overhang.
-        double radius = 6 * Math.sqrt(2);
+        // Axis-aligned slices enclose the rotated square, including its overhang.
+        double radius = 8 * Math.sqrt(2);
         VoxelShape shape = Shapes.empty();
         for (int i = 0; i < 32; i++) {
             double y1 = 2 * radius * i / 32, y2 = 2 * radius * (i + 1) / 32;
-            double halfWidth = radius - Math.abs((y1 + y2) / 2 - radius);
-            shape = Shapes.or(shape, box(8 - halfWidth, 8 + y1, 8, 8 + halfWidth, 8 + y2, 20));
+            double halfWidth = radius - Math.min(Math.abs(y1 - radius), Math.abs(y2 - radius));
+            shape = Shapes.or(shape, box(8 - halfWidth, y1, 0, 8 + halfWidth, y2, 16));
         }
         return shape;
     }

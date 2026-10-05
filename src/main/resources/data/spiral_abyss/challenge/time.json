@@ -1,0 +1,11 @@
+{
+  "easy": {
+    "target": 240
+  },
+  "medium": {
+    "target": 180
+  },
+  "hard": {
+    "target": 120
+  }
+}

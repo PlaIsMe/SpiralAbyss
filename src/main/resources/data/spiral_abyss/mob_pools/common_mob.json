@@ -16,24 +16,6 @@
   ],
   "minecraft:cave_spider",
   [
-    "minecraft:wither_skeleton",
-    {
-      "loot_table": "minecraft:chests/nether_bridge",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/ruined_portal",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/firewell_d",
-      "weight": 1,
-      "chance": 0.35
-    }
-  ],
-  [
     "minecraft:blaze",
     {
       "loot_table": "minecraft:chests/nether_bridge",
@@ -41,7 +23,7 @@
       "chance": 0.65
     },
     {
-      "loot_table": "minecraft:chests/ruined_portal",
+      "loot_table": "spiral_abyss:ruined_portal",
       "weight": 1,
       "chance": 0.65
     },

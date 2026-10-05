@@ -26,7 +26,7 @@ public final class FloorSelectionScreen extends Screen {
     private boolean replied;
     private int keepOpenTicks;
     private int selectedFloor, selectedWave, resetRowY;
-    private int panelX, panelY, panelWidth, panelHeight, gridTop, gridBottom, scroll, maxScroll, waveContentY;
+    private int panelX, panelY, panelWidth, panelHeight, gridTop, gridBottom, scroll, maxScroll, waveContentY, maxChallengeLines;
 
     public static void closeForReset() {
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
@@ -142,7 +142,13 @@ public final class FloorSelectionScreen extends Screen {
             tab.active = i != selectedWave;
         }
         waveContentY = panelY + 20 + tabHeight;
-        gridTop = waveContentY + 82; gridBottom = panelY + panelHeight - 44;
+        int availableRowHeight = Math.max(16, Math.min(34, (panelHeight - tabHeight - 94) / 3));
+        maxChallengeLines = Math.max(1, (availableRowHeight - 4) / font.lineHeight);
+        gridTop = waveContentY + 2 * font.lineHeight + 22;
+        var preview = wave(selectedWave);
+        if (preview != null)
+            for (Component objective : preview.challenges()) gridTop += challengeRowHeight(objective);
+        gridBottom = panelY + panelHeight - 44;
         int backHeight = Math.round(30 * ARTWORK_BUTTON_SCALE);
         artworkButton(panelX + 14, panelY + panelHeight - 38 + (30 - backHeight) / 2,
                 Math.round(24 * ARTWORK_BUTTON_SCALE), backHeight,
@@ -217,21 +223,35 @@ public final class FloorSelectionScreen extends Screen {
         RenderSystem.disableBlend();
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.floor", selectedFloor), panelX + cardWidth + 32, panelY + 17, 0xFFFFFFFF, false);
     }
+    private int challengeRowHeight(Component objective) {
+        int lines = Math.min(maxChallengeLines, font.split(objective, Math.max(1, panelWidth - 52)).size());
+        // Pack single-line objectives to the star's height; grow only for wrapped text.
+        return Math.max(16, lines * font.lineHeight + 3);
+    }
     private void renderWave(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"), panelX + 15, waveContentY, 0xFFFFFFFF, false);
-        for (int i = 0; i < 3; i++) {
-            int y = waveContentY + 13 + i * 16;
-            graphics.renderItem(STAR, panelX + 14, y - 3);
-            drawFitted(graphics, Component.translatable(i == 2 ? "screen.spiral_abyss.wave_objective_one" : "screen.spiral_abyss.wave_objective", 3 - i), panelX + 36, y, panelWidth - 50, 0xFFFFFFFF);
+        List<Component> objectives = wave(selectedWave) == null ? List.of() : wave(selectedWave).challenges();
+        Component hoveredObjective = null;
+        int challengeY = waveContentY + 2 * font.lineHeight;
+        for (Component objective : objectives) {
+            int rowHeight = challengeRowHeight(objective);
+            graphics.renderItem(STAR, panelX + 14, challengeY - 3);
+            var lines = font.split(objective, Math.max(1, panelWidth - 52));
+            if (maxChallengeLines == 1) drawFitted(graphics, objective, panelX + 36, challengeY, panelWidth - 50, 0xFFFFFFFF);
+            else for (int line = 0; line < Math.min(maxChallengeLines, lines.size()); line++)
+                graphics.drawString(font, lines.get(line), panelX + 36, challengeY + line * font.lineHeight, 0xFFFFFFFF, false);
+            if (mouseX >= panelX + 14 && mouseX < panelX + panelWidth - 14 && mouseY >= challengeY - 3 && mouseY < challengeY + rowHeight - 3)
+                hoveredObjective = objective;
+            challengeY += rowHeight;
         }
-        graphics.drawString(font, Component.translatable("screen.spiral_abyss.enemies"), panelX + 15, waveContentY + 67, 0xFFFFFFFF, false);
+        graphics.drawString(font, Component.translatable("screen.spiral_abyss.enemies"), panelX + 15, gridTop - 15, 0xFFFFFFFF, false);
         var preview = wave(selectedWave);
         List<AbyssNetwork.EnemyPreview> enemies = preview == null ? List.of() : preview.enemies();
         int columns = Math.max(1, (panelWidth - 30) / 86), tileWidth = (panelWidth - 30) / columns;
         int tileHeight = Math.max(36, Math.min(88, gridBottom - gridTop));
         int rows = (enemies.size() + columns - 1) / columns;
         maxScroll = Math.max(0, rows * tileHeight - Math.max(1, gridBottom - gridTop)); scroll = Math.min(scroll, maxScroll);
-        Component hovered = null;
+        Component hovered = hoveredObjective;
         graphics.enableScissor(panelX + 10, gridTop, panelX + panelWidth - 10, Math.max(gridTop, gridBottom));
         for (int index = 0; index < enemies.size(); index++) {
             int x = panelX + 14 + index % columns * tileWidth, y = gridTop + index / columns * tileHeight - scroll;

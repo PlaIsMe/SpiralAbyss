@@ -1,7 +1,8 @@
 package com.pla.spiral_abyss.client.overlay;
 
 import com.pla.spiral_abyss.SpiralAbyss;
-import com.pla.spiral_abyss.encounter.WaveChallenges;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import com.pla.spiral_abyss.network.AbyssNetwork;
 import com.pla.spiral_abyss.world.AbyssDimension;
 import net.minecraft.client.Minecraft;
@@ -15,6 +16,7 @@ import net.minecraftforge.fml.common.Mod;
 /** Display server snapshots without locally advancing the clock during wave delays or server pauses. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public final class AbyssEncounterOverlay {
+    private static final ItemStack STAR = new ItemStack(Items.NETHER_STAR);
     private static final float TIMER_SCALE = 1.5F;
     private static final float COUNTDOWN_SCALE = 4F;
     private static AbyssNetwork.EncounterStatus state = AbyssNetwork.EncounterStatus.HIDDEN;
@@ -44,18 +46,22 @@ public final class AbyssEncounterOverlay {
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"),
                 left, challengeY, 0xFFFFFFFF, true);
         challengeY += font.lineHeight + 4;
-        // The server rounds remaining seconds up. This preserves the strict challenge
-        // boundaries and holds the finished wave's colors throughout its countdown.
-        int elapsedTicks = Math.max(0, WaveChallenges.TIME_LIMIT_TICKS - state.seconds() * 20);
-        int availableStars = WaveChallenges.stars(elapsedTicks);
-        for (int minutes = 3; minutes >= 1; minutes--) {
-            int color = availableStars >= 4 - minutes ? 0xFFFFFFFF : 0xFF888888;
-            Component objective = Component.translatable(minutes == 1
-                    ? "screen.spiral_abyss.wave_objective_one" : "screen.spiral_abyss.wave_objective", minutes);
-            for (var line : font.split(objective, Math.max(1, width - left - 12))) {
-                graphics.drawString(font, line, left, challengeY, color, true);
-                challengeY += font.lineHeight + 3;
+        int objectiveWidth = Math.max(40, Math.min(340, width - left - 38));
+        for (var challenge : state.challenges()) {
+            boolean earned = challenge.satisfied() && !challenge.failed();
+            int color = earned ? 0xFFFFFFFF : 0xFF888888;
+            // The icon belongs to the server's rolled objective, not an elapsed-time tier.
+            graphics.renderItem(STAR, left, challengeY - 3);
+            if (!earned) graphics.fill(left, challengeY - 3, left + 16, challengeY + 13, 0x99505050);
+            Component objective = challenge.target() > 0
+                    ? Component.translatable("challenge.spiral_abyss.progress", challenge.description(), challenge.progress(), challenge.target())
+                    : challenge.description();
+            int rowStart = challengeY;
+            for (var line : font.split(objective, objectiveWidth)) {
+                graphics.drawString(font, line, left + 21, challengeY, color, true);
+                challengeY += font.lineHeight + 2;
             }
+            challengeY = Math.max(rowStart + 18, challengeY + 4);
         }
     };
 }

@@ -1,0 +1,16 @@
+{
+  "structures": [
+    {
+      "structure": "spiral_abyss:ruined_portal",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 40,
+    "separation": 15,
+    "spread_type": "linear",
+    "frequency": 1.0,
+    "salt": 34222646
+  }
+}

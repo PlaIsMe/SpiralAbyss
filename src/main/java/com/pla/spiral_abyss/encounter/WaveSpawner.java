@@ -58,11 +58,12 @@ public final class WaveSpawner {
                     if (!place(level, mob, center)) throw new IllegalStateException("No safe spawn position for " + entry.id());
                     mob.setTarget(target);
                     if (!level.addFreshEntity(mob)) throw new IllegalStateException("Spawn rejected for " + entry.id());
+                    WaveAllies.add(mob);
                 }
             }
             return List.copyOf(created);
         } catch (RuntimeException ex) {
-            created.forEach(Entity::discard);
+            created.forEach(mob -> { WaveAllies.remove(mob); mob.discard(); });
             throw ex;
         }
     }

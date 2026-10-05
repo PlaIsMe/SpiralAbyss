@@ -35,6 +35,7 @@ public final class FloorParser {
         int rolls = integer(loot, "rolls", entries.isEmpty() ? 0 : 1, 0, 100);
         int experience = integer(loot, "experience", 0, 0, 100000);
         List<FloorDefinition.Wave> parsed = new ArrayList<>();
+        int floorEnemies = 0;
         for (var entry : waves.entrySet()) {
             require(entry.getKey() == parsed.size() + 1, "wave files must be consecutive, starting at wave_1.json");
             JsonObject wave = entry.getValue();
@@ -71,9 +72,14 @@ public final class FloorParser {
                 count += amount;
             }
             require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
+            floorEnemies += count;
             parsed.add(new FloorDefinition.Wave(scale(wave, "health_scale", health),
                     scale(wave, "damage_scale", damage), categories, enemies));
         }
+        boolean bossOnly = parsed.stream().allMatch(wave -> wave.categories().keySet().stream()
+                .allMatch(category -> category == MobCategory.MINI_BOSS || category == MobCategory.BOSS));
+        require(bossOnly || floorEnemies > 30,
+                "ordinary floors need at least 31 mobs in total; smaller floors must use only boss categories or explicit bosses");
         return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
     }
 

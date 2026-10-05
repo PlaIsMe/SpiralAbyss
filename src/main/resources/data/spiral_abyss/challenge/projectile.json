@@ -1,0 +1,14 @@
+{
+  "easy": {
+    "pool": [],
+    "percentage": 20
+  },
+  "medium": {
+    "pool": [],
+    "percentage": 25
+  },
+  "hard": {
+    "pool": [],
+    "percentage": 33.333333333333336
+  }
+}

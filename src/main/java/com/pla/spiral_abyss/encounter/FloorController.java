@@ -3,6 +3,8 @@ package com.pla.spiral_abyss.encounter;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.encounter.data.*;
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeTracker;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -40,6 +42,8 @@ public final class FloorController {
     private int delayTicks;
     private int waveEnemies;
     private final int[] attemptStars = new int[WaveChallenges.WAVE_COUNT];
+    private List<Challenge> challenges = List.of();
+    private ChallengeTracker challengeTracker;
     private int revision;
 
     public FloorController(ArenaSession session, Supplier<FloorCatalog.Snapshot> catalog) {
@@ -58,10 +62,16 @@ public final class FloorController {
     public int remainingTicks() { return clock.remainingTicks(); }
     public int remainingEnemies() { return enemies.size(); }
     public List<Mob> enemies() { return List.copyOf(enemies); }
+    public ChallengeTracker challengeTracker() { return challengeTracker; }
+    public List<ChallengeTracker.Progress> challengeProgress() {
+        return challengeTracker == null ? List.of() : challengeTracker.progress();
+    }
     public AbyssNetwork.EncounterStatus hudStatus() {
         return active() ? new AbyssNetwork.EncounterStatus(true, currentFloor(), currentWave(),
                 waveEnemies - enemies.size(), waveEnemies, clock.remainingSeconds(),
-                state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0)
+                state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0,
+                challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(
+                        p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList())
                 : AbyssNetwork.EncounterStatus.HIDDEN;
     }
     public UUID runId() { return runId; }
@@ -77,6 +87,13 @@ public final class FloorController {
         if (!session.partyCanEnterFloor(player, progress.floor())) return false;
         floor = catalog.get().floors().get(progress.floor());
         if (floor == null) return message(player, "missing_floor", progress.floor());
+        try {
+            challenges = List.copyOf(session.challenges(currentFloor()));
+            if (challenges.size() != 3) throw new IllegalArgumentException("Expected three challenges");
+        } catch (IllegalArgumentException ex) {
+            LogUtils.getLogger().warn("Floor {} has unavailable challenges", currentFloor(), ex);
+            return message(player, "challenges_unavailable");
+        }
         if (!session.captureParty()) return message(player, "host_required");
         equipment = MobCatalog.equipment();
         mobRewards = MobCatalog.rewards();
@@ -117,6 +134,7 @@ public final class FloorController {
         // Spend every combat tick, including the tick of the final kill. A wave at
         // its five-minute deadline fails even when the final removal is observed now.
         if (clock.tick(true)) { fail("time_up"); return; }
+        challengeTracker.update(clock.elapsedTicks());
         for (Iterator<Mob> iterator = enemies.iterator(); iterator.hasNext();) {
             Mob mob = iterator.next();
             // Count every death/removal, regardless of attacker. Exploding creepers discard
@@ -135,7 +153,7 @@ public final class FloorController {
                 mob.setTarget(target);
         }
         if (enemies.isEmpty()) {
-            if (waveIndex < attemptStars.length) attemptStars[waveIndex] = WaveChallenges.stars(clock.elapsedTicks());
+            if (waveIndex < attemptStars.length) attemptStars[waveIndex] = challengeTracker.stars();
             if (waveIndex + 1 == floor.waves().size()) complete();
             else {
                 state = State.BETWEEN_WAVES;
@@ -154,6 +172,8 @@ public final class FloorController {
             enemies.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
             enemies.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
             waveEnemies = enemies.size();
+            // Spawning is synchronous: capture starting equipment before the first combat tick.
+            challengeTracker = new ChallengeTracker(session, challenges, waveEnemies);
             clock.start(WaveChallenges.TIME_LIMIT_TICKS);
             state = State.RUNNING;
             session.refreshDisplay();
@@ -210,6 +230,7 @@ public final class FloorController {
         enemies.clear();
         runId = null;
         clock.clear();
+        challengeTracker = null;
         delayTicks = waveEnemies = 0;
     }
 

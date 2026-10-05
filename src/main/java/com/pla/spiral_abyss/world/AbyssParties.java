@@ -17,6 +17,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
@@ -47,6 +48,8 @@ public final class AbyssParties {
         var fallback = MobCatalog.snapshot();
         cycle.repair(MobCatalog::availableMob, fallback);
         for (var floor : com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().values()) {
+            try { challenges(floor.number()); }
+            catch (IllegalArgumentException ex) { com.mojang.logging.LogUtils.getLogger().warn("Abyss floor {} challenges unavailable: {}", floor.number(), ex.getMessage()); }
             for (int wave = 0; wave < floor.waves().size(); wave++) {
                 try {
                     var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), MobCatalog::availableMob, fallback);
@@ -64,6 +67,23 @@ public final class AbyssParties {
         data.setDirty();
         if (result.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
             throw new IllegalArgumentException("No available replacement for a saved cycle mob; install a mob or update its category pool");
+        return result;
+    }
+    public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) {
+        var level = server.getLevel(AbyssDimension.LEVEL);
+        if (level == null) throw new IllegalArgumentException("Missing Abyss level");
+        Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts = new TreeMap<>();
+        for (var definition : com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().values()) {
+            if(floor<=2&&definition.number()!=floor)continue;
+            List<List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy>> rosters = new ArrayList<>();
+            for (int wave = 0; wave < definition.waves().size(); wave++)
+                rosters.add(cycleLineup(definition.number(), wave + 1, definition.waves().get(wave)));
+            contexts.put(definition.number(), new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(
+                    rosters.stream().map(roster -> roster.stream().mapToInt(com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy::count).sum()).toList(),
+                    new com.pla.spiral_abyss.encounter.challenge.ChallengeEligibility(level, rosters)));
+        }
+        var result = cycle().challenges(floor, contexts);
+        data.setDirty();
         return result;
     }
     public void resetGlobal() { resetGlobal(System.currentTimeMillis()); }
@@ -279,9 +299,10 @@ public final class AbyssParties {
         ResourceLocation id = ResourceLocation.tryParse(saved.getString("Dimension"));
         ServerLevel destination = server.overworld();
         Vec3 position = new Vec3(saved.getDouble("X"), saved.getDouble("Y"), saved.getDouble("Z"));
-        if (id == null || !id.equals(destination.dimension().location()) || !isSafe(destination, player, position)) {
-            position = Vec3.atBottomCenterOf(destination.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, destination.getSharedSpawnPos()));
-        }
+        Vec3 safe = id != null && id.equals(destination.dimension().location())
+                ? safeReturnPosition(destination, player, position) : null;
+        position = safe != null ? safe : Vec3.atBottomCenterOf(destination.getHeightmapPos(
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, destination.getSharedSpawnPos()));
         ArenaSession session = sessionFor(player);
         if (forced) {
             player.teleportTo(destination, position.x, position.y, position.z, saved.getFloat("Yaw"), saved.getFloat("Pitch"));
@@ -529,10 +550,40 @@ public final class AbyssParties {
     private static boolean isSafe(ServerLevel level, ServerPlayer player, Vec3 position) {
         if (!Double.isFinite(position.x) || !Double.isFinite(position.y) || !Double.isFinite(position.z)) return false;
         BlockPos feet = BlockPos.containing(position);
-        return level.getWorldBorder().isWithinBounds(feet) && feet.getY() > level.getMinBuildHeight()
-                && feet.getY() + 2 < level.getMaxBuildHeight()
-                && !level.noCollision(player, player.getBoundingBox().move(position.subtract(player.position())).move(0, -0.05, 0))
-                && level.getFluidState(feet).isEmpty() && level.noCollision(player, player.getBoundingBox().move(position.subtract(player.position())));
+        if (!level.getWorldBorder().isWithinBounds(feet) || feet.getY() <= level.getMinBuildHeight()
+                || feet.getY() + 2 >= level.getMaxBuildHeight()) return false;
+        AABB body = player.getBoundingBox().move(position.subtract(player.position()));
+        // Collision checks skip unloaded chunks. Load the saved return area before checking
+        // its floor, especially after a server restart when the portal is far from spawn.
+        AABB collisionArea = body.inflate(1.0);
+        for (int x = net.minecraft.util.Mth.floor(collisionArea.minX) >> 4; x <= net.minecraft.util.Mth.floor(collisionArea.maxX) >> 4; x++)
+            for (int z = net.minecraft.util.Mth.floor(collisionArea.minZ) >> 4; z <= net.minecraft.util.Mth.floor(collisionArea.maxZ) >> 4; z++)
+                level.getChunk(x, z);
+        return !level.noCollision(player, body.move(0, -0.05, 0))
+                && level.getFluidState(feet).isEmpty() && !level.containsAnyLiquid(body)
+                && level.noCollision(player, body);
+    }
+    private static Vec3 safeReturnPosition(ServerLevel level, ServerPlayer player, Vec3 saved) {
+        if (isSafe(level, player, saved)) return saved;
+        if (!Double.isFinite(saved.x) || !Double.isFinite(saved.y) || !Double.isFinite(saved.z)) return null;
+        BlockPos origin = BlockPos.containing(saved);
+        for (int radius = 1; radius <= 4; radius++) {
+            for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
+                BlockPos column = origin.offset(dx, 0, dz);
+                if (!level.getWorldBorder().isWithinBounds(column)) continue;
+                level.getChunk(column.getX() >> 4, column.getZ() >> 4);
+                for (int dy : new int[] {0, 1, -1, 2, -2, 3, -3}) {
+                    BlockPos floor = column.offset(0, dy - 1, 0);
+                    if (floor.getY() < level.getMinBuildHeight() || floor.getY() >= level.getMaxBuildHeight()) continue;
+                    var shape = level.getBlockState(floor).getCollisionShape(level, floor);
+                    if (shape.isEmpty()) continue;
+                    Vec3 candidate = new Vec3(column.getX() + 0.5, floor.getY() + shape.max(net.minecraft.core.Direction.Axis.Y), column.getZ() + 0.5);
+                    if (isSafe(level, player, candidate)) return candidate;
+                }
+            }
+        }
+        return null;
     }
     private static boolean tell(ServerPlayer player, String key, Object... args) {
         player.displayClientMessage(Component.translatable("message.spiral_abyss." + key, args), true); return false;
