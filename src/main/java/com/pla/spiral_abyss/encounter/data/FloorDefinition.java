@@ -11,11 +11,39 @@ public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rew
     }
 
     public record Wave(double healthScale, double damageScale,
-                       Map<MobCategory, Integer> categories, List<Enemy> bosses) {
-        public Wave { categories = Map.copyOf(categories); bosses = List.copyOf(bosses); }
+                       Map<MobCategory, Integer> categories, List<Enemy> bosses, List<WaveType> waveTypes) {
+        public Wave { categories = Map.copyOf(categories); bosses = List.copyOf(bosses); waveTypes = List.copyOf(waveTypes); }
+        public Wave(double healthScale, double damageScale, Map<MobCategory, Integer> categories, List<Enemy> bosses) {
+            this(healthScale, damageScale, categories, bosses, List.of());
+        }
+        public int minimumEnemies() {
+            return waveTypes.isEmpty() ? categories.values().stream().mapToInt(Integer::intValue).sum()
+                    + bosses.stream().mapToInt(Enemy::count).sum()
+                    : waveTypes.stream().mapToInt(WaveType::count).min().orElse(0);
+        }
+        public boolean bossOnly() {
+            return waveTypes.isEmpty() ? categories.keySet().stream().allMatch(WaveGroup::bossCategory)
+                    : waveTypes.stream().allMatch(type -> type.groups().stream().allMatch(group -> WaveGroup.bossCategory(group.category())));
+        }
     }
 
-    public record Enemy(ResourceLocation id, int count, MobCategory category) {
+    /** One role-filtered species group inside a simultaneous stage. */
+    public record WaveGroup(MobCategory category, int count, CombatRole role) {
+        public WaveGroup(MobCategory category, int count) { this(category, count, CombatRole.ANY); }
+        private static boolean bossCategory(MobCategory category) { return category == MobCategory.MINI_BOSS || category == MobCategory.BOSS; }
+    }
+    public record WaveStage(List<WaveGroup> groups) {
+        public WaveStage { groups = List.copyOf(groups); }
+    }
+    public record WaveType(ResourceLocation id, List<WaveStage> sequence, int tier) {
+        public WaveType { sequence = List.copyOf(sequence); }
+        public WaveType(ResourceLocation id, List<WaveGroup> groups) { this(id, groups.stream().map(group -> new WaveStage(List.of(group))).toList(), 1); }
+        public List<WaveGroup> groups() { return sequence.stream().flatMap(stage -> stage.groups().stream()).toList(); }
+        public int count() { return groups().stream().mapToInt(WaveGroup::count).sum(); }
+    }
+
+    public record Enemy(ResourceLocation id, int count, MobCategory category, int stage, CombatRole role) {
+        public Enemy(ResourceLocation id, int count, MobCategory category) { this(id, count, category, 0, CombatRole.ANY); }
         public Enemy(ResourceLocation id, int count) { this(id, count, null); }
     }
 

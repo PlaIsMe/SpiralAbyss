@@ -11,7 +11,12 @@
     "AbyssEnvironmentMixin",
     "AbyssDrownedTridentMixin",
     "AbyssSlimeSplitMixin",
-    "AbyssTeleportCommandMixin"
+    "AbyssTeleportCommandMixin",
+    "AbyssDragonMixin",
+    "AbyssDragonLandingMixin",
+    "AbyssDragonPerchMixin",
+    "AbyssDragonTakeoffMixin",
+    "AbyssCrystalMixin"
   ],
   "injectors": {
     "defaultRequire": 1

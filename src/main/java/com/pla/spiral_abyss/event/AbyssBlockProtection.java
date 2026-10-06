@@ -33,7 +33,15 @@ public final class AbyssBlockProtection {
     @SubscribeEvent
     public static void preventBreaking(BlockEvent.BreakEvent event) {
         if (!event.getPlayer().isCreative()
-                && BlockInit.isAbyssArchitecture(event.getState().getBlock())) event.setCanceled(true);
+                && (BlockInit.isAbyssArchitecture(event.getState().getBlock()) || managedTerrain(event.getLevel(), event.getPos()))) event.setCanceled(true);
+    }
+
+    private static boolean managedTerrain(net.minecraft.world.level.LevelAccessor level, BlockPos pos) {
+        return level instanceof ServerLevel server && server.dimension().equals(AbyssDimension.LEVEL) && AbyssParties.get(server.getServer()).sessions().stream().anyMatch(session -> session.controller().bossEnvironments().protects(pos));
+    }
+    @SubscribeEvent
+    public static void protectBossTerrain(net.minecraftforge.event.entity.living.LivingDestroyBlockEvent event) {
+        if (managedTerrain(event.getEntity().level(), event.getPos())) event.setCanceled(true);
     }
 
     private static boolean restricted(Player player) {

@@ -27,6 +27,7 @@ public final class FloorSelectionScreen extends Screen {
     private int keepOpenTicks;
     private int selectedFloor, selectedWave, resetRowY;
     private int panelX, panelY, panelWidth, panelHeight, gridTop, gridBottom, scroll, maxScroll, waveContentY, maxChallengeLines;
+    private RewardPreviewPanel rewardPanel;
 
     public static void closeForReset() {
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
@@ -54,6 +55,7 @@ public final class FloorSelectionScreen extends Screen {
         selectedFloor = floor; selectedWave = wave; scroll = 0; setFocused(null); clearWidgets(); init();
     }
     @Override protected void init() {
+        rewardPanel = null;
         if (selectedFloor == 0) initOverview();
         else if (selectedWave == 0) initFloor();
         else initWave();
@@ -96,11 +98,11 @@ public final class FloorSelectionScreen extends Screen {
         int cardHeight = Math.min(panelHeight - 48, (panelWidth / 4) * 455 / 256);
         int cardWidth = cardHeight * 256 / 455;
         int right = panelX + cardWidth + 32, rightWidth = panelWidth - cardWidth - 48;
-        int rowHeight = Math.max(24, Math.min(42, (panelHeight - 103) / 3));
-        int rowGap = Math.max(5, Math.min(12, panelHeight / 28));
+        int rowHeight = Math.max(18, Math.min(38, (panelHeight - 120) / 3));
+        int rowGap = 4;
         for (int i = 1; i <= 3; i++) {
             final int number = i;
-            var row = new Button(right, panelY + 41 + (i - 1) * (rowHeight + rowGap), rightWidth, rowHeight,
+            var row = new Button(right, panelY + 32 + (i - 1) * (rowHeight + rowGap), rightWidth, rowHeight,
                     Component.translatable("screen.spiral_abyss.wave", i), button -> navigate(selectedFloor, number), narration -> narration.get()) {
                 @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                     graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(),
@@ -117,9 +119,12 @@ public final class FloorSelectionScreen extends Screen {
             row.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.wave_stars", preview == null ? 0 : preview.stars())));
             addRenderableWidget(row);
         }
-        int rowsBottom = panelY + 41 + 3 * rowHeight + 2 * rowGap;
-        int actionHeight = Math.round(ARTWORK_BUTTON_SCALE * Math.max(18, Math.min(44, panelY + panelHeight - rowsBottom - 16)));
-        int actionY = rowsBottom + Math.max(4, (panelY + panelHeight - rowsBottom - actionHeight) / 2);
+        int rowsBottom = panelY + 32 + 3 * rowHeight + 2 * rowGap;
+        int rewardY = rowsBottom + 20;
+        rewardPanel = new RewardPreviewPanel(floor() == null ? List.of() : floor().rewards(),
+                right, rewardY, rightWidth, Math.max(22, panelY + panelHeight - 40 - rewardY));
+        int actionHeight = 15;
+        int actionY = panelY + panelHeight - 29;
         artworkButton(right, actionY, Math.max(20, rightWidth / 4), actionHeight,
                 Component.translatable("gui.back"), ButtonArtwork.BACK, false, () -> navigate(0, 0));
         int fightWidth = ButtonArtwork.FIGHT.fittedWidth(Math.max(1, Math.round(rightWidth / 2F * ARTWORK_BUTTON_SCALE)), actionHeight);
@@ -209,7 +214,9 @@ public final class FloorSelectionScreen extends Screen {
             if (selectedWave == 0) renderFloor(graphics);
             else renderWave(graphics, mouseX, mouseY);
         }
-        super.render(graphics, mouseX, mouseY, partialTick);
+        boolean overRewardTooltip = rewardPanel != null && rewardPanel.popupContains(mouseX, mouseY);
+        super.render(graphics, overRewardTooltip ? -1 : mouseX, overRewardTooltip ? -1 : mouseY, partialTick);
+        if (rewardPanel != null) rewardPanel.render(graphics, mouseX, mouseY, width, height);
     }
     private void renderOverview(GuiGraphics graphics) {
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFF3D7);
@@ -278,10 +285,15 @@ public final class FloorSelectionScreen extends Screen {
         graphics.drawString(font, text, 0, 0, color, false); graphics.pose().popPose();
     }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (rewardPanel != null && rewardPanel.scroll(mouseX, mouseY, amount)) return true;
         if (selectedWave != 0 && mouseX >= panelX && mouseX < panelX + panelWidth && mouseY >= gridTop && mouseY < gridBottom) {
             scroll = Math.max(0, Math.min(maxScroll, scroll - (int) (amount * 30))); return true;
         }
         return super.mouseScrolled(mouseX, mouseY, amount);
+    }
+    @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (rewardPanel != null && rewardPanel.popupContains(mouseX, mouseY)) return true;
+        return super.mouseClicked(mouseX, mouseY, button);
     }
     private void submit(int floor) {
         if (replied) return;

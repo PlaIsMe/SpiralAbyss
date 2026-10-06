@@ -116,5 +116,14 @@
   "challenge.spiral_abyss.ender_pearl_hit": "Hit wave enemies with ender pearls %s times",
   "challenge.spiral_abyss.ender_pearl_hit.one": "Hit a wave enemy with an ender pearl %s time",
   "challenge.spiral_abyss.shield_block": "Block wave enemy attacks with a shield %s times",
-  "challenge.spiral_abyss.shield_block.one": "Block a wave enemy attack with a shield %s time"
+  "challenge.spiral_abyss.shield_block.one": "Block a wave enemy attack with a shield %s time",
+  "screen.spiral_abyss.rewards": "Possible Rewards",
+  "screen.spiral_abyss.chest_loot": "%s Chest Loot",
+  "screen.spiral_abyss.no_rewards": "No available rewards",
+  "screen.spiral_abyss.possible_loot": "Possible contents",
+  "screen.spiral_abyss.known_loot": "Known possible contents",
+  "screen.spiral_abyss.loot_contents_unavailable": "Contents unavailable",
+  "screen.spiral_abyss.loot_page": "%s / %s - Scroll to browse",
+  "screen.spiral_abyss.loot_partial": "Additional items may be possible",
+  "screen.spiral_abyss.loot_varies": "Amounts and enchantments vary"
 }

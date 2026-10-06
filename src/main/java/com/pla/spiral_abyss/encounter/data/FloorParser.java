@@ -13,6 +13,9 @@ public final class FloorParser {
     private FloorParser() {}
 
     public static FloorDefinition parse(int number, JsonObject floor, SortedMap<Integer, JsonObject> waves) {
+        return parse(number, floor, waves, Map.of());
+    }
+    public static FloorDefinition parse(int number, JsonObject floor, SortedMap<Integer, JsonObject> waves, Map<ResourceLocation, FloorDefinition.WaveType> waveTypes) {
         require(number >= 1 && number <= MAX_FLOORS, "floor number must be 1..6");
         require(waves.size() == 3, "a challenge floor needs exactly three waves");
         double health = scale(floor, "health_scale", 1);
@@ -38,52 +41,128 @@ public final class FloorParser {
         int floorEnemies = 0;
         for (var entry : waves.entrySet()) {
             require(entry.getKey() == parsed.size() + 1, "wave files must be consecutive, starting at wave_1.json");
-            JsonObject wave = entry.getValue();
-            List<FloorDefinition.Enemy> enemies = new ArrayList<>();
-            Map<MobCategory, Integer> categories = new EnumMap<>(MobCategory.class);
-            int count = 0;
-            for (MobCategory category : MobCategory.values()) {
-                int amount = integer(wave, category.key(), 0, 0, 128);
-                if (amount > 0) categories.put(category, amount);
-                count += amount;
-            }
-            Set<String> known = new HashSet<>(List.of("total_time", "health_scale", "damage_scale", "bosses"));
-            // Legacy total_time fields are accepted; challenge timing is fixed at five minutes per wave.
-            for (MobCategory category : MobCategory.values()) known.add(category.key());
-            for (String key : wave.keySet()) require(known.contains(key), "unknown wave field: " + key);
-            // Explicit IDs remain supported for existing datapacks and fixed encounters.
-            for (JsonElement boss : wave.has("bosses") ? array(wave.get("bosses"), "bosses") : new JsonArray()) {
-                ResourceLocation mobId;
-                int amount = 1;
-                if (boss.isJsonPrimitive()) mobId = id(boss);
-                else {
-                    JsonObject spec = object(boss, "boss entry");
-                    mobId = id(spec.get("id"));
-                    amount = integer(spec, "count", 1, 1, 128);
+            try {
+                JsonObject wave = entry.getValue();
+                List<FloorDefinition.Enemy> enemies = new ArrayList<>();
+                Map<MobCategory, Integer> categories = new EnumMap<>(MobCategory.class);
+                int count = 0;
+                for (MobCategory category : MobCategory.values()) {
+                    int amount = integer(wave, category.key(), 0, 0, 128);
+                    if (amount > 0) categories.put(category, amount);
+                    count += amount;
                 }
-                require(ForgeRegistries.ENTITY_TYPES.containsKey(mobId), "unknown mob id: " + mobId);
-                require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
-                        "players cannot be wave enemies");
-                require(!mobId.equals(new ResourceLocation("spiral_abyss", "key_entity"))
-                        && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest"))
-                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "copper_chest"))
-                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "iron_chest"))
-                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest"))
-                        && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "scroll_entity")),
-                        "arena furniture cannot be a wave enemy");
-                enemies.add(new FloorDefinition.Enemy(mobId, amount));
-                count += amount;
+                Set<String> known = new HashSet<>(List.of("total_time", "health_scale", "damage_scale", "bosses", "wave_types"));
+                // Legacy total_time fields are accepted; challenge timing is fixed at five minutes per wave.
+                for (MobCategory category : MobCategory.values()) known.add(category.key());
+                for (String key : wave.keySet()) require(known.contains(key), "unknown wave field: " + key);
+                if (wave.has("wave_types")) {
+                    require(Arrays.stream(MobCategory.values()).noneMatch(category -> wave.has(category.key())) && !wave.has("bosses"),
+                            "wave_types cannot be combined with category counts or bosses");
+                    JsonArray names = array(wave.get("wave_types"), "wave_types");
+                    require(names.size() > 0 && names.size() <= 64, "wave_types needs 1..64 distinct type names");
+                    List<FloorDefinition.WaveType> choices = new ArrayList<>();
+                    Set<ResourceLocation> seen = new HashSet<>();
+                    for (JsonElement name : names) {
+                        ResourceLocation typeId = waveTypeId(name);
+                        require(seen.add(typeId), "duplicate wave type: " + typeId);
+                        require(waveTypes.containsKey(typeId), "unknown or invalid wave type: " + typeId);
+                        choices.add(waveTypes.get(typeId));
+                    }
+                    var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), Map.of(), List.of(), choices);
+                    com.pla.spiral_abyss.encounter.BossWavePolicy.validate(number, entry.getKey(), parsedWave);
+                    floorEnemies += parsedWave.minimumEnemies();
+                    parsed.add(parsedWave);
+                    continue;
+                }
+                // Explicit IDs remain supported for existing datapacks and fixed encounters.
+                for (JsonElement boss : wave.has("bosses") ? array(wave.get("bosses"), "bosses") : new JsonArray()) {
+                    ResourceLocation mobId;
+                    int amount = 1;
+                    if (boss.isJsonPrimitive()) mobId = id(boss);
+                    else {
+                        JsonObject spec = object(boss, "boss entry");
+                        mobId = id(spec.get("id"));
+                        amount = integer(spec, "count", 1, 1, 128);
+                    }
+                    require(ForgeRegistries.ENTITY_TYPES.containsKey(mobId), "unknown mob id: " + mobId);
+                    require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
+                            "players cannot be wave enemies");
+                    require(!mobId.equals(new ResourceLocation("spiral_abyss", "key_entity"))
+                            && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "copper_chest"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "iron_chest"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "scroll_entity")),
+                            "arena furniture cannot be a wave enemy");
+                    enemies.add(new FloorDefinition.Enemy(mobId, amount));
+                    count += amount;
+                }
+                require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
+                floorEnemies += count;
+                var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), categories, enemies);
+                com.pla.spiral_abyss.encounter.BossWavePolicy.validate(number, entry.getKey(), parsedWave);
+                parsed.add(parsedWave);
+            } catch (IllegalArgumentException | JsonParseException ex) {
+                throw new JsonParseException("data/spiral_abyss/floor_" + number + "/wave_" + entry.getKey() + ".json: " + ex.getMessage(), ex);
             }
-            require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
-            floorEnemies += count;
-            parsed.add(new FloorDefinition.Wave(scale(wave, "health_scale", health),
-                    scale(wave, "damage_scale", damage), categories, enemies));
         }
-        boolean bossOnly = parsed.stream().allMatch(wave -> wave.categories().keySet().stream()
-                .allMatch(category -> category == MobCategory.MINI_BOSS || category == MobCategory.BOSS));
-        require(bossOnly || floorEnemies > 30,
-                "ordinary floors need at least 31 mobs in total; smaller floors must use only boss categories or explicit bosses");
+        // Named encounters are balanced by category, roles and stages, not a minimum mob count.
+        boolean bossOnly = parsed.stream().allMatch(FloorDefinition.Wave::bossOnly);
+        require(parsed.stream().anyMatch(wave -> !wave.waveTypes().isEmpty()) || bossOnly || floorEnemies > 30, "ordinary legacy floors need at least 31 mobs in total");
         return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
+    }
+
+    public static FloorDefinition.WaveType waveType(ResourceLocation id, JsonObject object) {
+        try {
+            for (String key : object.keySet()) require(Set.of("groups", "sequence", "tier").contains(key), "unknown wave type field: " + key + "=" + object.get(key));
+            require(object.has("groups") != object.has("sequence"), "provide exactly one of groups or sequence");
+            int tier = integer(object, "tier", 1, 1, 7);
+            List<FloorDefinition.WaveStage> stages = new ArrayList<>();
+            if (object.has("groups")) {
+                for (var group : groups(object.get("groups"), "groups")) stages.add(new FloorDefinition.WaveStage(List.of(group)));
+            } else {
+                JsonArray sequence = array(object.get("sequence"), "sequence");
+                require(sequence.size() > 0 && sequence.size() <= 128, "sequence needs 1..128 stages; got " + sequence.size());
+                for (int index = 0; index < sequence.size(); index++) {
+                    JsonObject stage = object(sequence.get(index), "sequence[" + index + "]");
+                    for (String key : stage.keySet()) require(key.equals("groups"), "unknown sequence[" + index + "] field: " + key + "=" + stage.get(key));
+                    stages.add(new FloorDefinition.WaveStage(groups(stage.get("groups"), "sequence[" + index + "].groups")));
+                }
+            }
+            var result = new FloorDefinition.WaveType(id, stages, tier);
+            require(result.count() <= 128, "wave type total count must be 1..128; got " + result.count());
+            return result;
+        } catch (JsonParseException ex) {
+            throw new JsonParseException(id + " (data/" + id.getNamespace() + "/wave_types/" + id.getPath() + ".json): " + ex.getMessage(), ex);
+        }
+    }
+    private static List<FloorDefinition.WaveGroup> groups(JsonElement value, String path) {
+        JsonArray groups = array(value, path);
+        require(groups.size() > 0 && groups.size() <= 128, path + " needs 1..128 groups; got " + groups.size());
+        List<FloorDefinition.WaveGroup> result = new ArrayList<>();
+        for (int index = 0; index < groups.size(); index++) {
+            String field = path + "[" + index + "]";
+            JsonObject group = object(groups.get(index), field);
+            for (String key : group.keySet()) require(Set.of("category", "count", "role").contains(key), field + ": unknown field " + key + "=" + group.get(key));
+            require(group.has("category") && group.get("category").isJsonPrimitive() && group.get("category").getAsJsonPrimitive().isString(), field + ".category must be a string; got " + group.get("category"));
+            MobCategory category = Arrays.stream(MobCategory.values()).filter(candidate -> candidate.key().equals(group.get("category").getAsString())).findFirst().orElseThrow(() -> new JsonParseException(field + ".category unknown: " + group.get("category")));
+            require(group.has("count"), field + " needs count");
+            int count;
+            try { count = integer(group, "count", 1, 1, 128); }
+            catch (JsonParseException ex) { throw new JsonParseException(field + ".count=" + group.get("count") + ": " + ex.getMessage()); }
+            CombatRole role = CombatRole.ANY;
+            if (group.has("role")) {
+                JsonElement roleValue = group.get("role");
+                require(roleValue.isJsonPrimitive() && roleValue.getAsJsonPrimitive().isString(), field + ".role must be melee, ranged or any; got " + roleValue);
+                role = Arrays.stream(CombatRole.values()).filter(candidate -> candidate.key().equals(roleValue.getAsString())).findFirst().orElseThrow(() -> new JsonParseException(field + ".role unknown: " + roleValue));
+            }
+            result.add(new FloorDefinition.WaveGroup(category, count, role));
+        }
+        return result;
+    }
+    private static ResourceLocation waveTypeId(JsonElement name) {
+        ResourceLocation parsed = id(name);
+        return name.getAsString().contains(":") ? parsed : ResourceLocation.fromNamespaceAndPath("spiral_abyss", parsed.getPath());
     }
 
     public static FloorDefinition.RewardEntry rewardEntry(JsonObject spec, double defaultChance) {
@@ -115,10 +194,10 @@ public final class FloorParser {
     private static int integer(JsonObject obj, String key, int fallback, int min, int max) {
         if (!obj.has(key)) return fallback;
         JsonElement value = obj.get(key);
-        require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber(), key + " must be an integer");
+        require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber(), key + "=" + value + " must be an integer");
         double number = value.getAsDouble();
         require(Double.isFinite(number) && number == Math.rint(number) && number >= min && number <= max,
-                key + " must be an integer in " + min + ".." + max);
+                key + "=" + value + " must be an integer in " + min + ".." + max);
         return (int) number;
     }
 

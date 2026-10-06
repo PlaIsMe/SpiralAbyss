@@ -1,0 +1,14 @@
+{
+  "tier": 5,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "mini_boss",
+          "role": "any",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,7 @@
 {
-  "fodder_mob": 15
+  "wave_types": [
+    "medium_horde",
+    "ranged_formation",
+    "weak_horde"
+  ]
 }

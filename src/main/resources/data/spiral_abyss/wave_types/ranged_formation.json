@@ -1,0 +1,19 @@
+{
+  "tier": 2,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "common_mob",
+          "role": "melee",
+          "count": 4
+        },
+        {
+          "category": "common_mob",
+          "role": "ranged",
+          "count": 7
+        }
+      ]
+    }
+  ]
+}

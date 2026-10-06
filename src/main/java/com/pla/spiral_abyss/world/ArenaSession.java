@@ -44,6 +44,7 @@ public final class ArenaSession {
     public ServerLevel level() { return level; }
     public AbyssPlayers.Profile profile() { return profile; }
     public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) { return parties.challenges(floor); }
+    public net.minecraft.resources.ResourceLocation selectedWaveType(int floor, int wave, com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycle().selectedType(floor, wave, definition); }
     public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
             com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycleLineup(floor, wave, definition); }
     public UUID host() { return profile.owner; }
@@ -214,6 +215,7 @@ public final class ArenaSession {
         lastSafe.put(player.getUUID(), entrance);
     }
     public void finishAttempt() {
+        controller.bossEnvironments().clear();
         com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
         // Includes boss summons and lingering attacks, so recovery is safe after a team wipe.
         var area = new net.minecraft.world.phys.AABB(bounds().center().x - ArenaBounds.FLIGHT_RADIUS, 0,
@@ -271,18 +273,33 @@ public final class ArenaSession {
         if (bounds().outsidePlayer(player)) {
             player.stopRiding();
             Vec3 safe = lastSafe.getOrDefault(player.getUUID(), bounds().entrance());
-            if (!level.noCollision(player, player.getBoundingBox().move(safe.subtract(player.position())))) safe = bounds().entrance();
+            if (!level.noCollision(player, player.getBoundingBox().move(safe.subtract(player.position())))) safe = surfaceDestination(player, bounds().entrance());
             player.teleportTo(level, safe.x, safe.y, safe.z, player.getYRot(), player.getXRot());
             player.setDeltaMovement(Vec3.ZERO); player.fallDistance = 0;
         } else if (player.onGround()) lastSafe.put(player.getUUID(), player.position());
     }
 
     public void rescueMob(Mob mob) {
+        if (com.pla.spiral_abyss.encounter.DragonArena.defeated(mob)) return;
         if (!bounds().rescueMob(mob)) return;
-        Vec3 center = bounds().center();
-        mob.teleportTo(center.x, center.y + 0.1, center.z);
+        Vec3 center = surfaceDestination(mob, bounds().center());
+        mob.teleportTo(center.x, center.y + (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon ? 20 : 0.1), center.z);
         mob.getNavigation().stop();
         mob.setDeltaMovement(Vec3.ZERO); mob.fallDistance = 0;
+    }
+
+    /** Resolve emergency return positions against live terrain instead of the original Y=65 plane. */
+    private Vec3 surfaceDestination(Entity entity, Vec3 destination) {
+        for (int y = (int) ArenaBounds.FLOOR_Y - 1; y < ArenaBounds.CEILING_Y; y++) {
+            BlockPos pos = BlockPos.containing(destination.x, y, destination.z);
+            var shape = level.getBlockState(pos).getCollisionShape(level, pos);
+            if (shape.isEmpty()) continue;
+            double feet = y + shape.max(net.minecraft.core.Direction.Axis.Y);
+            Vec3 candidate = new Vec3(destination.x, feet, destination.z);
+            var box = entity.getBoundingBox().move(candidate.subtract(entity.position()));
+            if (feet >= ArenaBounds.FLOOR_Y && box.maxY <= ArenaBounds.CEILING_Y && level.noCollision(entity, box)) return candidate;
+        }
+        return destination;
     }
 
     public void keepMobActive(Mob mob) {
@@ -358,6 +375,7 @@ public final class ArenaSession {
 
     /** Restore blocks without changing claims, pending rewards, or chest opening progress. */
     public void restoreStructure() {
+        controller.bossEnvironments().clear();
         com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
         clearDroppedRewards();
         AbyssDimension.restoreArena(level, profile);

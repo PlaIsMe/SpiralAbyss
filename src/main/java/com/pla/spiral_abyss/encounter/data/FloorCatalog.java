@@ -27,6 +27,13 @@ public final class FloorCatalog extends SimplePreparableReloadListener<Map<Integ
 
     @Override
     protected Map<Integer, FloorDefinition> prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<ResourceLocation, FloorDefinition.WaveType> waveTypes = new HashMap<>();
+        manager.listResources("wave_types", id -> id.getPath().endsWith(".json")).forEach((id, resource) -> {
+            ResourceLocation name = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), id.getPath().substring("wave_types/".length(), id.getPath().length() - ".json".length()));
+            try (Reader reader = resource.openAsReader()) {
+                waveTypes.put(name, FloorParser.waveType(name, JsonParser.parseReader(reader).getAsJsonObject()));
+            } catch (Exception ex) { LOGGER.error("Invalid wave type {}: {}", id, ex.getMessage()); }
+        });
         Map<Integer, JsonObject> settings = new HashMap<>();
         Map<Integer, SortedMap<Integer, JsonObject>> waves = new HashMap<>();
         Set<Integer> invalid = new HashSet<>();
@@ -64,8 +71,7 @@ public final class FloorCatalog extends SimplePreparableReloadListener<Map<Integ
             if (invalid.contains(number)) continue;
             try {
                 if (!settings.containsKey(number)) throw new JsonParseException("missing floor.json");
-                result.put(number, FloorParser.parse(number, settings.get(number),
-                        waves.getOrDefault(number, new TreeMap<>())));
+                result.put(number, FloorParser.parse(number, settings.get(number), waves.getOrDefault(number, new TreeMap<>()), waveTypes));
             } catch (Exception ex) {
                 LOGGER.error("Floor {} disabled: {}", number, ex.getMessage());
             }

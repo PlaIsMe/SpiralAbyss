@@ -1,4 +1,7 @@
 {
-  "champion_mob": 10,
-  "boss": 1
+  "wave_types": [
+    "boss_minions",
+    "boss_vanguard",
+    "solo_boss"
+  ]
 }

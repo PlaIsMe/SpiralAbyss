@@ -1,4 +1,7 @@
 {
-  "fodder_mob": 15,
-  "mini_boss": 5
+  "wave_types": [
+    "heavy_elite",
+    "triple_elite",
+    "wave_room"
+  ]
 }

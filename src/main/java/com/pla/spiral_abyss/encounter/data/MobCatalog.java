@@ -13,10 +13,15 @@ import java.util.*;
 /** Normal datapack priority replaces each pool/eligibility file as a JSON array. */
 public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.Definitions> {
     public record Equipment(Set<ResourceLocation> armor, Set<ResourceLocation> melee,
-                            Set<ResourceLocation> bows, Set<ResourceLocation> crossbows, Set<ResourceLocation> tridents) {
+                            Set<ResourceLocation> bows, Set<ResourceLocation> crossbows, Set<ResourceLocation> tridents, Set<ResourceLocation> ranged) {
         public Equipment {
             armor = Set.copyOf(armor); melee = Set.copyOf(melee); bows = Set.copyOf(bows);
-            crossbows = Set.copyOf(crossbows); tridents = Set.copyOf(tridents);
+            crossbows = Set.copyOf(crossbows); tridents = Set.copyOf(tridents); ranged = Set.copyOf(ranged);
+        }
+        public Equipment(Set<ResourceLocation> armor, Set<ResourceLocation> melee, Set<ResourceLocation> bows, Set<ResourceLocation> crossbows, Set<ResourceLocation> tridents) { this(armor, melee, bows, crossbows, tridents, Set.of()); }
+        public CombatRole role(ResourceLocation id) {
+            // A trident item alone does not install projectile AI. Native ranged mobs are data-defined.
+            return bows.contains(id) || crossbows.contains(id) || ranged.contains(id) ? CombatRole.RANGED : CombatRole.MELEE;
         }
     }
     public record Pools(boolean mixMobs, Map<MobCategory, List<ResourceLocation>> entries) {
@@ -111,7 +116,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             pool.rewards().forEach((id, entries) -> rewards.computeIfAbsent(id, unused -> new ArrayList<>()).addAll(entries));
         }
         return new Definitions(pools, new Equipment(equipment(manager, "armor_mobs"), equipment(manager, "melee_mobs"),
-                equipment(manager, "bow_users"), equipment(manager, "crossbow_users"), equipment(manager, "trident_users")), rewards);
+                equipment(manager, "bow_users"), equipment(manager, "crossbow_users"), equipment(manager, "trident_users"), equipment(manager, "ranged_mobs")), rewards);
     }
     @Override protected void apply(Definitions definitions, ResourceManager manager, ProfilerFiller profiler) {
         current = definitions;

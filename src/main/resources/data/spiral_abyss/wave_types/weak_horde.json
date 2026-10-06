@@ -1,0 +1,19 @@
+{
+  "tier": 1,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "fodder_mob",
+          "role": "melee",
+          "count": 20
+        },
+        {
+          "category": "fodder_mob",
+          "role": "ranged",
+          "count": 8
+        }
+      ]
+    }
+  ]
+}

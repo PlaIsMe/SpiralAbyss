@@ -19,7 +19,16 @@ import java.util.*;
 
 /** Roll once when claiming a chest for its currently eligible roster, then persist the payout. */
 public final class FloorRewards {
+    private static final Set<net.minecraft.resources.ResourceLocation> missingTables = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private FloorRewards() {}
+    static void resetMissingTableLogs() { missingTables.clear(); }
+    private static boolean availableTable(ServerLevel level, FloorDefinition.RewardEntry entry) {
+        if (level.getServer().getLootData().getElement(new LootDataId<>(LootDataType.TABLE, entry.id())) != null) return true;
+        if (missingTables.add(entry.id())) com.mojang.logging.LogUtils.getLogger().error(
+                "Abyss reward loot table {} is unavailable (missing or failed to load); skipping it and rolling other available configured tables. Check data/{}/loot_tables/{}.json and the providing mod/datapack.",
+                entry.id(), entry.id().getNamespace(), entry.id().getPath());
+        return false;
+    }
     public static double partyScale(int players) { return players <= 0 ? 0 : 1 + 0.5 * (players - 1); }
     public record Bundle(List<ItemStack> items, int experience, Set<Integer> rareItems) {
         public Bundle {
@@ -68,7 +77,7 @@ public final class FloorRewards {
                 .create(LootContextParamSets.CHEST);
         int rolls = ChallengeRewards.rollCount(tier, eligiblePlayers);
         var pool = new RewardPool(rewards.entries(), entry -> entry.item() ? availableItem(entry)
-                : level.getServer().getLootData().getElement(new LootDataId<>(LootDataType.TABLE, entry.id())) != null);
+                : availableTable(level, entry));
         var bonuses = rewards.entries().stream().filter(entry -> entry.item() && !entry.rare()).toList();
         var rareBonuses = rewards.entries().stream().filter(entry -> entry.item() && entry.rare()).toList();
         // Keep optional-item replacements within their own rarity group.
@@ -78,9 +87,20 @@ public final class FloorRewards {
         // without an unbounded retry when optional mods are absent.
         for (int i = 0; i < rolls; i++) {
             // Floor-authored item entries retain their independent per-table-roll behavior.
-            var table = pool.table(level.random);
-            if (table != null && level.random.nextDouble() < table.chance())
-                items.addAll(level.getServer().getLootData().getLootTable(table.id()).getRandomItems(params));
+            Set<net.minecraft.resources.ResourceLocation> attempted = new HashSet<>();
+            // Failed chances and valid empty tables try other actual rewards, at most once per ID.
+            // The hard cap also bounds large pools assembled from optional mob-linked definitions.
+            for (int attempt = 0; attempt < 64; attempt++) {
+                var table = pool.table(level.random, attempted);
+                if (table == null) break;
+                attempted.add(table.id());
+                if (level.random.nextDouble() >= table.chance()) continue;
+                var rolled = level.getServer().getLootData().getLootTable(table.id()).getRandomItems(params)
+                        .stream().filter(stack -> !stack.isEmpty()).toList();
+                if (rolled.isEmpty()) continue;
+                items.addAll(rolled);
+                break;
+            }
             rollBonuses(level, bonuses, normalPool, items, rareItems, false);
         }
         // Three golden table rolls do not triple the boss bonus probability.

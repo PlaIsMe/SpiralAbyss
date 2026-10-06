@@ -18,15 +18,19 @@ public record ArenaBounds(Vec3 center) {
         AABB box = entity.getBoundingBox();
         return box.minX < center.x - HALF_SIZE || box.maxX > center.x + HALF_SIZE
                 || box.minZ < center.z - HALF_SIZE || box.maxZ > center.z + HALF_SIZE
-                || box.minY < FLOOR_Y || box.maxY > CEILING_Y;
+                || box.minY < feetFloor(entity) || box.maxY > CEILING_Y;
     }
 
     public boolean rescueMob(Entity entity) {
         // Above the floor, flight/jump logic can use the larger, bounded flight area.
         return Math.abs(entity.getX() - center.x) > FLIGHT_RADIUS
                 || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS || entity.getY() > 240
-                || entity.getY() < FLOOR_Y || (entity.getY() <= FLOOR_Y + 0.05
+                || entity.getY() < feetFloor(entity) || (entity.getY() <= FLOOR_Y + 0.05
                 && (Math.abs(entity.getX() - center.x) > HALF_SIZE - entity.getBbWidth() / 2
                 || Math.abs(entity.getZ() - center.z) > HALF_SIZE - entity.getBbWidth() / 2));
+    }
+    private double feetFloor(Entity entity) {
+        var surface = net.minecraft.core.BlockPos.containing(entity.getX(), FLOOR_Y - 1, entity.getZ());
+        return entity.level().getBlockState(surface).is(net.minecraft.world.level.block.Blocks.SOUL_SAND) ? FLOOR_Y - 0.125 : FLOOR_Y;
     }
 }

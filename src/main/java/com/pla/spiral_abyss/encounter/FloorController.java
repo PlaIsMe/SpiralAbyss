@@ -1,5 +1,7 @@
 package com.pla.spiral_abyss.encounter;
 
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironments;
+
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.encounter.data.*;
@@ -29,7 +31,11 @@ public final class FloorController {
     private final Supplier<FloorCatalog.Snapshot> catalog;
     private final WaveSpawner spawner = new WaveSpawner();
     private final FloorClock clock = new FloorClock();
-    private final List<Mob> enemies = new ArrayList<>();
+    private final WaveStages<Mob> stages = new WaveStages<>();
+    private final BossEnvironments bossEnvironments;
+    private FloorDefinition.Wave scaledWave;
+    private WaveEquipment waveEquipment;
+    private net.minecraft.resources.ResourceLocation selectedWaveType;
     private State state;
     private FloorDefinition floor;
     private MobCatalog.Equipment equipment;
@@ -52,27 +58,25 @@ public final class FloorController {
         this.progress = session.profile().progress;
         this.center = session.bounds().center();
         this.catalog = catalog;
+        this.bossEnvironments = new BossEnvironments(level, session.bounds(), session.host());
         this.state = progress.pending() != null ? State.COMPLETED : State.READY;
         this.revision = catalog.get().revision();
     }
 
     public State state() { return state; }
+    public BossEnvironments bossEnvironments() { return bossEnvironments; }
     public int currentFloor() { return progress.floor(); }
     public int currentWave() { return waveIndex + 1; }
     public int remainingTicks() { return clock.remainingTicks(); }
-    public int remainingEnemies() { return enemies.size(); }
-    public List<Mob> enemies() { return List.copyOf(enemies); }
+    public int remainingEnemies() { return stages.enemies().size(); }
+    public List<Mob> enemies() { return stages.enemies(); }
     public ChallengeTracker challengeTracker() { return challengeTracker; }
     public List<ChallengeTracker.Progress> challengeProgress() {
         return challengeTracker == null ? List.of() : challengeTracker.progress();
     }
     public AbyssNetwork.EncounterStatus hudStatus() {
-        return active() ? new AbyssNetwork.EncounterStatus(true, currentFloor(), currentWave(),
-                waveEnemies - enemies.size(), waveEnemies, clock.remainingSeconds(),
-                state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0,
-                challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(
-                        p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList())
-                : AbyssNetwork.EncounterStatus.HIDDEN;
+        var views = challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList();
+        return active() ? new AbyssNetwork.EncounterStatus(true, currentFloor(), currentWave(), stages.removed(), waveEnemies, clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views) : AbyssNetwork.EncounterStatus.HIDDEN;
     }
     public UUID runId() { return runId; }
     public boolean showsChest() { return state == State.COMPLETED || progress.pending() != null; }
@@ -135,16 +139,12 @@ public final class FloorController {
         // its five-minute deadline fails even when the final removal is observed now.
         if (clock.tick(true)) { fail("time_up"); return; }
         challengeTracker.update(clock.elapsedTicks());
-        for (Iterator<Mob> iterator = enemies.iterator(); iterator.hasNext();) {
-            Mob mob = iterator.next();
-            // Count every death/removal, regardless of attacker. Exploding creepers discard
-            // themselves without reducing their health or using RemovalReason.KILLED.
-            // Also stop tracking entities that leave this level or disappear from its entity map.
-            if (mob.isDeadOrDying() || mob.isRemoved() || !mob.isAlive()
-                    || mob.level() != level || level.getEntity(mob.getUUID()) != mob) {
-                iterator.remove();
-                continue;
-            }
+        // Only the current stage's captured entity identities can advance this encounter.
+        try { bossEnvironments.tick(); }
+        catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
+        stages.removeInvalid(mob -> DragonArena.finished(mob, level));
+        for (Mob mob : stages.enemies()) {
+            if (DragonArena.defeated(mob)) { session.keepMobActive(mob); continue; }
             session.rescueMob(mob);
             session.keepMobActive(mob);
             if (mob.getTarget() == null || !mob.getTarget().isAlive() || mob.getTarget().isSpectator()
@@ -152,7 +152,16 @@ public final class FloorController {
                     || (mob.getTarget() instanceof ServerPlayer p && !session.isCombatant(p)))
                 mob.setTarget(target);
         }
-        if (enemies.isEmpty()) {
+        if (stages.enemies().isEmpty()) {
+            // Boss cleanup retracts visibly before any next stage or final-wave payout.
+            if (bossEnvironments.cleaning()) return;
+            LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} cleared", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size());
+            if (!stages.complete()) {
+                try { spawnStage(target); }
+                catch (RuntimeException ex) { LogUtils.getLogger().error("Unable to spawn floor {} wave {} next stage", currentFloor(), currentWave(), ex); fail("spawn_failed"); }
+                return;
+            }
+            LogUtils.getLogger().debug("Wave type {} complete; floor {} wave {} complete", selectedWaveType, currentFloor(), currentWave());
             if (waveIndex < attemptStars.length) attemptStars[waveIndex] = challengeTracker.stars();
             if (waveIndex + 1 == floor.waves().size()) complete();
             else {
@@ -165,13 +174,12 @@ public final class FloorController {
     private boolean startWave(ServerPlayer target) {
         try {
             var wave = floor.waves().get(waveIndex);
-            var scaled = new FloorDefinition.Wave(wave.healthScale() * partyScale,
-                    wave.damageScale() * partyScale, wave.categories(), wave.bosses());
-            enemies.addAll(spawner.spawn(level, center, target, scaled, session.cycleLineup(currentFloor(), currentWave(), scaled), runId,
-                    new WaveEquipment(equipment, gear, level.random)));
-            enemies.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
-            enemies.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
-            waveEnemies = enemies.size();
+            scaledWave = new FloorDefinition.Wave(wave.healthScale() * partyScale, wave.damageScale() * partyScale, wave.categories(), wave.bosses(), wave.waveTypes());
+            stages.prepare(session.cycleLineup(currentFloor(), currentWave(), scaledWave));
+            selectedWaveType = session.selectedWaveType(currentFloor(), currentWave(), scaledWave);
+            waveEquipment = new WaveEquipment(equipment, gear, level.random);
+            waveEnemies = stages.total();
+            spawnStage(target);
             // Spawning is synchronous: capture starting equipment before the first combat tick.
             challengeTracker = new ChallengeTracker(session, challenges, waveEnemies);
             clock.start(WaveChallenges.TIME_LIMIT_TICKS);
@@ -185,10 +193,20 @@ public final class FloorController {
         }
     }
 
+    private void spawnStage(ServerPlayer target) {
+        stages.advance(composition -> {
+            LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} starting: {}", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size(), composition);
+            var created = spawner.spawn(level, center, target, scaledWave, composition, runId, waveEquipment);
+            created.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
+            created.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
+            return created;
+        });
+        bossEnvironments.begin(stages.enemies());
+    }
+
     private void complete() {
         // Offer rewards now; personal stars/progress are committed only on a claim.
-        session.completeChallenge(attemptStars.clone(),
-                FloorRewards.withMobRewards(floor.rewards(), encounteredMobs, mobRewards));
+        session.completeChallenge(attemptStars.clone(), FloorRewards.withMobRewards(floor.rewards(), encounteredMobs, mobRewards));
         session.finishAttempt();
         state = State.COMPLETED;
         clock.clear();
@@ -213,7 +231,7 @@ public final class FloorController {
     }
 
     public boolean owns(Entity entity) {
-        return runId != null && entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)
+        return runId != null && stages.enemies().contains(entity) && entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)
                 && runId.equals(entity.getPersistentData().getUUID(WaveSpawner.RUN_TAG));
     }
 
@@ -226,8 +244,12 @@ public final class FloorController {
     public void defeated() { if (active()) fail("party_defeated"); }
 
     private void cleanup() {
-        enemies.forEach(Entity::discard);
-        enemies.clear();
+        bossEnvironments.clear();
+        stages.clear(Entity::discard);
+        selectedWaveType = null;
+        scaledWave = null;
+        waveEquipment = null;
+        encounteredMobs.clear();
         runId = null;
         clock.clear();
         challengeTracker = null;

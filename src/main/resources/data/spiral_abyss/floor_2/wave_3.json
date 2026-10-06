@@ -1,4 +1,7 @@
 {
-  "common_mob": 20,
-  "champion_mob": 5
+  "wave_types": [
+    "strong_squad",
+    "elite_squad",
+    "elite_minions"
+  ]
 }

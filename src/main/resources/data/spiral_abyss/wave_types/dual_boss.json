@@ -1,0 +1,23 @@
+{
+  "tier": 7,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "boss",
+          "role": "any",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "category": "boss",
+          "role": "any",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

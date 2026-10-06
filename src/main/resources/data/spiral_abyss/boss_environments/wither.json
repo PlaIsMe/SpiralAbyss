@@ -1,0 +1,15 @@
+{
+  "entities": [
+    "minecraft:wither"
+  ],
+  "palette": [
+    "minecraft:soul_sand",
+    "minecraft:soul_soil"
+  ],
+  "radius": 32,
+  "height": 3,
+  "patches": 16,
+  "animation_ticks": 100,
+  "hazard": "minecraft:soul_fire",
+  "hazard_chance": 0.08
+}

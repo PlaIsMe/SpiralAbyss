@@ -1,3 +1,7 @@
 {
-  "boss": 3
+  "wave_types": [
+    "dual_boss",
+    "final_wave_boss",
+    "final_escalation"
+  ]
 }

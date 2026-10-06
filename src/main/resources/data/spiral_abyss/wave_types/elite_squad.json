@@ -1,0 +1,33 @@
+{
+  "tier": 4,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "champion_mob",
+          "role": "melee",
+          "count": 3
+        },
+        {
+          "category": "champion_mob",
+          "role": "ranged",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "category": "champion_mob",
+          "role": "melee",
+          "count": 3
+        },
+        {
+          "category": "champion_mob",
+          "role": "ranged",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

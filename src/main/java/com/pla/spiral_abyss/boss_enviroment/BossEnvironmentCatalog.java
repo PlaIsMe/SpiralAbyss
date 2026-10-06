@@ -1,0 +1,74 @@
+package com.pla.spiral_abyss.boss_enviroment;
+
+import com.pla.spiral_abyss.encounter.data.FloorParser;
+
+import com.google.gson.*;
+import com.mojang.logging.LogUtils;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.*;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.registries.ForgeRegistries;
+import java.io.Reader;
+import java.util.*;
+
+/** Extensible entity-ID profiles; no boss class switches in terrain generation. */
+public final class BossEnvironmentCatalog extends SimplePreparableReloadListener<Map<ResourceLocation, BossEnvironmentCatalog.Profile>> {
+    public record Pillars(BlockState block, int minimum, int maximum, int minHeight, int maxHeight, boolean crystals) {}
+    public record Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks, BlockState hazard, double hazardChance, Pillars pillars) {
+        public Profile { palette = List.copyOf(palette); }
+    }
+    private static volatile Map<ResourceLocation, Profile> profiles = Map.of();
+    public static Profile get(ResourceLocation entity) { return profiles.get(entity); }
+    public static Map<ResourceLocation, Profile> snapshot() { return profiles; }
+    @Override protected Map<ResourceLocation, Profile> prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<ResourceLocation, Profile> result = new TreeMap<>(BossEnvironmentRegistry.defaults());
+        Set<ResourceLocation> overridden = new HashSet<>();
+        manager.listResources("boss_environments", id -> id.getPath().endsWith(".json")).entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            try (Reader reader = entry.getValue().openAsReader()) {
+                JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                Profile profile = parse(entry.getKey(), json);
+                Set<ResourceLocation> ids = new HashSet<>();
+                for (JsonElement entity : json.getAsJsonArray("entities")) if (!ids.add(FloorParser.id(entity))) throw new JsonParseException("duplicate entity ID in profile");
+                for (ResourceLocation id : ids) if (overridden.contains(id)) throw new JsonParseException("duplicate boss environment entity " + id);
+                ids.forEach(id -> result.put(id, profile));
+                overridden.addAll(ids);
+            } catch (Exception ex) { LogUtils.getLogger().error("Invalid boss environment {}: {}", entry.getKey(), ex.getMessage()); }
+        });
+        return Map.copyOf(result);
+    }
+    @Override protected void apply(Map<ResourceLocation, Profile> loaded, ResourceManager manager, ProfilerFiller profiler) { profiles = loaded; }
+    public static Profile parse(ResourceLocation id, JsonObject json) {
+        Set<String> fields = Set.of("entities", "palette", "radius", "height", "patches", "animation_ticks", "hazard", "hazard_chance", "pillars");
+        for (String key : json.keySet()) if (!fields.contains(key)) throw new JsonParseException("unknown field " + key);
+        if (!json.has("entities") || json.getAsJsonArray("entities").isEmpty()) throw new JsonParseException("entities needs at least one entity ID");
+        List<BlockState> palette = new ArrayList<>();
+        for (JsonElement block : json.getAsJsonArray("palette")) palette.add(block(block));
+        if (palette.isEmpty() || palette.size() > 16) throw new JsonParseException("palette needs 1..16 installed non-air blocks");
+        BlockState hazard = json.has("hazard") ? block(json.get("hazard")) : null;
+        double chance = json.has("hazard_chance") ? json.get("hazard_chance").getAsDouble() : 0;
+        if (!Double.isFinite(chance) || chance < 0 || chance > 1) throw new JsonParseException("hazard_chance must be 0..1");
+        Pillars pillars = null;
+        if (json.has("pillars")) {
+            JsonObject spec = json.getAsJsonObject("pillars");
+            for (String key : spec.keySet()) if (!Set.of("block", "min_count", "max_count", "min_height", "max_height", "healing_crystals").contains(key)) throw new JsonParseException("unknown pillar field " + key);
+            int minimum = integer(spec, "min_count", 4, 1, 5), minHeight = integer(spec, "min_height", 18, 1, 32);
+            pillars = new Pillars(block(spec.get("block")), minimum, integer(spec, "max_count", 5, minimum, 5), minHeight, integer(spec, "max_height", 26, minHeight, 32), spec.has("healing_crystals") && spec.get("healing_crystals").getAsBoolean());
+        }
+        return new Profile(id, palette, integer(json, "radius", 32, 12, 32), integer(json, "height", 3, 1, 4), integer(json, "patches", 14, 1, 32), integer(json, "animation_ticks", 100, 1, 100), hazard, chance, pillars);
+    }
+    private static BlockState block(JsonElement value) {
+        ResourceLocation id = FloorParser.id(value);
+        if (!ForgeRegistries.BLOCKS.containsKey(id) || ForgeRegistries.BLOCKS.getValue(id).defaultBlockState().isAir()) throw new JsonParseException("unavailable block " + id);
+        BlockState state = ForgeRegistries.BLOCKS.getValue(id).defaultBlockState();
+        if (state.hasBlockEntity()) throw new JsonParseException("block entities are not supported: " + id);
+        if (state.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || !state.getFluidState().isEmpty() || state.is(net.minecraft.world.level.block.Blocks.TNT) || state.getBlock() instanceof net.minecraft.world.level.block.BushBlock) throw new JsonParseException("unstable/fluid/plant/explosive blocks are unsupported: " + id);
+        return state;
+    }
+    private static int integer(JsonObject json, String key, int fallback, int min, int max) {
+        if (json.has(key) && (!json.get(key).isJsonPrimitive() || !json.get(key).getAsJsonPrimitive().isNumber())) throw new JsonParseException(key + " must be a number");
+        double value = json.has(key) ? json.get(key).getAsDouble() : fallback;
+        if (!Double.isFinite(value) || value != Math.rint(value) || value < min || value > max) throw new JsonParseException(key + " must be integer " + min + ".." + max);
+        return (int) value;
+    }
+}

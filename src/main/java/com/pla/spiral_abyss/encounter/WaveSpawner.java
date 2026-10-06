@@ -45,6 +45,7 @@ public final class WaveSpawner {
                     if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
                     if (mob instanceof net.minecraft.world.entity.monster.piglin.Piglin piglin) piglin.setBaby(false);
                     equipment.apply(mob);
+                    DragonArena.prepare(mob, center);
                     // Spawn initialization may add riders (for example a spider jockey).
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard);
                     mob.stopRiding();
@@ -69,6 +70,11 @@ public final class WaveSpawner {
     }
 
     public boolean place(ServerLevel level, Mob mob, Vec3 center) {
+        if (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
+            level.getChunkAt(BlockPos.containing(center));
+            mob.moveTo(center.x, center.y + 20, center.z, level.random.nextFloat() * 360, 0);
+            return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);
+        }
         for (int attempt = 0; attempt < 80; attempt++) {
             double angle = level.random.nextDouble() * Math.PI * 2;
             double radius = 5 + level.random.nextDouble() * 12;

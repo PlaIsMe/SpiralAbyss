@@ -518,6 +518,11 @@ public final class AbyssParties {
                 else entity.getPersistentData().putUUID("spiral_abyss_host", owner.host());
                 continue;
             }
+            if (entity instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal && entity.getPersistentData().hasUUID(com.pla.spiral_abyss.boss_enviroment.BossEnvironments.CRYSTAL_OWNER)) {
+                ArenaSession owner = sessions.get(hostOf(entity));
+                if (owner == null || !owner.controller().bossEnvironments().ownsCrystal(entity)) stale.add(entity);
+                continue;
+            }
             if (!(entity instanceof Mob mob) || entity instanceof ArenaInteractable) continue;
             ArenaSession session = entity.getPersistentData().hasUUID("spiral_abyss_host")
                     ? sessions.get(entity.getPersistentData().getUUID("spiral_abyss_host")) : nearest(entity.position());

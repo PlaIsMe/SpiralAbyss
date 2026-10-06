@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "10";
+    private static final String VERSION = "12";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int selectable, int visible, boolean inside,
@@ -23,8 +23,12 @@ public final class AbyssNetwork {
     public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
         public WavePreview { enemies = List.copyOf(enemies); challenges = List.copyOf(challenges); }
     }
-    public record FloorPreview(int floor, List<WavePreview> waves) {
-        public FloorPreview { waves = List.copyOf(waves); }
+    public record RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents, boolean incomplete) {
+        public RewardPreview { contents = List.copyOf(contents); }
+    }
+    public record FloorPreview(int floor, List<WavePreview> waves, List<RewardPreview> rewards) {
+        public FloorPreview { waves = List.copyOf(waves); rewards = List.copyOf(rewards); }
+        public FloorPreview(int floor, List<WavePreview> waves) { this(floor, waves, List.of()); }
     }
     public record CloseFloors() {}
     public record SelectFloor(UUID token, int floor) {}
@@ -90,8 +94,10 @@ public final class AbyssNetwork {
         var parties = AbyssParties.get(player.server);
         var progress = parties.profile(player.getUUID()).progress;
         List<FloorPreview> floors = new ArrayList<>();
+        var rewards = new com.pla.spiral_abyss.encounter.RewardPreviews(player.server);
         for (var definition : new TreeMap<>(com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors()).values()) {
             List<WavePreview> waves = new ArrayList<>();
+            Set<ResourceLocation> floorEnemies = new LinkedHashSet<>();
             List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges;
             try { challenges = parties.challenges(definition.number()); }
             catch (IllegalArgumentException ex) { challenges = List.of(); }
@@ -105,13 +111,14 @@ public final class AbyssNetwork {
                     com.mojang.logging.LogUtils.getLogger().warn("Cannot preview Abyss floor {} wave {}: {}", definition.number(), index + 1, ex.getMessage());
                 }
                 int wavePopulation = counts.values().stream().mapToInt(Integer::intValue).sum();
+                floorEnemies.addAll(counts.keySet());
                 List<net.minecraft.network.chat.Component> objectives = challenges.isEmpty()
                         ? List.of(net.minecraft.network.chat.Component.translatable("message.spiral_abyss.challenges_unavailable"))
                         : challenges.stream().map(challenge -> challenge.description(wavePopulation)).toList();
                 waves.add(new WavePreview(index + 1, stars[index], counts.entrySet().stream()
                         .map(entry -> new EnemyPreview(entry.getKey(), entry.getValue())).toList(), objectives));
             }
-            floors.add(new FloorPreview(definition.number(), waves));
+            floors.add(new FloorPreview(definition.number(), waves, rewards.floor(definition.rewards(), floorEnemies)));
         }
         return floors;
     }
@@ -124,6 +131,12 @@ public final class AbyssNetwork {
                 buffer.writeVarInt(wave.challenges().size()); wave.challenges().forEach(buffer::writeComponent);
                 buffer.writeVarInt(wave.enemies().size());
                 for (var enemy : wave.enemies()) { buffer.writeResourceLocation(enemy.id()); buffer.writeVarInt(enemy.count()); }
+            }
+            buffer.writeVarInt(floor.rewards().size());
+            for (var reward : floor.rewards()) {
+                buffer.writeResourceLocation(reward.id()); buffer.writeBoolean(reward.table()); buffer.writeBoolean(reward.rare());
+                buffer.writeBoolean(reward.incomplete()); buffer.writeVarInt(reward.contents().size());
+                reward.contents().forEach(buffer::writeResourceLocation);
             }
         }
     }
@@ -160,7 +173,16 @@ public final class AbyssNetwork {
                     enemies.add(new EnemyPreview(buffer.readResourceLocation(), bounded(buffer, 128)));
                 waves.add(new WavePreview(wave, stars, enemies, challenges));
             }
-            floors.add(new FloorPreview(floor, waves));
+            List<RewardPreview> rewards = new ArrayList<>();
+            for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--) {
+                ResourceLocation id = buffer.readResourceLocation();
+                boolean table = buffer.readBoolean(), rare = buffer.readBoolean(), incomplete = buffer.readBoolean();
+                List<ResourceLocation> contents = new ArrayList<>();
+                for (int i = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_CONTENTS); i > 0; i--)
+                    contents.add(buffer.readResourceLocation());
+                rewards.add(new RewardPreview(id, table, rare, contents, incomplete));
+            }
+            floors.add(new FloorPreview(floor, waves, rewards));
         }
         return floors;
     }

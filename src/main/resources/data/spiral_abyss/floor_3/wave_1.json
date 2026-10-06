@@ -1,3 +1,7 @@
 {
-  "fodder_mob": 20
+  "wave_types": [
+    "mixed_army",
+    "strong_squad",
+    "weak_elite"
+  ]
 }

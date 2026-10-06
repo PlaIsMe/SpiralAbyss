@@ -1,3 +1,7 @@
 {
-  "mini_boss": 10
+  "wave_types": [
+    "heavy_elite",
+    "triple_elite",
+    "wave_room"
+  ]
 }

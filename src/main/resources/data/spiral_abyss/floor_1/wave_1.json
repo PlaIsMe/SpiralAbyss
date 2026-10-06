@@ -1,3 +1,6 @@
 {
-  "fodder_mob": 10
+  "wave_types": [
+    "weak_horde",
+    "melee_rush"
+  ]
 }

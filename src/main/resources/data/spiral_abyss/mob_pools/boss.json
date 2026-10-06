@@ -1,18 +1,5 @@
 [
   [
-    "minecraft:warden",
-    {
-      "loot_table": "minecraft:chests/ancient_city",
-      "weight": 1,
-      "chance": 0.4
-    },
-    {
-      "loot_table": "minecraft:chests/ancient_city_ice_box",
-      "weight": 1,
-      "chance": 0.6
-    }
-  ],
-  [
     "minecraft:wither",
     {
       "item": "minecraft:nether_star",
@@ -23,16 +10,19 @@
       "loot_table": "minecraft:chests/nether_bridge",
       "weight": 1,
       "chance": 0.65
+    }
+  ],
+  [
+    "minecraft:ender_dragon",
+    {
+      "item": "minecraft:elytra",
+      "count": 1,
+      "chance": 0.15
     },
     {
-      "loot_table": "spiral_abyss:ruined_portal",
+      "loot_table": "minecraft:chests/end_city_treasure",
       "weight": 1,
       "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/firewell_d",
-      "weight": 1,
-      "chance": 0.35
     }
   ]
 ]

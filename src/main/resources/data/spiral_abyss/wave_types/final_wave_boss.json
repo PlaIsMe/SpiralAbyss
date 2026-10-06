@@ -1,0 +1,62 @@
+{
+  "tier": 7,
+  "sequence": [
+    {
+      "groups": [
+        {
+          "category": "fodder_mob",
+          "role": "melee",
+          "count": 6
+        },
+        {
+          "category": "fodder_mob",
+          "role": "ranged",
+          "count": 4
+        },
+        {
+          "category": "common_mob",
+          "role": "melee",
+          "count": 5
+        },
+        {
+          "category": "common_mob",
+          "role": "ranged",
+          "count": 3
+        },
+        {
+          "category": "champion_mob",
+          "role": "any",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "category": "champion_mob",
+          "role": "melee",
+          "count": 4
+        },
+        {
+          "category": "champion_mob",
+          "role": "ranged",
+          "count": 2
+        },
+        {
+          "category": "mini_boss",
+          "role": "any",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "category": "boss",
+          "role": "any",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

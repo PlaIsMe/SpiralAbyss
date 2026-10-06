@@ -1,0 +1,44 @@
+package com.pla.spiral_abyss.boss_enviroment;
+
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.Profile;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.state.BlockState;
+import java.util.*;
+
+/** Continuous raised base and connected irregular ridges above the foundation, ordered from center outward and bottom upward. */
+public final class BossTerrainPlan {
+    public record Placement(BlockPos pos, BlockState state, int priority) {}
+    private BossTerrainPlan() {}
+    public static boolean reserved(int x, int z) { return x * x + z * z <= 36 || Math.abs(x) <= 3 && z >= 0; }
+    public static double distance(BlockPos pos, BlockPos center) { return Math.hypot(pos.getX() - center.getX(), pos.getZ() - center.getZ()); }
+    public static Comparator<Placement> outward(BlockPos center) { return Comparator.comparingDouble((Placement placement) -> distance(placement.pos(), center)).thenComparingInt(placement -> placement.pos().getY()); }
+    public static List<Placement> patches(Profile profile, BlockPos center, RandomSource random) {
+        record Ridge(double x, double z, double width) {}
+        List<Ridge> ridges = new ArrayList<>();
+        double rotation = random.nextDouble() * Math.PI * 2;
+        for (int index = 0; index < profile.patches(); index++) {
+            double angle = rotation + (index + random.nextDouble() * 0.4) * Math.PI * 2 / profile.patches();
+            double radius = 9 + random.nextDouble() * Math.max(1, profile.radius() - 15);
+            ridges.add(new Ridge(Math.cos(angle) * radius, Math.sin(angle) * radius, 3 + random.nextDouble() * 4));
+        }
+        List<Placement> result = new ArrayList<>();
+        for (int x = -profile.radius(); x <= profile.radius(); x++) for (int z = -profile.radius(); z <= profile.radius(); z++) {
+            int height = 1;
+            if (!reserved(x, z)) for (int index = 0; index < ridges.size(); index++) {
+                Ridge from = ridges.get(index), to = ridges.get((index + 1) % ridges.size());
+                double dx = to.x() - from.x(), dz = to.z() - from.z(), length = dx * dx + dz * dz;
+                double along = length == 0 ? 0 : Math.max(0, Math.min(1, ((x - from.x()) * dx + (z - from.z()) * dz) / length));
+                double width = from.width() + (to.width() - from.width()) * along;
+                double distance = Math.hypot(x - from.x() - dx * along, z - from.z() - dz * along);
+                double shape = Math.max(0, 1 - distance / width);
+                height = Math.max(height, 1 + (int) Math.ceil(shape * (profile.height() - 1)));
+            }
+            // Every eligible foundation column gets a base, including the center and entrance.
+            for (int y = 0; y < height; y++) result.add(new Placement(center.offset(x, y, z), profile.palette().get(random.nextInt(profile.palette().size())), 0));
+            if (!reserved(x, z) && profile.hazard() != null && random.nextDouble() < profile.hazardChance()) result.add(new Placement(center.offset(x, height, z), profile.hazard(), 1));
+        }
+        result.sort(outward(center));
+        return List.copyOf(result);
+    }
+}
