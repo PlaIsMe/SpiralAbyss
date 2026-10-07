@@ -7,6 +7,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.io.Reader;
@@ -16,8 +17,12 @@ import java.util.*;
 public final class BossEnvironmentCatalog extends SimplePreparableReloadListener<Map<ResourceLocation, BossEnvironmentCatalog.Profile>> {
     public record Pillars(BlockState block, int minimum, int maximum, int minHeight, int maxHeight, boolean crystals) {}
     public record Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
-                          BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations) {
+                          BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt) {
         public Profile { palette = List.copyOf(palette); decorations = List.copyOf(decorations); }
+        public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
+                       BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations) {
+            this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars, decorations, false);
+        }
         public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
                        BlockState hazard, double hazardChance, Pillars pillars) {
             this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars,
@@ -123,6 +128,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         }
         if (terrain.isEmpty()) throw new JsonParseException("new boss environments require terrain_blocks");
         List<BlockState> decorations = base == null ? List.of() : base.decorations();
+        boolean snowDirt = base != null && base.snowDirt();
         double chance = base == null ? 0 : base.hazardChance();
         if (json.has("decoration_environment")) {
             JsonObject decoration = json.getAsJsonObject("decoration_environment");
@@ -130,7 +136,15 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                 throw new JsonParseException("unknown decoration_environment field " + key);
             if (!decoration.has("blocks")) throw new JsonParseException("decoration_environment requires blocks");
             List<BlockState> chosen = new ArrayList<>();
-            for (JsonElement value : blockList(decoration.get("blocks"))) chosen.add(block(value, true));
+            JsonArray blocks = blockList(decoration.get("blocks"));
+            snowDirt = false;
+            for (JsonElement value : blocks) {
+                if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+                        && Set.of("snow_dirt", "spiral_abyss:snow_dirt").contains(value.getAsString())) {
+                    if (blocks.size() != 1) throw new JsonParseException("snow_dirt must be the only decoration_environment entry");
+                    snowDirt = true;
+                } else chosen.add(block(value, true));
+            }
             if (chosen.size() > 16) throw new JsonParseException("decoration_environment supports at most 16 blocks");
             String placement = decoration.has("placement") ? decoration.get("placement").getAsString() : "surface";
             if (!placement.equals("surface")) throw new JsonParseException("decoration_environment placement must be surface");
@@ -138,11 +152,13 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             if (!Double.isFinite(chance) || chance < 0 || chance > 1) throw new JsonParseException("decoration chance must be 0..1");
             decorations = chosen;
         }
+        // A composite surface preset, not a registered block or a randomly scattered decoration.
+        if (snowDirt) terrain = List.of(Blocks.DIRT.defaultBlockState());
         int radius = base == null ? 32 : base.radius(), height = base == null ? 3 : base.height();
         int patches = base == null ? 14 : base.patches(), ticks = base == null ? 100 : base.ticks();
         Pillars pillars = base == null ? null : base.pillars();
         BlockState legacyHazard = decorations.isEmpty() ? null : decorations.get(0);
-        return new Profile(entity, terrain, radius, height, patches, ticks, legacyHazard, chance, pillars, decorations);
+        return new Profile(entity, terrain, radius, height, patches, ticks, legacyHazard, chance, pillars, decorations, snowDirt);
     }
     private static JsonArray blockList(JsonElement value) {
         if (value == null) throw new JsonParseException("block list is required");

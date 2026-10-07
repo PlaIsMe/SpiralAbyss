@@ -203,7 +203,19 @@ public final class FloorParser {
             chance = value.getAsDouble();
             require(Double.isFinite(chance) && chance >= 0 && chance <= 1, "chance must be 0..1");
         }
-        return new FloorDefinition.RewardEntry(rewardId, item, min, max, weight, chance);
+        Map<ResourceLocation, Integer> enchantments = new LinkedHashMap<>();
+        if (spec.has("enchantment")) {
+            require(item, "enchantment is only supported on item rewards; use loot-table functions for tables");
+            JsonObject configured = object(spec.get("enchantment"), "enchantment");
+            require(configured.size() <= 64, "at most 64 reward enchantments are allowed");
+            for (var entry : configured.entrySet()) {
+                ResourceLocation enchantment = id(new JsonPrimitive(entry.getKey()));
+                require(!enchantments.containsKey(enchantment), "duplicate reward enchantment: " + enchantment);
+                // Minecraft reads enchantment levels in 0..255. Do not clamp to the enchantment's natural maximum.
+                enchantments.put(enchantment, integer(configured, entry.getKey(), 1, 1, 255));
+            }
+        }
+        return new FloorDefinition.RewardEntry(rewardId, item, min, max, weight, chance, false, enchantments);
     }
 
     private static double scale(JsonObject obj, String key, double fallback) {

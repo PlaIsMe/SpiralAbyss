@@ -61,5 +61,7 @@
       "chance": 0.65
     }
   ],
-  "minecraft:shulker"
+  "minecraft:shulker",
+  "mutantmonsters:mutant_snow_golem",
+  "mowziesmobs:foliaath"
 ]

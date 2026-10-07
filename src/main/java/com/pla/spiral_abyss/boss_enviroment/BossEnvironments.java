@@ -164,6 +164,8 @@ public final class BossEnvironments {
         BlockPos pos = placement.pos();
         var actors = level.getEntitiesOfClass(LivingEntity.class, new AABB(pos), LivingEntity::isAlive);
         if (actors.isEmpty()) return true;
+        // A single snow layer has no collision and can cover the grass beneath an actor.
+        if (placement.state().is(Blocks.SNOW) && placement.state().getCollisionShape(level, pos).isEmpty()) return true;
         if (placement.priority() != 0) return false;
         var shape = placement.state().getCollisionShape(level, pos);
         if (shape.isEmpty()) return true;

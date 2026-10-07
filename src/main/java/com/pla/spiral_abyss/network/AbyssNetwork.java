@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "14";
+    private static final String VERSION = "15";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
@@ -23,8 +23,12 @@ public final class AbyssNetwork {
     public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
         public WavePreview { enemies = List.copyOf(enemies); challenges = List.copyOf(challenges); }
     }
-    public record RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents, boolean incomplete) {
-        public RewardPreview { contents = List.copyOf(contents); }
+    public record RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents,
+                                boolean incomplete, net.minecraft.world.item.ItemStack icon) {
+        public RewardPreview { contents = List.copyOf(contents); icon = icon.copy(); }
+        public RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents, boolean incomplete) {
+            this(id, table, rare, contents, incomplete, net.minecraft.world.item.ItemStack.EMPTY);
+        }
     }
     public record FloorPreview(int floor, List<WavePreview> waves, List<RewardPreview> rewards) {
         public FloorPreview { waves = List.copyOf(waves); rewards = List.copyOf(rewards); }
@@ -149,6 +153,7 @@ public final class AbyssNetwork {
                 buffer.writeResourceLocation(reward.id()); buffer.writeBoolean(reward.table()); buffer.writeBoolean(reward.rare());
                 buffer.writeBoolean(reward.incomplete()); buffer.writeVarInt(reward.contents().size());
                 reward.contents().forEach(buffer::writeResourceLocation);
+                if (!reward.table()) buffer.writeItem(reward.icon());
             }
         }
     }
@@ -192,7 +197,8 @@ public final class AbyssNetwork {
                 List<ResourceLocation> contents = new ArrayList<>();
                 for (int i = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_CONTENTS); i > 0; i--)
                     contents.add(buffer.readResourceLocation());
-                rewards.add(new RewardPreview(id, table, rare, contents, incomplete));
+                var icon = table ? net.minecraft.world.item.ItemStack.EMPTY : buffer.readItem();
+                rewards.add(new RewardPreview(id, table, rare, contents, incomplete, icon));
             }
             floors.add(new FloorPreview(floor, waves, rewards));
         }

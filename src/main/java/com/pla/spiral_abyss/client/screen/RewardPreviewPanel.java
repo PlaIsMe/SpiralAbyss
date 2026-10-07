@@ -40,6 +40,9 @@ final class RewardPreviewPanel {
         var item = ForgeRegistries.ITEMS.getValue(id);
         return item == null ? ItemStack.EMPTY : new ItemStack(item);
     }
+    private static ItemStack iconStack(RewardPreview reward) {
+        return reward.icon().isEmpty() ? stack(reward.id()) : reward.icon();
+    }
     private static Component tableName(ResourceLocation id) {
         String path = id.getPath().substring(id.getPath().lastIndexOf('/') + 1).replace('_', ' ');
         StringBuilder name = new StringBuilder();
@@ -74,7 +77,7 @@ final class RewardPreviewPanel {
             if (sy + CELL <= y || sy >= y + height) continue;
             RewardPreview reward = rewards.get(i);
             int color = inspecting && i == hovered ? 0xBD78FF : reward.rare() ? 0xFFDD49 : 0x32E7F4;
-            icon(graphics, reward.table() ? new ItemStack(Items.CHEST) : stack(reward.id()), sx + 2, sy + 2, color);
+            icon(graphics, reward.table() ? new ItemStack(Items.CHEST) : iconStack(reward), sx + 2, sy + 2, color);
         }
         graphics.disableScissor();
         if (rewards.isEmpty()) graphics.drawString(font, Component.translatable("screen.spiral_abyss.no_rewards"), x + 2, y + 6, 0xB8C7DA, false);
@@ -87,7 +90,7 @@ final class RewardPreviewPanel {
         if (hovered < 0) return;
         RewardPreview reward = rewards.get(hovered);
         if (!reward.table()) {
-            graphics.renderTooltip(font, stack(reward.id()), mouseX, mouseY);
+            graphics.renderTooltip(font, iconStack(reward), mouseX, mouseY);
             return;
         }
         renderContents(graphics, reward, mouseX, mouseY);

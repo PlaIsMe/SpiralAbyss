@@ -5,5 +5,7 @@
   "minecraft:ghast",
   "minecraft:shulker",
   "minecraft:evoker",
-  "minecraft:wither"
+  "minecraft:wither",
+  "mutantmonsters:mutant_snow_golem",
+  "mutantmonsters:mutant_skeleton"
 ]

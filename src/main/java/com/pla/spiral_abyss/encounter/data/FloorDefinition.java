@@ -57,7 +57,12 @@ public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rew
     }
 
     public record RewardEntry(ResourceLocation id, boolean item, int minCount, int maxCount,
-                              int weight, double chance, boolean rare) {
+                              int weight, double chance, boolean rare, Map<ResourceLocation, Integer> enchantments) {
+        public RewardEntry { enchantments = Map.copyOf(enchantments); }
+        public RewardEntry(ResourceLocation id, boolean item, int minCount, int maxCount,
+                           int weight, double chance, boolean rare) {
+            this(id, item, minCount, maxCount, weight, chance, rare, Map.of());
+        }
         public RewardEntry(ResourceLocation id, boolean item, int minCount, int maxCount,
                            int weight, double chance) {
             this(id, item, minCount, maxCount, weight, chance, false);

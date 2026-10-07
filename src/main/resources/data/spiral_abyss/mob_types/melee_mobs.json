@@ -5,5 +5,12 @@
   "minecraft:piglin",
   "minecraft:piglin_brute",
   "minecraft:wither_skeleton",
-  "minecraft:vindicator"
+  "minecraft:vindicator",
+  "mutantmonsters:mutant_creeper",
+  "mutantmonsters:mutant_zombie",
+  "mutantmonsters:mutant_enderman",
+  "mowziesmobs:foliaath",
+  "mowziesmobs:ferrous_wroughtnaut",
+  "mowziesmobs:frostmaw",
+  "mowziesmobs:umvuthi"
 ]

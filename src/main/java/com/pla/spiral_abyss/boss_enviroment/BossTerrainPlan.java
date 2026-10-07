@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.boss_enviroment;
 import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.Profile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 
@@ -35,8 +36,15 @@ public final class BossTerrainPlan {
                 height = Math.max(height, 1 + (int) Math.ceil(shape * (profile.height() - 1)));
             }
             // Every eligible foundation column gets a base, including the center and entrance.
-            for (int y = 0; y < height; y++) result.add(new Placement(center.offset(x, y, z), profile.palette().get(random.nextInt(profile.palette().size())), 0));
-            if (!reserved(x, z) && !profile.decorations().isEmpty() && random.nextDouble() < profile.hazardChance())
+            for (int y = 0; y < height; y++) {
+                BlockState state = profile.snowDirt()
+                        ? (y == height - 1 ? Blocks.GRASS_BLOCK : Blocks.DIRT).defaultBlockState()
+                        : profile.palette().get(random.nextInt(profile.palette().size()));
+                result.add(new Placement(center.offset(x, y, z), state, 0));
+            }
+            if (profile.snowDirt())
+                result.add(new Placement(center.offset(x, height, z), Blocks.SNOW.defaultBlockState(), 1));
+            else if (!reserved(x, z) && !profile.decorations().isEmpty() && random.nextDouble() < profile.hazardChance())
                 result.add(new Placement(center.offset(x, height, z),
                         profile.decorations().get(random.nextInt(profile.decorations().size())), 1));
         }

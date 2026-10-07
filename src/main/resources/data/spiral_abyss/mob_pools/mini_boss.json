@@ -19,5 +19,9 @@
       "weight": 1,
       "chance": 0.4
     }
-  ]
+  ],
+  "mutantmonsters:mutant_creeper",
+  "mutantmonsters:mutant_skeleton",
+  "mutantmonsters:mutant_zombie",
+  "mutantmonsters:mutant_enderman"
 ]

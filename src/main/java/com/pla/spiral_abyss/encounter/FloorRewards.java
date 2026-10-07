@@ -63,7 +63,7 @@ public final class FloorRewards {
         var additions = new LinkedHashSet<FloorDefinition.RewardEntry>();
         encountered.forEach(id -> linked.getOrDefault(id, List.of()).forEach(entry -> additions.add(
                 entry.item() ? new FloorDefinition.RewardEntry(entry.id(), true, entry.minCount(),
-                        entry.maxCount(), entry.weight(), entry.chance(), true) : entry)));
+                        entry.maxCount(), entry.weight(), entry.chance(), true, entry.enchantments()) : entry)));
         additions.removeAll(base.entries());
         entries.addAll(additions);
         return new FloorDefinition.Rewards(List.copyOf(entries), base.rolls(), base.experience());
@@ -110,7 +110,7 @@ public final class FloorRewards {
                 var item = ForgeRegistries.ITEMS.getValue(rare.id());
                 if (item != null && item != Items.AIR) {
                     rareItems.add(items.size());
-                    items.add(new ItemStack(item, 1));
+                    items.add(RewardItems.stack(rare, 1));
                 }
             }
         }
@@ -125,7 +125,8 @@ public final class FloorRewards {
             if (item == null || item == Items.AIR) continue;
             int count = entry.minCount() + level.random.nextInt(entry.maxCount() - entry.minCount() + 1);
             while (count > 0) {
-                ItemStack stack = new ItemStack(item, Math.min(count, item.getMaxStackSize()));
+                ItemStack stack = RewardItems.stack(entry, 1);
+                stack.setCount(Math.min(count, stack.getMaxStackSize()));
                 items.add(stack); count -= stack.getCount();
             }
         }

@@ -20,6 +20,7 @@ public final class RewardPreviews {
     private final Gson gson = Deserializers.createLootTableSerializer().create();
     private final Map<ResourceLocation, Contents> cache = new HashMap<>();
     private record Contents(List<ResourceLocation> items, boolean incomplete) {}
+    private record PreviewKey(ResourceLocation id, boolean item, boolean rare, Map<ResourceLocation, Integer> enchantments) {}
     private static final class Scan {
         final Set<ResourceLocation> items = new TreeSet<>();
         final Set<ResourceLocation> visiting = new HashSet<>();
@@ -30,15 +31,16 @@ public final class RewardPreviews {
 
     public List<RewardPreview> floor(FloorDefinition.Rewards base, Set<ResourceLocation> enemies) {
         var rewards = FloorRewards.withMobRewards(base, enemies, MobCatalog.rewards());
-        Map<String, FloorDefinition.RewardEntry> unique = new LinkedHashMap<>();
+        Map<PreviewKey, FloorDefinition.RewardEntry> unique = new LinkedHashMap<>();
         rewards.entries().stream().filter(entry -> entry.chance() > 0)
                 .sorted(Comparator.comparingInt(entry -> !entry.item() ? 0 : entry.rare() ? 2 : 1))
-                .forEach(entry -> unique.putIfAbsent((entry.item() ? "item:" : "table:") + entry.rare() + entry.id(), entry));
+                .forEach(entry -> unique.putIfAbsent(new PreviewKey(entry.id(), entry.item(), entry.rare(), entry.enchantments()), entry));
         List<RewardPreview> result = new ArrayList<>();
         for (var entry : unique.values()) {
             if (result.size() >= MAX_REWARDS) break;
             if (entry.item()) {
-                if (available(entry.id())) result.add(new RewardPreview(entry.id(), false, entry.rare(), List.of(), false));
+                if (available(entry.id())) result.add(new RewardPreview(entry.id(), false, entry.rare(), List.of(), false,
+                        RewardItems.stack(entry, 1)));
             } else if (table(entry.id()) != null) {
                 Contents contents = cache.computeIfAbsent(entry.id(), id -> {
                     Scan scan = new Scan(); scanTable(id, scan, 0);
