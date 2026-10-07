@@ -1,4 +1,9 @@
 {
+  "challenge": {
+    "easy": ["time"],
+    "medium": ["weapon", "no_armor"],
+    "hard": ["armor_enchantment", "weapon_enchantment"]
+  },
   "health_scale": 1.4,
   "damage_scale": 1.2,
   "rewards": {
@@ -11,49 +16,14 @@
         "chance": 1.0
       },
       {
-        "loot_table": "minecraft:chests/abandoned_mineshaft",
-        "weight": 2,
-        "chance": 1
-      },
-      {
-        "loot_table": "minecraft:chests/igloo_chest",
-        "weight": 1,
-        "chance": 0.8
-      },
-      {
         "loot_table": "minecraft:chests/village/village_temple",
         "weight": 1,
         "chance": 0.8
       },
       {
-        "loot_table": "minecraft:chests/jungle_temple",
-        "weight": 1,
-        "chance": 0.75
-      },
-      {
-        "loot_table": "minecraft:chests/stronghold_library",
-        "weight": 1,
-        "chance": 0.75
-      },
-      {
-        "loot_table": "minecraft:chests/chest_level_2",
-        "weight": 1,
-        "chance": 0.5
-      },
-      {
         "loot_table": "minecraft:chests/desert_pyramid",
         "weight": 1,
         "chance": 0.65
-      },
-      {
-        "loot_table": "minecraft:chests/chest_level_3",
-        "weight": 1,
-        "chance": 0.4
-      },
-      {
-        "loot_table": "minecraft:chests/shater",
-        "weight": 1,
-        "chance": 0.35
       },
       {
         "loot_table": "minecraft:chests/village/village_weaponsmith",

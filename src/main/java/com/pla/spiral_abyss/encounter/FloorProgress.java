@@ -9,12 +9,13 @@ public final class FloorProgress {
     private int floor = 1;
     private final int[][] stars = new int[FloorParser.MAX_FLOORS + 1][3];
     private final int[] tiers = new int[FloorParser.MAX_FLOORS + 1];
-    private final ChestPayout[] payouts = new ChestPayout[3];
+    private final ChestPayout[][] payouts = new ChestPayout[FloorParser.MAX_FLOORS + 1][3];
     private final Runnable dirty;
 
     public FloorProgress(Runnable dirty) {
         this.dirty = Objects.requireNonNull(dirty);
-        for (int index = 0; index < payouts.length; index++) payouts[index] = new ChestPayout(dirty);
+        for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
+            for (int index = 0; index < 3; index++) payouts[number][index] = new ChestPayout(dirty);
     }
     public int floor() { return floor; }
     public boolean completed() { return claimed(); }
@@ -64,17 +65,31 @@ public final class FloorProgress {
         if (!claimed(number)) throw new IllegalStateException("Claim a reward before recording stars");
         if (!Arrays.equals(stars[number], projected)) { stars[number] = projected; dirty.run(); }
     }
-    public ChestPayout payout(int tier) { requireTier(tier); return payouts[tier - 1]; }
-    public boolean hasPayouts() { return Arrays.stream(payouts).anyMatch(ChestPayout::active); }
-    /** Compatibility for navigation guards: any active chest blocks floor travel. */
+    public ChestPayout payout(int tier) { return payout(floor, tier); }
+    public ChestPayout payout(int number, int tier) { requireFloor(number); requireTier(tier); return payouts[number][tier - 1]; }
+    public boolean hasPayouts() { return hasPayouts(floor); }
+    public boolean hasPayouts(int number) { requireFloor(number); return Arrays.stream(payouts[number]).anyMatch(ChestPayout::active); }
+    public int pendingFloor() {
+        for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
+            for (ChestPayout payout : payouts[number]) if (payout.active()) return number;
+        return 0;
+    }
+    /** Only the selected floor's opened bundle can animate or authorize its chest. */
     public FloorRewards.Bundle pending() {
-        for (ChestPayout payout : payouts) if (payout.pending() != null) return payout.pending();
+        for (ChestPayout payout : payouts[floor]) if (payout.pending() != null) return payout.pending();
         return null;
     }
-    public int chestTicks() { return Arrays.stream(payouts).mapToInt(ChestPayout::chestTicks).max().orElse(-1); }
-    public boolean canSelectFloor(int number) { return unlocked(number) && (number == floor || !hasPayouts()); }
+    public int chestTicks() { return Arrays.stream(payouts[floor]).mapToInt(ChestPayout::chestTicks).max().orElse(-1); }
+    public boolean canSelectFloor(int number) { return canSelectFloor(number, false); }
+    public boolean canSelectFloor(int number, boolean acknowledgedCurrentFloor) {
+        return unlocked(number) && (number == floor || hasPayouts(number) || !hasPayouts()
+                || acknowledgedCurrentFloor && claimed(floor));
+    }
     public void selectFloor(int number) {
-        if (!canSelectFloor(number)) throw new IllegalStateException("Floor is locked or another chest is pending");
+        selectFloor(number, false);
+    }
+    public void selectFloor(int number, boolean acknowledgedCurrentFloor) {
+        if (!canSelectFloor(number, acknowledgedCurrentFloor)) throw new IllegalStateException("Floor is locked or another chest is pending");
         if (number != floor) { floor = number; dirty.run(); }
     }
     public void advance() {
@@ -85,7 +100,8 @@ public final class FloorProgress {
         floor = 1;
         for (int[] waveStars : stars) Arrays.fill(waveStars, 0);
         Arrays.fill(tiers, 0);
-        for (ChestPayout payout : payouts) payout.complete();
+        for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
+            for (ChestPayout payout : payouts[number]) payout.complete();
         dirty.run();
     }
     public CompoundTag save() {
@@ -100,9 +116,11 @@ public final class FloorProgress {
         }
         tag.put("StarFloors", floors);
         ListTag chests = new ListTag();
-        for (int tier = 1; tier <= 3; tier++) if (payout(tier).active()) {
-            CompoundTag entry = payout(tier).save(); entry.putInt("Tier", tier); chests.add(entry);
-        }
+        for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
+            for (int tier = 1; tier <= 3; tier++) if (payout(number, tier).active()) {
+                CompoundTag entry = payout(number, tier).save();
+                entry.putInt("Floor", number); entry.putInt("Tier", tier); chests.add(entry);
+            }
         tag.put("Payouts", chests);
         return tag;
     }
@@ -122,7 +140,9 @@ public final class FloorProgress {
             for (Tag value : tag.getList("Payouts", Tag.TAG_COMPOUND)) {
                 CompoundTag entry = (CompoundTag) value;
                 int tier = entry.getInt("Tier");
-                if (tier >= 1 && tier <= 3) data.payouts[tier - 1] = ChestPayout.load(entry, dirty);
+                int number = entry.contains("Floor") ? entry.getInt("Floor") : data.floor;
+                if (validFloor(number) && tier >= 1 && tier <= 3)
+                    data.payouts[number][tier - 1] = ChestPayout.load(entry, dirty);
             }
         } else {
             // Legacy completion alone was recorded at victory; only actual claims carry forward.
@@ -132,7 +152,7 @@ public final class FloorProgress {
             }
             // Unclicked legacy offers are deliberately abandoned. Opened payouts retain the exact cursor.
             if (tag.contains("Pending") && tag.contains("ChestTicks") && tag.getInt("ChestTicks") >= 0)
-                data.payouts[0] = ChestPayout.load(tag, dirty);
+                data.payouts[data.floor][0] = ChestPayout.load(tag, dirty);
         }
         return data;
     }

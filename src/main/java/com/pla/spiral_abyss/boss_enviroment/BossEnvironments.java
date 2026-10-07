@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,7 +29,7 @@ public final class BossEnvironments {
     private final UUID host;
     private final TerrainLayers<BlockPos, BlockState> terrain;
     private final Map<UUID, Effect> effects = new LinkedHashMap<>();
-    private record Column(BlockPos base, int height, BlockState state, boolean crystals) {}
+    private record Column(BlockPos base, int height, BlockState state, boolean crystals, boolean dragonShape) {}
     private static final class Effect {
         final Mob boss;
         final Profile profile;
@@ -62,24 +63,29 @@ public final class BossEnvironments {
         if (cleaning()) throw new IllegalStateException("Previous boss terrain is still retracting");
         BlockPos center = BlockPos.containing(bounds.center());
         for (Mob mob : mobs) {
-            Profile profile = BossEnvironmentRegistry.forMob(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+            Profile profile = BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
             if (profile == null || effects.containsKey(mob.getUUID())) continue;
             List<BossTerrainPlan.Placement> plan = new ArrayList<>(BossTerrainPlan.patches(profile, center, level.random));
             plan.removeIf(placement -> {
                 BlockPos base = new BlockPos(placement.pos().getX(), center.getY(), placement.pos().getZ());
                 return !level.isEmptyBlock(base) && !terrain.contains(base);
             });
-            List<Column> columns = columns(profile, center);
+            List<Column> columns = columns(profile, center, mob instanceof EnderDragon);
             // Pillars replace mound entries at their footprint; no per-owner hidden layers are needed.
-            plan.removeIf(placement -> columns.stream().anyMatch(column -> Math.abs(placement.pos().getX() - column.base().getX()) <= 1 && Math.abs(placement.pos().getZ() - column.base().getZ()) <= 1));
-            for (Column column : columns) for (int y = 0; y < column.height(); y++) for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) plan.add(new BossTerrainPlan.Placement(column.base().offset(x, y, z), column.state(), 2));
+            plan.removeIf(placement -> columns.stream().anyMatch(column -> pillarCell(column,
+                    placement.pos().getX() - column.base().getX(), placement.pos().getZ() - column.base().getZ())));
+            for (Column column : columns) for (int y = 0; y < column.height(); y++)
+                for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) if (pillarCell(column, x, z))
+                    plan.add(new BossTerrainPlan.Placement(column.base().offset(x, y, z), column.state(), 2));
             plan.sort(Comparator.comparingDouble((BossTerrainPlan.Placement placement) -> radialOrder(placement.pos(), columns, center)).thenComparingInt(placement -> placement.pos().getY()));
             effects.put(mob.getUUID(), new Effect(mob, profile, List.copyOf(plan), columns));
         }
     }
-    private List<Column> columns(Profile profile, BlockPos center) {
-        if (profile.pillars() == null) return List.of();
+    private List<Column> columns(Profile profile, BlockPos center, boolean dragonShape) {
         var spec = profile.pillars();
+        if (spec == null && dragonShape) spec = new BossEnvironmentCatalog.Pillars(
+                Blocks.OBSIDIAN.defaultBlockState(), 4, 5, 18, 26, true);
+        if (spec == null) return List.of();
         int count = spec.minimum() + level.random.nextInt(spec.maximum() - spec.minimum() + 1);
         double rotation = level.random.nextDouble() * Math.PI * 2;
         List<Column> result = new ArrayList<>();
@@ -91,7 +97,8 @@ public final class BossEnvironments {
                 BlockPos base = center.offset((int) Math.round(Math.cos(angle) * radius), 0, (int) Math.round(Math.sin(angle) * radius));
                 int height = spec.minHeight() + level.random.nextInt(spec.maxHeight() - spec.minHeight() + 1);
                 if (result.stream().anyMatch(other -> other.base().distSqr(base) < 36)) continue;
-                if (clearColumn(base, height, center)) chosen = new Column(base, height, spec.block(), spec.crystals());
+                if (clearColumn(base, height, center, dragonShape))
+                    chosen = new Column(base, height, spec.block(), spec.crystals(), dragonShape);
             }
             if (chosen == null) throw new IllegalStateException("No safe position for boss environment pillar " + (index + 1));
             result.add(chosen);
@@ -99,11 +106,20 @@ public final class BossEnvironments {
         return List.copyOf(result);
     }
     private static double radialOrder(BlockPos pos, List<Column> columns, BlockPos center) {
-        for (Column column : columns) if (Math.abs(pos.getX() - column.base().getX()) <= 1 && Math.abs(pos.getZ() - column.base().getZ()) <= 1) return BossTerrainPlan.distance(column.base(), center);
+        for (Column column : columns) if (pillarCell(column, pos.getX() - column.base().getX(), pos.getZ() - column.base().getZ()))
+            return BossTerrainPlan.distance(column.base(), center);
         return BossTerrainPlan.distance(pos, center);
     }
-    private boolean clearColumn(BlockPos base, int height, BlockPos center) {
-        for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) {
+    /** Dragon pillars are five by five minus four corners; other profile pillars remain three by three. */
+    private static boolean pillarCell(Column column, int x, int z) {
+        return column.dragonShape() ? dragonPillarCell(x, z) : Math.abs(x) <= 1 && Math.abs(z) <= 1;
+    }
+    static boolean dragonPillarCell(int x, int z) {
+        return Math.abs(x) <= 2 && Math.abs(z) <= 2 && !(Math.abs(x) == 2 && Math.abs(z) == 2);
+    }
+    private boolean clearColumn(BlockPos base, int height, BlockPos center, boolean dragonShape) {
+        for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) {
+            if (dragonShape ? !dragonPillarCell(x, z) : Math.abs(x) > 1 || Math.abs(z) > 1) continue;
             if (BossTerrainPlan.reserved(base.getX() + x - center.getX(), base.getZ() + z - center.getZ()) || level.getBlockState(base.offset(x, -1, z)).isAir()) return false;
             for (int y = 0; y <= height + 1; y++) {
                 BlockPos pos = base.offset(x, y, z);
@@ -173,7 +189,8 @@ public final class BossEnvironments {
     private void crystal(Effect effect, Column column) {
         if (!column.crystals()) return;
         // An occupied/skipped column never receives a floating crystal.
-        for (int y = 0; y < column.height(); y++) for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) if (!effect.placed.contains(column.base().offset(x, y, z))) return;
+        for (int y = 0; y < column.height(); y++) for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++)
+            if (pillarCell(column, x, z) && !effect.placed.contains(column.base().offset(x, y, z))) return;
         BlockPos top = column.base().above(column.height());
         if (!level.getEntitiesOfClass(LivingEntity.class, new AABB(top).inflate(1), LivingEntity::isAlive).isEmpty()) return;
         EndCrystal crystal = EntityType.END_CRYSTAL.create(level);

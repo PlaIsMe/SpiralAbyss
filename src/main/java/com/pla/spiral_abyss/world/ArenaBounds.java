@@ -21,13 +21,16 @@ public record ArenaBounds(Vec3 center) {
                 || box.minY < feetFloor(entity) || box.maxY > CEILING_Y;
     }
 
-    public boolean rescueMob(Entity entity) {
+    public boolean rescueMob(Entity entity, boolean ghost) {
         // Above the floor, flight/jump logic can use the larger, bounded flight area.
-        return Math.abs(entity.getX() - center.x) > FLIGHT_RADIUS
-                || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS || entity.getY() > 240
-                || entity.getY() < feetFloor(entity) || (entity.getY() <= FLOOR_Y + 0.05
+        if (Math.abs(entity.getX() - center.x) > FLIGHT_RADIUS
+                || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS || entity.getY() > 240) return true;
+        // Ghost types may pursue targets below the arena floor without being returned to center.
+        if (ghost && entity.getY() < FLOOR_Y) return false;
+        if (entity.getY() < feetFloor(entity)) return true;
+        return entity.getY() <= FLOOR_Y + 0.05
                 && (Math.abs(entity.getX() - center.x) > HALF_SIZE - entity.getBbWidth() / 2
-                || Math.abs(entity.getZ() - center.z) > HALF_SIZE - entity.getBbWidth() / 2));
+                || Math.abs(entity.getZ() - center.z) > HALF_SIZE - entity.getBbWidth() / 2);
     }
     private double feetFloor(Entity entity) {
         var surface = net.minecraft.core.BlockPos.containing(entity.getX(), FLOOR_Y - 1, entity.getZ());

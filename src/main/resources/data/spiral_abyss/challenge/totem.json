@@ -1,4 +1,7 @@
 {
+  "medium": {
+    "target": 1
+  },
   "hard": {
     "target": 1
   }

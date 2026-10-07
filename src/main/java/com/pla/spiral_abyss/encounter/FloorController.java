@@ -132,7 +132,11 @@ public final class FloorController {
         if (target == null) { fail("abandoned"); return; }
         if (level.getDifficulty() == Difficulty.PEACEFUL) { fail("peaceful"); return; }
         if (state == State.BETWEEN_WAVES) {
-            if (--delayTicks <= 0) { waveIndex++; startWave(target); }
+            if (--delayTicks <= 0) {
+                // A lingering attack can defeat a teammate during the countdown.
+                session.reviveForNextWave();
+                waveIndex++; startWave(target);
+            }
             return;
         }
         // Spend every combat tick, including the tick of the final kill. A wave at
@@ -167,6 +171,7 @@ public final class FloorController {
             else {
                 state = State.BETWEEN_WAVES;
                 delayTicks = WaveChallenges.TRANSITION_TICKS;
+                session.reviveForNextWave();
             }
         }
     }

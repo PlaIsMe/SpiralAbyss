@@ -6,6 +6,7 @@ import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.monster.Vindicator;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.enchantment.*;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -67,6 +68,22 @@ public final class WaveEquipment {
             ItemStack stack = new ItemStack(Items.BOW);
             maybeEnchant(stack, floor.bow(), random); weapon(mob, stack);
         } else if (whitelist.melee().contains(id)) {
+            // Vindicators need an axe for their native attack/rendering behavior. Keep their
+            // iron axe unless this floor actually supplies a stronger axe.
+            if (mob instanceof Vindicator) {
+                if (!weapons.isEmpty() && random.nextDouble() < floor.weaponChance()) {
+                    Item nativeItem = mob.getMainHandItem().isEmpty() ? Items.IRON_AXE : mob.getMainHandItem().getItem();
+                    List<AxeItem> upgrades = weapons.stream().filter(AxeItem.class::isInstance)
+                            .map(AxeItem.class::cast).filter(axe -> nativeItem instanceof AxeItem current
+                                    && axe.getTier().getLevel() > current.getTier().getLevel()).toList();
+                    if (!upgrades.isEmpty()) {
+                        ItemStack stack = new ItemStack(upgrades.get(random.nextInt(upgrades.size())));
+                        maybeEnchant(stack, floor.melee(), random); weapon(mob, stack);
+                    }
+                }
+                if (mob.getMainHandItem().isEmpty()) weapon(mob, new ItemStack(Items.IRON_AXE));
+                return;
+            }
             weapon(mob, ItemStack.EMPTY);
             if (!weapons.isEmpty() && random.nextDouble() < floor.weaponChance()) {
                 ItemStack stack = new ItemStack(weapons.get(random.nextInt(weapons.size())));

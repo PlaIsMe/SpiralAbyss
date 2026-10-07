@@ -14,6 +14,7 @@ public class ModEventBusClientEvents {
     @SubscribeEvent
     public static void registerOverlays(net.minecraftforge.client.event.RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("encounter", com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay.HUD);
+        event.registerAboveAll("rare_reward", com.pla.spiral_abyss.client.overlay.RareRewardOverlay.HUD);
     }
     @SubscribeEvent
     public static void registerDimensionEffects(net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent event) {

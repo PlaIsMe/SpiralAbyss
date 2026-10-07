@@ -1,4 +1,19 @@
 {
+  "medium": {
+    "percentage": 25,
+    "pool": [
+      "minecraft:poison",
+      "minecraft:slowness",
+      "minecraft:weakness",
+      "minecraft:invisibility",
+      "minecraft:glowing",
+      "minecraft:blindness",
+      "minecraft:regeneration",
+      "minecraft:resistance",
+      "minecraft:strength"
+    ],
+    "choose": 1
+  },
   "hard": {
     "percentage": 33.333333333333336,
     "pool": [

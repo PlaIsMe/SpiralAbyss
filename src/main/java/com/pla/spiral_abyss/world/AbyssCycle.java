@@ -6,7 +6,7 @@ import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.WaveComposition;
 import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog;
-import com.pla.spiral_abyss.encounter.data.FloorCatalog;
+import com.pla.spiral_abyss.encounter.challenge.ChallengePlan;
 import net.minecraft.util.RandomSource;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
@@ -36,46 +36,11 @@ public final class AbyssCycle {
         startedAt = now; seed = newSeed; pools = snapshot; lineups.clear(); selectedTypes.clear(); activeLineups.clear(); challenges.clear();
         floorFiveBoss = null; floorSixBoss = null;
     }
-    public List<Challenge> challenges(int floor) {
-        return challenges(floor, challenge -> true);
-    }
-    public List<Challenge> challenges(int floor, java.util.function.Predicate<Challenge> eligible) {
-        Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts = new TreeMap<>();
-        for (var definition : FloorCatalog.snapshot().floors().values()) {
-            List<Integer> populations = new ArrayList<>();
-            for (int wave = 0; wave < definition.waves().size(); wave++) populations.add(lineup(definition.number(), wave + 1,
-                    definition.waves().get(wave), MobCatalog::availableMob, MobCatalog.snapshot())
-                    .stream().mapToInt(FloorDefinition.Enemy::count).sum());
-            contexts.put(definition.number(),new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(populations,
-                    definition.number()==floor?eligible:challenge->true));
-        }
-        return challenges(floor,contexts);
-    }
-    /** Injectable snapshot/count also supports focused persistence and optional-mod checks. */
-    public List<Challenge> challenges(int floor, int minimumEnemies, ChallengeCatalog.Snapshot catalog) {
-        return challenges(floor, List.of(minimumEnemies), catalog);
-    }
-    public List<Challenge> challenges(int floor, List<Integer> populations, ChallengeCatalog.Snapshot catalog) {
-        return challenges(floor, populations, catalog, challenge -> true);
-    }
-    public List<Challenge> challenges(int floor, List<Integer> populations, ChallengeCatalog.Snapshot catalog,
-                                      java.util.function.Predicate<Challenge> eligible) {
-        Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts = new TreeMap<>();
-        for(int number=1;number<=6;number++) contexts.put(number,new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(populations,eligible));
-        return challenges(floor,contexts,catalog);
-    }
-    public List<Challenge> challenges(int floor, Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts) {
-        return challenges(floor,contexts,ChallengeCatalog.snapshot());
-    }
-    public List<Challenge> challenges(int floor, Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts, ChallengeCatalog.Snapshot catalog) {
-        if (floor < 1 || floor > 6) throw new IllegalArgumentException("Invalid challenge floor");
-        if(floor<=2) {
-            var selected=com.pla.spiral_abyss.encounter.challenge.ChallengePlan.timeOnly(floor,seed,catalog,challenges);
-            challenges.put(floor,selected);return selected;
-        }
-        var plan = com.pla.spiral_abyss.encounter.challenge.ChallengePlan.select(seed ^ 0x4348414C4C454E47L,catalog,challenges,contexts);
-        if(plan!=challenges){challenges.clear(); challenges.putAll(plan);}
-        return challenges.get(floor);
+    public List<Challenge> challenges(FloorDefinition floor, ChallengePlan.Context context, ChallengeCatalog.Snapshot catalog) {
+        var selected = ChallengePlan.select(seed ^ 0x4348414C4C454E47L ^ floor.number(), catalog,
+                floor.challenge(), challenges.getOrDefault(floor.number(), List.of()), context);
+        challenges.put(floor.number(), selected);
+        return selected;
     }
     public List<FloorDefinition.Enemy> lineup(int floor, int waveNumber, FloorDefinition.Wave wave,
                                             java.util.function.Predicate<ResourceLocation> available,
@@ -273,7 +238,7 @@ public final class AbyssCycle {
             ListTag list = new ListTag(); selected.forEach(challenge -> list.add(challenge.save())); entry.put("Challenges", list); challengeFloors.add(entry);
         });
         tag.put("ChallengeFloors", challengeFloors);
-        tag.putInt("ChallengePolicy",com.pla.spiral_abyss.encounter.challenge.ChallengePlan.VERSION); return tag;
+        tag.putInt("ChallengePolicy",ChallengePlan.VERSION); return tag;
     }
     public static AbyssCycle load(CompoundTag tag) {
         AbyssCycle cycle = new AbyssCycle();
@@ -311,7 +276,7 @@ public final class AbyssCycle {
         }
         CompoundTag active = tag.getCompound("ActiveLineups");
         for (String key : active.getAllKeys()) cycle.activeLineups.put(key, active.getString(key));
-        if(tag.getInt("ChallengePolicy")==com.pla.spiral_abyss.encounter.challenge.ChallengePlan.VERSION)
+        if(tag.getInt("ChallengePolicy")==ChallengePlan.VERSION)
         for (Tag value : tag.getList("ChallengeFloors", Tag.TAG_COMPOUND)) {
             CompoundTag entry = (CompoundTag) value;
             int floor = entry.getInt("Floor");

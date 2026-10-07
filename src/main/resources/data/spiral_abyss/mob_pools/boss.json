@@ -2,27 +2,29 @@
   [
     "minecraft:wither",
     {
+      "environment": ["minecraft:soul_sand", "minecraft:soul_soil"],
+      "decoration_environment": ["minecraft:soul_fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.08
+    },
+    {
       "item": "minecraft:nether_star",
       "count": 1,
       "chance": 0.15
-    },
-    {
-      "loot_table": "minecraft:chests/nether_bridge",
-      "weight": 1,
-      "chance": 0.65
     }
   ],
   [
     "minecraft:ender_dragon",
     {
+      "environment": ["minecraft:end_stone"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
       "item": "minecraft:elytra",
       "count": 1,
       "chance": 0.15
-    },
-    {
-      "loot_table": "minecraft:chests/end_city_treasure",
-      "weight": 1,
-      "chance": 0.65
     }
   ]
 ]

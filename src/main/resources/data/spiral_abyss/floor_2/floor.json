@@ -1,4 +1,9 @@
 {
+  "challenge": {
+    "easy": ["time"],
+    "medium": ["time"],
+    "hard": ["time"]
+  },
   "health_scale": 1.1,
   "damage_scale": 1.05,
   "rewards": {
@@ -31,7 +36,7 @@
         "chance": 0.75
       },
       {
-        "loot_table": "minecraft:chests/village/village_weaponsmith",
+        "loot_table": "minecraft:chests/stronghold_library",
         "weight": 1,
         "chance": 0.75
       }

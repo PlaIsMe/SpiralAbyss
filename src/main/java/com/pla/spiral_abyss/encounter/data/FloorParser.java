@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss.encounter.data;
 
 import com.google.gson.*;
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -18,6 +19,7 @@ public final class FloorParser {
     public static FloorDefinition parse(int number, JsonObject floor, SortedMap<Integer, JsonObject> waves, Map<ResourceLocation, FloorDefinition.WaveType> waveTypes) {
         require(number >= 1 && number <= MAX_FLOORS, "floor number must be 1..6");
         require(waves.size() == 3, "a challenge floor needs exactly three waves");
+        var challenge = challenges(floor.get("challenge"));
         double health = scale(floor, "health_scale", 1);
         double damage = scale(floor, "damage_scale", 1);
         int delay = com.pla.spiral_abyss.encounter.WaveChallenges.TRANSITION_TICKS;
@@ -109,7 +111,29 @@ public final class FloorParser {
         // Named encounters are balanced by category, roles and stages, not a minimum mob count.
         boolean bossOnly = parsed.stream().allMatch(FloorDefinition.Wave::bossOnly);
         require(parsed.stream().anyMatch(wave -> !wave.waveTypes().isEmpty()) || bossOnly || floorEnemies > 30, "ordinary legacy floors need at least 31 mobs in total");
-        return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed);
+        return new FloorDefinition(number, ticks, delay, new FloorDefinition.Rewards(entries, rolls, experience), parsed, challenge);
+    }
+
+    public static Map<Challenge.Difficulty, List<Challenge.Type>> challenges(JsonElement json) {
+        JsonObject object = object(json, "challenge");
+        for (String key : object.keySet())
+            require(Set.of("easy", "medium", "hard").contains(key), "unknown challenge tier: " + key);
+        var result = new EnumMap<Challenge.Difficulty, List<Challenge.Type>>(Challenge.Difficulty.class);
+        for (var difficulty : Challenge.Difficulty.values()) {
+            String field = "challenge." + difficulty.key();
+            JsonArray names = array(object.get(difficulty.key()), field);
+            require(names.size() > 0 && names.size() <= Challenge.Type.values().length, field + " needs a nonempty list of distinct challenge names");
+            List<Challenge.Type> types = new ArrayList<>();
+            for (JsonElement name : names) {
+                require(name.isJsonPrimitive() && name.getAsJsonPrimitive().isString(), field + " entries must be challenge names");
+                Challenge.Type type = Arrays.stream(Challenge.Type.values()).filter(value -> value.key().equals(name.getAsString()))
+                        .findFirst().orElseThrow(() -> new JsonParseException(field + ": unknown challenge " + name));
+                require(!types.contains(type), field + ": duplicate challenge " + type.key());
+                types.add(type);
+            }
+            result.put(difficulty, List.copyOf(types));
+        }
+        return Map.copyOf(result);
     }
 
     public static FloorDefinition.WaveType waveType(ResourceLocation id, JsonObject object) {

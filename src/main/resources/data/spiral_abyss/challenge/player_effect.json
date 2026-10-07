@@ -1,4 +1,28 @@
 {
+  "medium": {
+    "percentage": 25,
+    "pool": [
+      "minecraft:poison",
+      "minecraft:bad_omen",
+      "minecraft:hunger",
+      "minecraft:water_breathing",
+      "minecraft:strength",
+      "minecraft:regeneration",
+      "minecraft:resistance",
+      "minecraft:absorption",
+      "minecraft:invisibility",
+      "minecraft:slow_falling",
+      "minecraft:speed",
+      "minecraft:fire_resistance",
+      "minecraft:slowness",
+      "minecraft:weakness",
+      "minecraft:nausea",
+      "minecraft:blindness",
+      "minecraft:glowing",
+      "minecraft:mining_fatigue"
+    ],
+    "choose": 1
+  },
   "hard": {
     "percentage": 33.333333333333336,
     "pool": [

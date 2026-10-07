@@ -12,10 +12,10 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "12";
+    private static final String VERSION = "14";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
-    public record OpenFloors(UUID token, int claimed, int selectable, int visible, boolean inside,
+    public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
                              long resetRemainingMillis, List<FloorPreview> floors) {
         public OpenFloors { floors = List.copyOf(floors); }
     }
@@ -33,6 +33,9 @@ public final class AbyssNetwork {
     public record CloseFloors() {}
     public record SelectFloor(UUID token, int floor) {}
     public record KeepFloorsOpen(UUID token) {}
+    public record RareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
+        public RareReward { player = player.copy(); item = item.copy(); }
+    }
     public record ChallengeView(net.minecraft.network.chat.Component description, int progress, int target, boolean satisfied, boolean failed) {}
     public record EncounterStatus(boolean active, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges) {
         public EncounterStatus { challenges = List.copyOf(challenges); }
@@ -42,13 +45,13 @@ public final class AbyssNetwork {
     public static void register() {
         CHANNEL.messageBuilder(OpenFloors.class, 0, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder((message, buffer) -> {
-                    buffer.writeUUID(message.token); buffer.writeVarInt(message.claimed);
+                    buffer.writeUUID(message.token); buffer.writeVarInt(message.claimed); buffer.writeVarInt(message.unlocked);
                     buffer.writeVarInt(message.selectable); buffer.writeVarInt(message.visible);
                     buffer.writeBoolean(message.inside); buffer.writeLong(message.resetRemainingMillis);
                     writePreviews(buffer, message.floors);
                 })
                 .decoder(buffer -> new OpenFloors(buffer.readUUID(), buffer.readVarInt(), buffer.readVarInt(),
-                        buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer)))
+                        buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer)))
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                         () -> () -> com.pla.spiral_abyss.client.screen.FloorSelectionScreen.open(message)))
                 .add();
@@ -84,9 +87,18 @@ public final class AbyssNetwork {
                     ServerPlayer sender = context.get().getSender();
                     if (sender != null) AbyssParties.get(sender.server).portals().keepOpen(sender, message.token);
                 }).add();
+        CHANNEL.messageBuilder(RareReward.class, 5, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder((message, buffer) -> { buffer.writeComponent(message.player); buffer.writeItem(message.item); })
+                .decoder(buffer -> new RareReward(buffer.readComponent(), buffer.readItem()))
+                .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                        () -> () -> com.pla.spiral_abyss.client.overlay.RareRewardOverlay.enqueue(message.player, message.item)))
+                .add();
     }
     public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenFloors(token, claimed, selectable, visible, inside,
+        var progress = AbyssParties.get(player.server).profile(player.getUUID()).progress;
+        int unlocked = 0;
+        for (int floor = 1; floor <= 6; floor++) if (progress.unlocked(floor)) unlocked |= 1 << floor;
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenFloors(token, claimed, unlocked, selectable, visible, inside,
                 AbyssParties.get(player.server).resetRemainingMillis(), previews(player)));
     }
     /** Preview uses the same persisted cycle lineups as spawning; the client never rolls mobs. */
@@ -187,6 +199,9 @@ public final class AbyssNetwork {
         return floors;
     }
     public static void select(UUID token, int floor) { CHANNEL.sendToServer(new SelectFloor(token, floor)); }
+    public static void broadcastRareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
+        CHANNEL.send(PacketDistributor.ALL.noArg(), new RareReward(player, item));
+    }
     public static void keepFloorsOpen(UUID token) { CHANNEL.sendToServer(new KeepFloorsOpen(token)); }
     public static void encounterStatus(ServerPlayer player, EncounterStatus status) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), status);

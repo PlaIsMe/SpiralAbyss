@@ -1,4 +1,9 @@
 {
+  "challenge": {
+    "easy": ["time"],
+    "medium": ["time"],
+    "hard": ["time"]
+  },
   "health_scale": 1.0,
   "damage_scale": 1.0,
   "rewards": {
@@ -6,9 +11,9 @@
     "experience": 100,
     "entries": [
       {
-        "loot_table": "minecraft:chests/simple_dungeon",
-        "weight": 2,
-        "chance": 1.0
+        "loot_table": "minecraft:chests/stronghold_library",
+        "weight": 1,
+        "chance": 0.75
       },
       {
         "loot_table": "minecraft:chests/abandoned_mineshaft",

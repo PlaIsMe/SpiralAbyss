@@ -1,4 +1,7 @@
 {
+  "medium": {
+    "percentage": 25
+  },
   "hard": {
     "percentage": 10
   }

@@ -1,4 +1,9 @@
 {
+  "challenge": {
+    "easy": ["time"],
+    "medium": ["projectile", "explosion", "take_damage", "fishing", "totem", "trickshot", "ender_pearl_hit", "shield_block"],
+    "hard": ["player_burning", "mob_burning", "player_effect", "mob_effect"]
+  },
   "health_scale": 1.3,
   "damage_scale": 1.15,
   "rewards": {
@@ -29,16 +34,6 @@
         "loot_table": "minecraft:chests/jungle_temple",
         "weight": 1,
         "chance": 0.75
-      },
-      {
-        "loot_table": "minecraft:chests/stronghold_library",
-        "weight": 1,
-        "chance": 0.75
-      },
-      {
-        "loot_table": "minecraft:chests/chest_level_2",
-        "weight": 1,
-        "chance": 0.5
       },
       {
         "loot_table": "minecraft:chests/village/village_weaponsmith",

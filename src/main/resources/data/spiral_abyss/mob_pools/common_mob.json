@@ -1,37 +1,8 @@
 [
   "minecraft:creeper",
   "minecraft:spider",
-  [
-    "minecraft:pillager",
-    {
-      "loot_table": "minecraft:chests/pillager_outpost",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/woodland_mansion",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
+  "minecraft:pillager",
   "minecraft:cave_spider",
-  [
-    "minecraft:blaze",
-    {
-      "loot_table": "minecraft:chests/nether_bridge",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "spiral_abyss:ruined_portal",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/firewell_d",
-      "weight": 1,
-      "chance": 0.35
-    }
-  ],
+  "minecraft:blaze",
   "minecraft:witch"
 ]

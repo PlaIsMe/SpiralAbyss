@@ -5,7 +5,6 @@ import com.pla.spiral_abyss.entity.ChestLootEntity;
 import net.minecraft.nbt.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootDataId;
@@ -101,15 +100,24 @@ public final class FloorRewards {
                 items.addAll(rolled);
                 break;
             }
-            rollBonuses(level, bonuses, normalPool, items, rareItems, false);
+            rollBonuses(level, bonuses, normalPool, items);
         }
-        // Three golden table rolls do not triple the boss bonus probability.
-        if (tier == 3) for (int player = 0; player < eligiblePlayers; player++)
-            rollBonuses(level, rareBonuses, rarePool, items, rareItems, true);
+        // Extra participants improve rare chances, never the number of rare items in a chest.
+        // All encountered bosses share this one-item limit, independent of their configured count.
+        if (tier == 3) {
+            var rare = rarePool.singleBonus(rareBonuses, level.random, eligiblePlayers);
+            if (rare != null) {
+                var item = ForgeRegistries.ITEMS.getValue(rare.id());
+                if (item != null && item != Items.AIR) {
+                    rareItems.add(items.size());
+                    items.add(new ItemStack(item, 1));
+                }
+            }
+        }
         return new Bundle(items, (int) Math.round(rewards.experience() * ChallengeRewards.scale(eligiblePlayers)), rareItems);
     }
     private static void rollBonuses(ServerLevel level, List<FloorDefinition.RewardEntry> bonuses, RewardPool pool,
-                                    List<ItemStack> items, Set<Integer> rareItems, boolean rare) {
+                                    List<ItemStack> items) {
         for (var requested : bonuses) {
             var entry = pool.bonus(requested, level.random);
             if (entry == null || level.random.nextDouble() >= entry.chance()) continue;
@@ -118,7 +126,6 @@ public final class FloorRewards {
             int count = entry.minCount() + level.random.nextInt(entry.maxCount() - entry.minCount() + 1);
             while (count > 0) {
                 ItemStack stack = new ItemStack(item, Math.min(count, item.getMaxStackSize()));
-                if (rare) rareItems.add(items.size());
                 items.add(stack); count -= stack.getCount();
             }
         }
@@ -130,8 +137,12 @@ public final class FloorRewards {
         releaseItem(level, position, stack, false);
     }
     public static void releaseItem(ServerLevel level, Vec3 position, ItemStack stack, boolean rare) {
+        releaseItem(level, position, stack, rare, 0);
+    }
+    public static void releaseItem(ServerLevel level, Vec3 position, ItemStack stack, boolean rare, int floor) {
         if (stack.isEmpty()) return;
-        ItemEntity item = new ChestLootEntity(level, position.x, position.y + 0.8, position.z, stack.copy(), rare);
+        ChestLootEntity item = new ChestLootEntity(level, position.x, position.y + 0.8, position.z, stack.copy(), rare);
+        com.pla.spiral_abyss.event.RareRewardBroadcast.markDrop(item, floor);
         item.setDeltaMovement((level.random.nextDouble() - 0.5) * 0.6, 0.45 + level.random.nextDouble() * 0.2,
                 (level.random.nextDouble() - 0.5) * 0.6);
         item.setDefaultPickUpDelay(); level.addFreshEntity(item);

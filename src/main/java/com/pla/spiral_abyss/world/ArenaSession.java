@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.world;
 import com.pla.spiral_abyss.encounter.*;
 import com.pla.spiral_abyss.encounter.data.FloorCatalog;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.entity.*;
 import com.pla.spiral_abyss.init.EntityInit;
 import net.minecraft.core.BlockPos;
@@ -54,7 +55,12 @@ public final class ArenaSession {
     public FloorController controller() { return controller; }
     public boolean selectFloor(ServerPlayer player, int floor) { return parties.enterFloor(player, floor); }
     public boolean canAdvance(ServerPlayer player) {
-        return !looting() && parties.profile(player.getUUID()).progress.claimed(controller.currentFloor());
+        return canNavigate(player) && parties.profile(player.getUUID()).progress.claimed(controller.currentFloor());
+    }
+    /** An opened claim belongs to this player; other participants' unclicked chests do not hold them here. */
+    public boolean canNavigate(ServerPlayer player) {
+        return !controller.active() && (!looting() || rewardParticipants.contains(player.getUUID())
+                && parties.profile(player.getUUID()).progress.claimed(controller.currentFloor()));
     }
     public Set<UUID> participants() { return Set.copyOf(participants); }
     public Set<UUID> rewardParticipants() { return Set.copyOf(rewardParticipants); }
@@ -161,6 +167,11 @@ public final class ArenaSession {
         return contains(player) && participants.contains(player.getUUID()) && !defeated.contains(player.getUUID())
                 && player.isAlive() && !player.isSpectator();
     }
+    /** Forge fires the totem hook at zero health, before vanilla restores the player to one health. */
+    public boolean isCombatantUsingTotem(ServerPlayer player) {
+        return contains(player) && participants.contains(player.getUUID()) && !defeated.contains(player.getUUID())
+                && !player.isRemoved() && !player.hasDisconnected() && !player.isSpectator();
+    }
     public List<ServerPlayer> combatants() { return players().stream().filter(this::isCombatant).toList(); }
     public boolean waitingForParty(ServerPlayer player) {
         return controller.active() && defeated.contains(player.getUUID());
@@ -231,6 +242,12 @@ public final class ArenaSession {
         defeated.clear();
     }
 
+    /** Revive only the captured, still-present teammates during the five-second transition. */
+    public void reviveForNextWave() {
+        for (ServerPlayer player : players()) if (participants.contains(player.getUUID())
+                && defeated.remove(player.getUUID())) recover(player, true);
+    }
+
     public void tick() {
         // Entity persistence loads asynchronously. Never create replacement furniture before that finishes.
         BlockPos center = BlockPos.containing(bounds().center());
@@ -255,7 +272,7 @@ public final class ArenaSession {
                 if (dispensingTicks % LootChestEntity.DROP_INTERVAL_TICKS == 0) {
                     boolean rare = bundle.rare(payout.releasedItems());
                     var stack = payout.takeNextReward();
-                    if (stack != null) FloorRewards.releaseItem(level, chestPosition(tier), stack, rare);
+                    if (stack != null) FloorRewards.releaseItem(level, chestPosition(tier), stack, rare, controller.currentFloor());
                 }
                 if (payout.releasedItems() >= bundle.items().size()
                         && dispensingTicks >= (long) bundle.items().size() * LootChestEntity.DROP_INTERVAL_TICKS) {
@@ -281,7 +298,7 @@ public final class ArenaSession {
 
     public void rescueMob(Mob mob) {
         if (com.pla.spiral_abyss.encounter.DragonArena.defeated(mob)) return;
-        if (!bounds().rescueMob(mob)) return;
+        if (!bounds().rescueMob(mob, MobCatalog.isGhostMob(EntityType.getKey(mob.getType())))) return;
         Vec3 center = surfaceDestination(mob, bounds().center());
         mob.teleportTo(center.x, center.y + (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon ? 20 : 0.1), center.z);
         mob.getNavigation().stop();
@@ -403,11 +420,13 @@ public final class ArenaSession {
 
     /** All floors share the same physical slot; loose loot belongs only to the previous visit. */
     private void clearDroppedRewards() {
+        level.getEntities((Entity) null, rewardArea(), entity -> entity instanceof net.minecraft.world.entity.item.ItemEntity
+                || entity instanceof ExperienceOrb).forEach(Entity::discard);
+    }
+    private net.minecraft.world.phys.AABB rewardArea() {
         Vec3 center = bounds().center();
-        var area = new net.minecraft.world.phys.AABB(center.x - ArenaBounds.FLIGHT_RADIUS, level.getMinBuildHeight(),
+        return new net.minecraft.world.phys.AABB(center.x - ArenaBounds.FLIGHT_RADIUS, level.getMinBuildHeight(),
                 center.z - ArenaBounds.FLIGHT_RADIUS, center.x + ArenaBounds.FLIGHT_RADIUS,
                 level.getMaxBuildHeight(), center.z + ArenaBounds.FLIGHT_RADIUS);
-        level.getEntities((Entity) null, area, entity -> entity instanceof net.minecraft.world.entity.item.ItemEntity
-                || entity instanceof ExperienceOrb).forEach(Entity::discard);
     }
 }

@@ -1,4 +1,9 @@
 {
+  "challenge": {
+    "easy": ["time"],
+    "medium": ["time"],
+    "hard": ["projectile", "explosion", "take_damage", "fishing", "totem", "trickshot", "ender_pearl_hit", "shield_block"]
+  },
   "health_scale": 1.2,
   "damage_scale": 1.1,
   "rewards": {
@@ -44,11 +49,6 @@
         "loot_table": "minecraft:chests/village/village_weaponsmith",
         "weight": 1,
         "chance": 0.75
-      },
-      {
-        "loot_table": "minecraft:chests/buried_treasure",
-        "weight": 1,
-        "chance": 0.4
       }
     ]
   }

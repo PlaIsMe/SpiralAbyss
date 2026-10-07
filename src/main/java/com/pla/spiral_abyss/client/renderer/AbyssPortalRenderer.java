@@ -4,14 +4,21 @@ import com.mojang.blaze3d.vertex.*;
 import com.pla.spiral_abyss.block.entity.AbyssPortalBlockEntity;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.blockentity.*;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.fml.ModList;
 import com.mojang.math.Axis;
 import org.joml.Matrix4f;
 
-/** One continuous, double-sided End Portal surface, clipped around the gate frame and controller. */
+import java.lang.reflect.Method;
+
+/** One continuous, double-sided portal surface, clipped around the gate frame and controller. */
 public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
+    private static final ResourceLocation PORTAL_TEXTURE = new ResourceLocation("minecraft", "textures/entity/end_portal.png");
+    private static final Method IRIS_PACK_ACTIVE = irisPackActive();
     private final Font font;
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
     @Override public void render(AbyssPortalBlockEntity entity, float partialTick, PoseStack pose,
@@ -20,15 +27,27 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
         pose.pushPose();
         var offset = entity.frame().base().subtract(entity.getBlockPos());
         pose.translate(offset.getX(), offset.getY(), offset.getZ());
-        VertexConsumer vertices = buffers.getBuffer(RenderType.endPortal());
         Matrix4f matrix = pose.last().pose();
         boolean xAxis = entity.frame().axis() == Direction.Axis.X;
-        strip(vertices, matrix, xAxis, 0, 1, 0.5F, 1);
-        strip(vertices, matrix, xAxis, -1, 2, 1, 1.5F);
-        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 1.5F, 2);
-        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 2, 4);
-        strip(vertices, matrix, xAxis, -1.5F, 2.5F, 4, 4.5F);
-        strip(vertices, matrix, xAxis, -1, 2, 4.5F, 5);
+        if (shaderPackActive()) {
+            // End Portal's special shader is skipped by Oculus shader pipelines. An ordinary
+            // full-bright entity layer lets the pack render the same star texture as geometry.
+            VertexConsumer vertices = buffers.getBuffer(RenderType.entityCutoutNoCull(PORTAL_TEXTURE));
+            texturedStrip(vertices, pose, xAxis, 0, 1, 0.5F, 1);
+            texturedStrip(vertices, pose, xAxis, -1, 2, 1, 1.5F);
+            texturedStrip(vertices, pose, xAxis, -1.5F, 2.5F, 1.5F, 2);
+            texturedStrip(vertices, pose, xAxis, -1.5F, 2.5F, 2, 4);
+            texturedStrip(vertices, pose, xAxis, -1.5F, 2.5F, 4, 4.5F);
+            texturedStrip(vertices, pose, xAxis, -1, 2, 4.5F, 5);
+        } else {
+            VertexConsumer vertices = buffers.getBuffer(RenderType.endPortal());
+            strip(vertices, matrix, xAxis, 0, 1, 0.5F, 1);
+            strip(vertices, matrix, xAxis, -1, 2, 1, 1.5F);
+            strip(vertices, matrix, xAxis, -1.5F, 2.5F, 1.5F, 2);
+            strip(vertices, matrix, xAxis, -1.5F, 2.5F, 2, 4);
+            strip(vertices, matrix, xAxis, -1.5F, 2.5F, 4, 4.5F);
+            strip(vertices, matrix, xAxis, -1, 2, 4.5F, 5);
+        }
         renderFloor(entity, pose, buffers, xAxis);
         pose.popPose();
     }
@@ -60,6 +79,41 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
     }
     private static void vertex(VertexConsumer vertices, Matrix4f matrix, boolean xAxis, float across, float y) {
         vertices.vertex(matrix, xAxis ? across : 0.5F, y, xAxis ? 0.5F : across).endVertex();
+    }
+    private static void texturedStrip(VertexConsumer vertices, PoseStack pose, boolean xAxis,
+                                      float left, float right, float low, float high) {
+        float normal = xAxis ? 1 : -1;
+        texturedVertex(vertices, pose, xAxis, left, low, normal);
+        texturedVertex(vertices, pose, xAxis, right, low, normal);
+        texturedVertex(vertices, pose, xAxis, right, high, normal);
+        texturedVertex(vertices, pose, xAxis, left, high, normal);
+        texturedVertex(vertices, pose, xAxis, left, high, -normal);
+        texturedVertex(vertices, pose, xAxis, right, high, -normal);
+        texturedVertex(vertices, pose, xAxis, right, low, -normal);
+        texturedVertex(vertices, pose, xAxis, left, low, -normal);
+    }
+    private static void texturedVertex(VertexConsumer vertices, PoseStack pose, boolean xAxis,
+                                       float across, float y, float normal) {
+        vertices.vertex(pose.last().pose(), xAxis ? across : 0.5F, y, xAxis ? 0.5F : across)
+                .color(85, 185, 220, 255).uv((across + 1.5F) / 4F, (y - 0.5F) / 4.5F)
+                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(LightTexture.FULL_BRIGHT)
+                .normal(pose.last().normal(), xAxis ? 0 : normal, 0, xAxis ? normal : 0).endVertex();
+    }
+    private static Method irisPackActive() {
+        if (!ModList.get().isLoaded("oculus")) return null;
+        try {
+            return Class.forName("net.irisshaders.iris.Iris").getMethod("isPackInUseQuick");
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Oculus shader state is unavailable", exception);
+        }
+    }
+    private static boolean shaderPackActive() {
+        if (IRIS_PACK_ACTIVE == null) return false;
+        try {
+            return (boolean) IRIS_PACK_ACTIVE.invoke(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Oculus shader state could not be read", exception);
+        }
     }
     @Override public int getViewDistance() { return 128; }
 }

@@ -1,13 +1,22 @@
 package com.pla.spiral_abyss.encounter.data;
 
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.Map;
 
 /** Validated, immutable datapack definitions. Durations are converted to ticks when loaded. */
-public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rewards rewards, List<Wave> waves) {
+public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rewards rewards, List<Wave> waves,
+                              Map<Challenge.Difficulty, List<Challenge.Type>> challenge) {
     public FloorDefinition {
         waves = List.copyOf(waves);
+        var choices = new java.util.EnumMap<Challenge.Difficulty, List<Challenge.Type>>(Challenge.Difficulty.class);
+        for (var difficulty : Challenge.Difficulty.values()) {
+            var types = challenge.get(difficulty);
+            if (types == null || types.isEmpty()) throw new IllegalArgumentException("Missing challenge." + difficulty.key());
+            choices.put(difficulty, List.copyOf(types));
+        }
+        challenge = Map.copyOf(choices);
     }
 
     public record Wave(double healthScale, double damageScale,

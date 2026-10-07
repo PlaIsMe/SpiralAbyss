@@ -62,7 +62,7 @@ public final class PortalParties {
         UUID token = UUID.randomUUID();
         UUID following = parties.followedHost(player);
         int available = 0;
-        if (!session.controller().active() && !session.looting()) available = floorChoices(player);
+        if (session.canNavigate(player)) available = floorChoices(player);
         arenaMenus.put(player.getUUID(), new ArenaMenu(token, session.host(), session.controller().currentFloor(),
                 following, parties.profile(player.getUUID()).personalRun, available, server.getTickCount() + MENU_TIMEOUT_TICKS));
         AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), available,
@@ -73,7 +73,12 @@ public final class PortalParties {
     private int floorChoices(ServerPlayer player) {
         int available = 0;
         var progress = parties.profile(player.getUUID()).progress;
-        for (int floor : FloorCatalog.snapshot().floors().keySet()) if (progress.canSelectFloor(floor)) available |= 1 << floor;
+        ArenaSession session = parties.sessionFor(player);
+        boolean acknowledged = session != null && session.canNavigate(player);
+        int pendingFloor = session == null ? progress.pendingFloor() : 0;
+        for (int floor : FloorCatalog.snapshot().floors().keySet())
+            if ((pendingFloor == 0 || floor == pendingFloor) && progress.canSelectFloor(floor, acknowledged))
+                available |= 1 << floor;
         return available;
     }
     /** Renew only a still-valid issued token; a heartbeat cannot reopen or authorize a menu. */
@@ -103,8 +108,7 @@ public final class PortalParties {
             ArenaSession session = parties.sessionFor(player);
             if (!valid(menu, player)) { if (floor != 0) tell(player, "selection_expired"); return; }
             if (floor == -1) { parties.leave(player); return; }
-            if (floor <= 0 || (menu.selectable & (1 << floor)) == 0 || session.controller().active()
-                    || session.looting()) return;
+            if (floor <= 0 || (menu.selectable & (1 << floor)) == 0 || !session.canNavigate(player)) return;
             if (session.isLeader(player)) parties.enterFloor(player, floor);
             else if (menu.followingHost != null) parties.followFloor(player, floor);
             return;

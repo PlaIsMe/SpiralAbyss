@@ -1,25 +1,6 @@
 [
-  [
-    "minecraft:vindicator",
-    {
-      "loot_table": "minecraft:chests/pillager_outpost",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/woodland_mansion",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
-  [
-    "minecraft:vex",
-    {
-      "loot_table": "minecraft:chests/woodland_mansion",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
+  "minecraft:vindicator",
+  "minecraft:vex",
   [
     "minecraft:wither_skeleton",
     {
@@ -28,15 +9,13 @@
       "chance": 0.65
     },
     {
-      "loot_table": "spiral_abyss:ruined_portal",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
       "loot_table": "minecraft:chests/bastion_bridge",
       "weight": 1,
       "chance": 0.5
-    },
+    }
+  ],
+  [
+    "minecraft:hoglin",
     {
       "loot_table": "minecraft:chests/bastion_hoglin_stable",
       "weight": 1,
@@ -46,11 +25,6 @@
       "loot_table": "minecraft:chests/bastion_other",
       "weight": 1,
       "chance": 0.5
-    },
-    {
-      "loot_table": "minecraft:chests/bastion_treasure",
-      "weight": 1,
-      "chance": 0.35
     }
   ],
   [
@@ -67,29 +41,25 @@
     }
   ],
   [
+    "minecraft:elder_guardian",
+    {
+      "loot_table": "minecraft:chests/shipwreck_treasure",
+      "weight": 1,
+      "chance": 0.5
+    },
+    {
+      "loot_table": "minecraft:chests/buried_treasure",
+      "weight": 1,
+      "chance": 0.4
+    }
+  ],
+  [
     "minecraft:ghast",
     {
       "loot_table": "minecraft:chests/nether_bridge",
       "weight": 1,
       "chance": 0.65
-    },
-    {
-      "loot_table": "spiral_abyss:ruined_portal",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/firewell_d",
-      "weight": 1,
-      "chance": 0.35
     }
   ],
-  [
-    "minecraft:shulker",
-    {
-      "loot_table": "minecraft:chests/end_city_treasure",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ]
+  "minecraft:shulker"
 ]

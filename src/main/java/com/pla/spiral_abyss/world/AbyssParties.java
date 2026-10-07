@@ -72,17 +72,15 @@ public final class AbyssParties {
     public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) {
         var level = server.getLevel(AbyssDimension.LEVEL);
         if (level == null) throw new IllegalArgumentException("Missing Abyss level");
-        Map<Integer,com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context> contexts = new TreeMap<>();
-        for (var definition : com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().values()) {
-            if(floor<=2&&definition.number()!=floor)continue;
-            List<List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy>> rosters = new ArrayList<>();
-            for (int wave = 0; wave < definition.waves().size(); wave++)
-                rosters.add(cycleLineup(definition.number(), wave + 1, definition.waves().get(wave)));
-            contexts.put(definition.number(), new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(
-                    rosters.stream().map(roster -> roster.stream().mapToInt(com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy::count).sum()).toList(),
-                    new com.pla.spiral_abyss.encounter.challenge.ChallengeEligibility(level, rosters)));
-        }
-        var result = cycle().challenges(floor, contexts);
+        var definition = com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().get(floor);
+        if (definition == null) throw new IllegalArgumentException("Missing challenge floor " + floor);
+        List<List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy>> rosters = new ArrayList<>();
+        for (int wave = 0; wave < definition.waves().size(); wave++)
+            rosters.add(cycleLineup(floor, wave + 1, definition.waves().get(wave)));
+        var context = new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(
+                rosters.stream().map(roster -> roster.stream().mapToInt(com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy::count).sum()).toList(),
+                new com.pla.spiral_abyss.encounter.challenge.ChallengeEligibility(level, rosters));
+        var result = cycle().challenges(definition, context, com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog.snapshot());
         data.setDirty();
         return result;
     }
@@ -184,14 +182,13 @@ public final class AbyssParties {
     }
     public boolean enterOwn(ServerPlayer player) {
         var progress = data.profile(player.getUUID()).progress;
-        int floor = progress.floor();
-        if (!progress.unlocked(floor) && progress.pending() == null) floor = 1;
+        int floor = progress.pendingFloor() != 0 ? progress.pendingFloor() : progress.floor();
+        if (!progress.unlocked(floor)) floor = 1;
         return enterFloor(player, floor);
     }
     public boolean enterPortalGuest(ServerPlayer player, UUID host, Vec3 returnPosition) {
         ArenaSession session = sessions.get(host);
         if (session == null) return false;
-        if (session.looting() && !session.contains(player)) return tell(player, "claim_first");
         if (host.equals(player.getUUID())) {
             if (!enter(player, host)) return false;
             follow(player.getUUID(), null);
@@ -218,7 +215,7 @@ public final class AbyssParties {
     }
     private boolean enterLedFloor(ServerPlayer player, ArenaSession session, int number) {
         if (session.controller().active()) return tell(player, "already_running");
-        if (session.looting()) return tell(player, "claim_first");
+        if (!session.canNavigate(player)) return tell(player, "claim_first");
         // The completed attempt keeps its original saved bundle. Future attempts belong
         // to the successor's profile, so an absent original owner earns no free unlocks.
         if (!enterOwnFloor(player, number)) return false;
@@ -229,17 +226,21 @@ public final class AbyssParties {
         if (!com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
         if (!checkUnlocked(player, player, number)) return false;
         ArenaSession current = sessionFor(player);
-        if (current != null && current.looting()) return tell(player, "claim_first");
+        var progress = data.profile(player.getUUID()).progress;
+        if (current == null && progress.pendingFloor() != 0 && number != progress.pendingFloor())
+            return tell(player, "claim_first");
+        if (current != null && !current.canNavigate(player)) return tell(player, "claim_first");
         ArenaSession own = sessions.get(player.getUUID());
         if (own != null && !own.isLeader(player)) return tell(player, "host_only");
         if ((current != null && current.controller().active()) || (own != null && own.controller().active())) return tell(player, "already_running");
-        var progress = data.profile(player.getUUID()).progress;
-        if (!progress.canSelectFloor(number)) return tell(player, "claim_first");
+        boolean acknowledged = current != null && current.canNavigate(player);
+        if (!progress.canSelectFloor(number, acknowledged)) return tell(player, "claim_first");
         if (own != null && progress.floor() != number && !separateGuests(player, own)) return false;
         // Travel/admission must succeed before changing saved progression.
         if (!enter(player, player.getUUID())) return false;
         ArenaSession session = sessionFor(player);
-        progress.selectFloor(number);
+        // Rebuilding this bounded slot clears loose drops; floor-bound opened cursors remain saved.
+        progress.selectFloor(number, acknowledged);
         CompoundTag mark = persisted(player);
         mark.putInt(VISIT_FLOOR, number); player.getPersistentData().put(Player.PERSISTED_NBT_TAG, mark);
         session.controller().close(); session.clearParticipants();
@@ -345,24 +346,27 @@ public final class AbyssParties {
         UUID host = followedHost(player);
         ArenaSession current = sessionFor(player);
         if (host == null || current == null || current.controller().active()) return 0;
-        return GuestFloorRules.next(profile(player.getUUID()).progress, current.controller().currentFloor());
+        return GuestFloorRules.next(profile(player.getUUID()).progress, current.controller().currentFloor(), current.canNavigate(player));
     }
     public boolean followFloor(ServerPlayer player, int number) {
         UUID host = followedHost(player);
-        if (host == null || !profile(player.getUUID()).progress.canSelectFloor(number)) return tell(player, "selection_expired");
+        if (host == null) return tell(player, "selection_expired");
         ArenaSession current = sessionFor(player);
         if (current == null || current.controller().active()) return tell(player, "already_running");
-        if (current.looting()) return tell(player, "claim_first");
+        if (!current.canNavigate(player) || !profile(player.getUUID()).progress.canSelectFloor(number, true))
+            return tell(player, "claim_first");
         return travelFollowing(player, host, number, false);
     }
     private boolean travelFollowing(ServerPlayer player, UUID host, int number, boolean portalEntry) {
         if (player.getUUID().equals(host)) return false;
         var progress = profile(player.getUUID()).progress;
-        if (!progress.canSelectFloor(number)) return tell(player, "claim_first");
+        ArenaSession current = sessionFor(player);
+        if (!progress.canSelectFloor(number, !portalEntry && current != null && current.canNavigate(player)))
+            return tell(player, "claim_first");
         ArenaSession destination = hostedBy(host);
         boolean join = destination != null && GuestFloorRules.joinHost(portalEntry, profile(player.getUUID()).personalRun,
-                number, destination.controller().currentFloor(), destination.controller().active(), progress.pending() != null);
-        if (join && destination.looting() && !destination.contains(player)) return tell(player, "claim_first");
+                number, destination.controller().currentFloor(), destination.controller().active(),
+                progress.pendingFloor() != 0 || destination.looting());
         boolean entered = join ? enter(player, host) : enterOwnFloor(player, number);
         if (entered) {
             follow(player.getUUID(), host);

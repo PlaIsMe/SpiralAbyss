@@ -40,12 +40,13 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         public Pool { mobs = List.copyOf(mobs); rewards = immutableRewards(rewards); }
     }
     public record Definitions(Map<MobCategory, List<ResourceLocation>> pools, Equipment equipment,
-                              Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
-        public Definitions { pools = new Pools(false, pools).entries(); rewards = immutableRewards(rewards); }
+                              Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
+        public Definitions { pools = new Pools(false, pools).entries(); ghostMobs = Set.copyOf(ghostMobs); rewards = immutableRewards(rewards); }
     }
     private static volatile Definitions current = new Definitions(Map.of(),
-            new Equipment(Set.of(), Set.of(), Set.of(), Set.of(), Set.of()), Map.of());
+            new Equipment(Set.of(), Set.of(), Set.of(), Set.of(), Set.of()), Set.of(), Map.of());
     public static Equipment equipment() { return current.equipment(); }
+    public static boolean isGhostMob(ResourceLocation id) { return current.ghostMobs().contains(id); }
     public static Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards() { return current.rewards(); }
     public static Pools snapshot() { return new Pools(AbyssConfig.MIX_MOBS.get(), current.pools()).available(MobCatalog::availableMob); }
 
@@ -67,7 +68,15 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         return parsePool(array, ForgeRegistries.ITEMS::containsKey);
     }
     public static Pool parsePool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem) {
+        return parsePool(array, isItem, false);
+    }
+    public static Pool parseBossPool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem) {
+        return parsePool(array, isItem, true);
+    }
+    private static Pool parsePool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem,
+                                  boolean bossPool) {
         Set<ResourceLocation> mobs = new LinkedHashSet<>();
+        Set<ResourceLocation> configuredEnvironments = new HashSet<>();
         Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards = new LinkedHashMap<>();
         for (JsonElement value : array) {
             JsonArray spec = value.isJsonArray() ? value.getAsJsonArray() : null;
@@ -86,6 +95,16 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                     bonuses.add(new FloorDefinition.RewardEntry(id, item, 1, 1, 1, item ? 0.15 : 0.25));
                 } else {
                     JsonObject object = reward.getAsJsonObject();
+                    // Boss terrain metadata shares an entry with reward links, but is parsed
+                    // by BossEnvironmentCatalog rather than counted as a reward.
+                    if (object.has("environment")) {
+                        if (!bossPool) throw new JsonParseException("environment metadata is only supported in mob_pools/boss.json");
+                        if (!configuredEnvironments.add(mob)) throw new JsonParseException("duplicate environment for " + mob);
+                        for (String key : object.keySet()) if (!Set.of("environment", "decoration_environment",
+                                "decoration_chance", "decoration_placement").contains(key))
+                            throw new JsonParseException("unknown boss environment metadata field " + key);
+                        continue;
+                    }
                     bonuses.add(FloorParser.rewardEntry(object, object.has("item") ? 0.15 : 0.25));
                 }
             }
@@ -102,21 +121,25 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             throw new JsonParseException("Invalid " + id, ex);
         }
     }
-    private static Set<ResourceLocation> equipment(ResourceManager manager, String key) {
+    private static Set<ResourceLocation> mobType(ResourceManager manager, String key) {
         Set<ResourceLocation> ids = new LinkedHashSet<>();
-        for (JsonElement value : read(manager, "mob_equipment/" + key)) ids.add(FloorParser.id(value));
+        for (JsonElement value : read(manager, "mob_types/" + key)) ids.add(FloorParser.id(value));
         return ids;
     }
     @Override protected Definitions prepare(ResourceManager manager, ProfilerFiller profiler) {
         Map<MobCategory, List<ResourceLocation>> pools = new EnumMap<>(MobCategory.class);
         Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards = new LinkedHashMap<>();
         for (MobCategory category : MobCategory.values()) {
-            Pool pool = parsePool(read(manager, "mob_pools/" + category.key()));
+            JsonArray poolEntries = read(manager, "mob_pools/" + category.key());
+            Pool pool = category == MobCategory.BOSS
+                    ? parseBossPool(poolEntries, ForgeRegistries.ITEMS::containsKey)
+                    : parsePool(poolEntries, ForgeRegistries.ITEMS::containsKey);
             pools.put(category, pool.mobs());
             pool.rewards().forEach((id, entries) -> rewards.computeIfAbsent(id, unused -> new ArrayList<>()).addAll(entries));
         }
-        return new Definitions(pools, new Equipment(equipment(manager, "armor_mobs"), equipment(manager, "melee_mobs"),
-                equipment(manager, "bow_users"), equipment(manager, "crossbow_users"), equipment(manager, "trident_users"), equipment(manager, "ranged_mobs")), rewards);
+        return new Definitions(pools, new Equipment(mobType(manager, "armor_mobs"), mobType(manager, "melee_mobs"),
+                mobType(manager, "bow_users"), mobType(manager, "crossbow_users"), mobType(manager, "trident_users"), mobType(manager, "ranged_mobs")),
+                mobType(manager, "ghost_mobs"), rewards);
     }
     @Override protected void apply(Definitions definitions, ResourceManager manager, ProfilerFiller profiler) {
         current = definitions;

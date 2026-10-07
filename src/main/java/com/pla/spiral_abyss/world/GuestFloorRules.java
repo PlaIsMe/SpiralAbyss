@@ -11,13 +11,16 @@ public final class GuestFloorRules {
         return FloorParser.MAX_FLOORS;
     }
     public static int portalDestination(FloorProgress progress, int hostFloor) {
-        if (progress.pending() != null) return progress.floor();
+        if (progress.pendingFloor() != 0) return progress.pendingFloor();
         return progress.unlocked(hostFloor) ? hostFloor : firstUnclaimed(progress);
     }
     public static int next(FloorProgress progress, int currentFloor) {
-        if (progress.pending() != null || !progress.claimed(currentFloor)) return 0;
+        return next(progress, currentFloor, false);
+    }
+    public static int next(FloorProgress progress, int currentFloor, boolean acknowledgedCurrentFloor) {
+        if (!progress.claimed(currentFloor)) return 0;
         int next = currentFloor + 1;
-        return progress.canSelectFloor(next) ? next : 0;
+        return progress.canSelectFloor(next, acknowledgedCurrentFloor) ? next : 0;
     }
     public static boolean joinHost(boolean portalEntry, boolean personalRun, int floor, int hostFloor,
                                    boolean hostRunning, boolean pendingReward) {

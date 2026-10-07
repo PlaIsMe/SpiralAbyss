@@ -41,7 +41,8 @@ public final class FloorSelectionScreen extends Screen {
     private static ResourceLocation texture(String name) { return ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "textures/gui/floors/" + name + ".png"); }
     private boolean selectable(int floor) { return (state.selectable() & (1 << floor)) != 0; }
     private ResourceLocation floorTexture(int floor) {
-        String suffix = (state.claimed() & (1 << floor)) != 0 ? "_looted" : selectable(floor) || floor == 1 ? "" : "_locked";
+        String suffix = (state.claimed() & (1 << floor)) != 0 ? "_looted"
+                : (state.unlocked() & (1 << floor)) != 0 ? "" : "_locked";
         return texture("floor_" + floor + suffix);
     }
     private AbyssNetwork.FloorPreview floor() {

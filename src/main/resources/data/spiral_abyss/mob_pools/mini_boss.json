@@ -18,11 +18,6 @@
       "loot_table": "minecraft:chests/ancient_city",
       "weight": 1,
       "chance": 0.4
-    },
-    {
-      "loot_table": "minecraft:chests/ancient_city_ice_box",
-      "weight": 1,
-      "chance": 0.6
     }
   ]
 ]

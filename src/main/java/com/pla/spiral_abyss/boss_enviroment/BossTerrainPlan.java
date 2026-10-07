@@ -36,7 +36,9 @@ public final class BossTerrainPlan {
             }
             // Every eligible foundation column gets a base, including the center and entrance.
             for (int y = 0; y < height; y++) result.add(new Placement(center.offset(x, y, z), profile.palette().get(random.nextInt(profile.palette().size())), 0));
-            if (!reserved(x, z) && profile.hazard() != null && random.nextDouble() < profile.hazardChance()) result.add(new Placement(center.offset(x, height, z), profile.hazard(), 1));
+            if (!reserved(x, z) && !profile.decorations().isEmpty() && random.nextDouble() < profile.hazardChance())
+                result.add(new Placement(center.offset(x, height, z),
+                        profile.decorations().get(random.nextInt(profile.decorations().size())), 1));
         }
         result.sort(outward(center));
         return List.copyOf(result);

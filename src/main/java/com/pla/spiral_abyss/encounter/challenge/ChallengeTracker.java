@@ -168,7 +168,7 @@ public final class ChallengeTracker {
         if (type != null) impacts.add(new Impact(type, event));
     }
     public void totemUsed(ServerPlayer player, LivingUseTotemEvent event) {
-        if (session.controller().state() == FloorController.State.RUNNING && session.isCombatant(player)
+        if (session.controller().state() == FloorController.State.RUNNING && session.isCombatantUsingTotem(player)
                 && event.getTotem().is(Items.TOTEM_OF_UNDYING)) usedTotems.add(event);
     }
     public void shieldBlocked(ServerPlayer player, ShieldBlockEvent event) {
