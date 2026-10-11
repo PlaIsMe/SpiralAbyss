@@ -59,7 +59,9 @@ public final class ArenaSession {
     }
     /** An opened claim belongs to this player; other participants' unclicked chests do not hold them here. */
     public boolean canNavigate(ServerPlayer player) {
-        return !controller.active() && (!looting() || rewardParticipants.contains(player.getUUID())
+        boolean openedOwnPayout = host().equals(player.getUUID()) && profile.progress.hasPayouts();
+        return contains(player) && !controller.active() && (!looting()
+                || (rewardParticipants.contains(player.getUUID()) || openedOwnPayout)
                 && parties.profile(player.getUUID()).progress.claimed(controller.currentFloor()));
     }
     public Set<UUID> participants() { return Set.copyOf(participants); }
@@ -250,8 +252,7 @@ public final class ArenaSession {
 
     public void tick() {
         // Entity persistence loads asynchronously. Never create replacement furniture before that finishes.
-        BlockPos center = BlockPos.containing(bounds().center());
-        if (!displayReady && level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(center).toLong())) {
+        if (!displayReady && furnitureLoaded()) {
             com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
             clearDroppedRewards();
             displayReady = true; refreshDisplay();
@@ -305,6 +306,17 @@ public final class ArenaSession {
         mob.setDeltaMovement(Vec3.ZERO); mob.fallDistance = 0;
     }
 
+    private boolean furnitureLoaded() {
+        BlockPos center = BlockPos.containing(bounds().center());
+        // Side chests and the scroll occupy different chunks from the center key.
+        // Wait for the same bounded 3x3 region forced by initializeArena so saved
+        // furniture is visible to deduplication before any replacements are created.
+        for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++)
+            if (!level.areEntitiesLoaded(net.minecraft.world.level.ChunkPos.asLong(
+                    (center.getX() >> 4) + x, (center.getZ() >> 4) + z))) return false;
+        return true;
+    }
+
     /** Resolve emergency return positions against live terrain instead of the original Y=65 plane. */
     private Vec3 surfaceDestination(Entity entity, Vec3 destination) {
         for (int y = (int) ArenaBounds.FLOOR_Y - 1; y < ArenaBounds.CEILING_Y; y++) {
@@ -329,9 +341,12 @@ public final class ArenaSession {
         nextDisplayRefresh = Long.MAX_VALUE;
         List<ArenaInteractable> furniture = level.getEntitiesOfClass(ArenaInteractable.class, bounds().structureArea());
         boolean hide = controller.active();
-        int chestCount = displayedTiers;
-        for (int tier = 1; tier <= 3; tier++) if (profile.progress.payout(tier).chestTicks() >= 0) chestCount = Math.max(chestCount, tier);
-        boolean showChests = controller.showsChest() && chestCount > 0;
+        int chestMask = (1 << displayedTiers) - 1;
+        // Only opened tiers survive a visit. A saved golden payout does not restore
+        // the abandoned copper/iron offers from the previous attempt.
+        for (int tier = 1; tier <= 3; tier++)
+            if (profile.progress.payout(tier).chestTicks() >= 0) chestMask |= 1 << (tier - 1);
+        boolean showChests = controller.showsChest() && chestMask != 0;
         KeyEntity key = null;
         ScrollEntity scroll = null;
         Map<Integer, LootChestEntity> chests = new HashMap<>();
@@ -339,7 +354,7 @@ public final class ArenaSession {
             if (hide || !host().equals(entity.arenaHost())) { entity.discard(); continue; }
             if (entity instanceof ScrollEntity candidate && scroll == null) { scroll = candidate; continue; }
             if (entity instanceof KeyEntity candidate && !showChests && key == null) { key = candidate; continue; }
-            if (entity instanceof LootChestEntity candidate && showChests && candidate.tier() <= chestCount
+            if (entity instanceof LootChestEntity candidate && showChests && (chestMask & (1 << (candidate.tier() - 1))) != 0
                     && !chests.containsKey(candidate.tier())) { chests.put(candidate.tier(), candidate); continue; }
             entity.discard();
         }
@@ -363,7 +378,8 @@ public final class ArenaSession {
             }
         }
         if (!showChests) return;
-        for (int tier = 1; tier <= chestCount; tier++) {
+        for (int tier = 1; tier <= 3; tier++) {
+            if ((chestMask & (1 << (tier - 1))) == 0) continue;
             LootChestEntity chest = chests.get(tier);
             Vec3 position = chestPosition(tier);
             if (chest == null) {

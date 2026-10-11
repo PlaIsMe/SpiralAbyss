@@ -1,6 +1,8 @@
 package com.pla.spiral_abyss.encounter.data;
 
 import com.google.gson.*;
+import com.pla.spiral_abyss.encounter.BossWavePolicy;
+import com.pla.spiral_abyss.encounter.WaveChallenges;
 import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -22,8 +24,8 @@ public final class FloorParser {
         var challenge = challenges(floor.get("challenge"));
         double health = scale(floor, "health_scale", 1);
         double damage = scale(floor, "damage_scale", 1);
-        int delay = com.pla.spiral_abyss.encounter.WaveChallenges.TRANSITION_TICKS;
-        int ticks = com.pla.spiral_abyss.encounter.WaveChallenges.TIME_LIMIT_TICKS;
+        int delay = WaveChallenges.TRANSITION_TICKS;
+        int ticks = WaveChallenges.TIME_LIMIT_TICKS;
         JsonObject loot = floor.has("rewards") ? object(floor.get("rewards"), "rewards") : new JsonObject();
         List<FloorDefinition.RewardEntry> entries = new ArrayList<>();
         if (loot.has("loot_tables")) {
@@ -71,7 +73,7 @@ public final class FloorParser {
                         choices.add(waveTypes.get(typeId));
                     }
                     var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), Map.of(), List.of(), choices);
-                    com.pla.spiral_abyss.encounter.BossWavePolicy.validate(number, entry.getKey(), parsedWave);
+                    BossWavePolicy.validate(number, entry.getKey(), parsedWave);
                     floorEnemies += parsedWave.minimumEnemies();
                     parsed.add(parsedWave);
                     continue;
@@ -89,8 +91,8 @@ public final class FloorParser {
                     require(ForgeRegistries.ENTITY_TYPES.containsKey(mobId), "unknown mob id: " + mobId);
                     require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
                             "players cannot be wave enemies");
-                    require(!mobId.equals(new ResourceLocation("spiral_abyss", "key_entity"))
-                            && !mobId.equals(new ResourceLocation("spiral_abyss", "reward_chest"))
+                    require(!mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "key_entity"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "reward_chest"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "copper_chest"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "iron_chest"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest"))
@@ -102,7 +104,7 @@ public final class FloorParser {
                 require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
                 floorEnemies += count;
                 var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), categories, enemies);
-                com.pla.spiral_abyss.encounter.BossWavePolicy.validate(number, entry.getKey(), parsedWave);
+                BossWavePolicy.validate(number, entry.getKey(), parsedWave);
                 parsed.add(parsedWave);
             } catch (IllegalArgumentException | JsonParseException ex) {
                 throw new JsonParseException("data/spiral_abyss/floor_" + number + "/wave_" + entry.getKey() + ".json: " + ex.getMessage(), ex);

@@ -37,6 +37,7 @@ public record Challenge(Type type, Difficulty difficulty, int target, double per
         return counted(type) ? Math.max(1, (int) Math.ceil(Math.max(0, waveEnemies) * percentage / 100.0 - 1.0E-9)) : target;
     }
     public Component description() { return description(-1); }
+    public static int requiredEquipmentPlayers(int participants) { return Math.max(1, (participants + 2) / 3); }
     public Component description(int waveEnemies) {
         var detail = Component.empty();
         for (ResourceLocation id : ids) {

@@ -19,6 +19,7 @@ public final class AbyssCycle {
     private long seed;
     private MobCatalog.Pools pools;
     private ResourceLocation floorFiveBoss, floorSixBoss;
+    private ResourceLocation floorSixFinalBoss, floorSixFinalSecondBoss;
     private final Map<String, List<FloorDefinition.Enemy>> lineups = new TreeMap<>();
     private final Map<String, ResourceLocation> selectedTypes = new TreeMap<>();
     private final Map<String, String> activeLineups = new TreeMap<>();
@@ -34,7 +35,7 @@ public final class AbyssCycle {
     }
     public void start(long now, long newSeed, MobCatalog.Pools snapshot) {
         startedAt = now; seed = newSeed; pools = snapshot; lineups.clear(); selectedTypes.clear(); activeLineups.clear(); challenges.clear();
-        floorFiveBoss = null; floorSixBoss = null;
+        floorFiveBoss = null; floorSixBoss = null; floorSixFinalBoss = null; floorSixFinalSecondBoss = null;
     }
     public List<Challenge> challenges(FloorDefinition floor, ChallengePlan.Context context, ChallengeCatalog.Snapshot catalog) {
         var selected = ChallengePlan.select(seed ^ 0x4348414C4C454E47L ^ floor.number(), catalog,
@@ -46,7 +47,7 @@ public final class AbyssCycle {
                                             java.util.function.Predicate<ResourceLocation> available,
                                             MobCatalog.Pools fallback) {
         com.pla.spiral_abyss.encounter.BossWavePolicy.validate(floor, waveNumber, wave);
-        selectBossPair(available, fallback);
+        selectBossPlan(available, fallback);
         // Intentional datapack composition edits get their own cache entry; attribute edits retain selections.
         String key = lineupKey(floor, waveNumber, wave);
         String previousKey = activeLineups.put(floor + ":" + waveNumber, key);
@@ -87,31 +88,51 @@ public final class AbyssCycle {
             if (selected.type() != null) selectedTypes.put(key, selected.type());
         }
         repair(available, fallback);
-        if (floor == 5 && waveNumber == 3 || floor == 6 && waveNumber == 2) {
-            selectBossPair(available, fallback);
-            ResourceLocation boss = floor == 5 ? floorFiveBoss : floorSixBoss;
-            if (floorFiveBoss == null || floorSixBoss == null) throw new IllegalArgumentException("Floors 5/6 require two distinct available boss species in mob_pools/boss.json");
-            lineups.put(key, lineups.get(key).stream().map(enemy -> enemy.category() == MobCategory.BOSS || enemy.category() == null ? new FloorDefinition.Enemy(boss, enemy.count(), MobCategory.BOSS, enemy.stage(), enemy.role()) : enemy).toList());
-        }
         lineups.put(key, com.pla.spiral_abyss.encounter.BossWavePolicy.sequential(lineups.get(key)));
         return lineups.get(key);
     }
-    private ResourceLocation savedBoss(String slot, java.util.function.Predicate<ResourceLocation> available) {
+    private ResourceLocation savedBoss(String slot, int index, java.util.function.Predicate<ResourceLocation> available) {
         String key = activeLineups.get(slot);
-        return key == null ? null : lineups.getOrDefault(key, List.of()).stream().filter(enemy -> enemy.category() == MobCategory.BOSS && available.test(enemy.id())).map(FloorDefinition.Enemy::id).findFirst().orElse(null);
+        if (key == null) return null;
+        // Expand old count-two entries before assigning the two final-wave reservations.
+        var bosses = lineups.getOrDefault(key, List.of()).stream().filter(enemy -> enemy.category() == MobCategory.BOSS)
+                .flatMap(enemy -> Collections.nCopies(enemy.count(), enemy.id()).stream()).toList();
+        return index < bosses.size() && available.test(bosses.get(index)) ? bosses.get(index) : null;
     }
-    private void selectBossPair(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
-        List<ResourceLocation> choices = new ArrayList<>(usablePools(available, fallback).entries().getOrDefault(MobCategory.BOSS, List.of()));
-        if (choices.size() < 2) for (var id : fallback.entries().getOrDefault(MobCategory.BOSS, List.of())) if (available.test(id) && !choices.contains(id)) choices.add(id);
-        if (floorFiveBoss == null) floorFiveBoss = savedBoss("5:3", available);
-        if (floorSixBoss == null) floorSixBoss = savedBoss("6:2", available);
-        if (floorFiveBoss != null && !available.test(floorFiveBoss)) floorFiveBoss = null;
-        if (floorSixBoss != null && (!available.test(floorSixBoss) || floorSixBoss.equals(floorFiveBoss))) floorSixBoss = null;
-        if (floorFiveBoss == null) floorFiveBoss = chooseBoss(choices, floorSixBoss, waveSeed(5, 3));
-        if (floorSixBoss == null) floorSixBoss = chooseBoss(choices, floorFiveBoss, waveSeed(6, 2));
+    private void selectBossPlan(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
+        List<ResourceLocation> choices = new ArrayList<>(new LinkedHashSet<>(usablePools(available, fallback).entries().getOrDefault(MobCategory.BOSS, List.of())));
+        if (choices.size() < 4) for (var id : fallback.entries().getOrDefault(MobCategory.BOSS, List.of())) if (available.test(id) && !choices.contains(id)) choices.add(id);
+        ResourceLocation[] selected = {floorFiveBoss, floorSixBoss, floorSixFinalBoss, floorSixFinalSecondBoss};
+        String[] slots = {"5:3", "6:2", "6:3", "6:3"};
+        long[] seeds = {waveSeed(5, 3), waveSeed(6, 2), waveSeed(6, 3), waveSeed(6, 3) ^ 0x46494E414C424F53L};
+        Set<ResourceLocation> occupied = new HashSet<>();
+        // Reserve every surviving distinct partner before replacing missing/duplicate species.
+        for (int index = 0; index < selected.length; index++) {
+            if (selected[index] == null) selected[index] = savedBoss(slots[index], index == 3 ? 1 : 0, available);
+            if (selected[index] != null && (!available.test(selected[index]) || !occupied.add(selected[index]))) selected[index] = null;
+        }
+        String finalKey = activeLineups.get("6:3");
+        boolean dualFinal = finalKey != null && lineups.getOrDefault(finalKey, List.of()).stream()
+                .filter(enemy -> enemy.category() == MobCategory.BOSS).mapToInt(FloorDefinition.Enemy::count).sum() > 1;
+        // An unused fourth reservation must not force repeats in the three actual boss fights.
+        // Keep all surviving partners of an active dual finale; otherwise release its spare
+        // only when a missing earlier slot has no unused species left to choose.
+        if (!dualFinal && selected[3] != null && choices.contains(selected[3])
+                && (selected[0] == null || selected[1] == null || selected[2] == null)
+                && choices.stream().allMatch(occupied::contains)) {
+            occupied.remove(selected[3]);
+            selected[3] = null;
+        }
+        for (int index = 0; index < selected.length; index++) if (selected[index] == null) {
+            selected[index] = chooseBoss(choices, occupied, seeds[index]);
+            if (selected[index] != null) occupied.add(selected[index]);
+        }
+        floorFiveBoss = selected[0]; floorSixBoss = selected[1]; floorSixFinalBoss = selected[2]; floorSixFinalSecondBoss = selected[3];
     }
-    private static ResourceLocation chooseBoss(List<ResourceLocation> choices, ResourceLocation excluded, long seed) {
-        var allowed = choices.stream().filter(id -> !id.equals(excluded)).sorted().toList();
+    private static ResourceLocation chooseBoss(List<ResourceLocation> choices, Set<ResourceLocation> excluded, long seed) {
+        var allowed = choices.stream().filter(id -> !excluded.contains(id)).sorted().toList();
+        // Small installations may have only wither/dragon (or even one boss); never fail for variety.
+        if (allowed.isEmpty()) allowed = choices.stream().sorted().toList();
         return allowed.isEmpty() ? null : allowed.get(RandomSource.create(seed).nextInt(allowed.size()));
     }
     public ResourceLocation selectedType(int floor, int waveNumber, FloorDefinition.Wave wave) {
@@ -159,10 +180,10 @@ public final class AbyssCycle {
     /** Repairs only missing category entries, retaining counts and every still-available selection. */
     public boolean repair(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         var usable = usablePools(available, fallback);
-        boolean changed = false;
-        ResourceLocation previousFive = floorFiveBoss, previousSix = floorSixBoss;
-        selectBossPair(available, fallback);
-        changed = !Objects.equals(previousFive, floorFiveBoss) || !Objects.equals(previousSix, floorSixBoss);
+        ResourceLocation previousFive = floorFiveBoss, previousSix = floorSixBoss, previousFinal = floorSixFinalBoss, previousSecond = floorSixFinalSecondBoss;
+        selectBossPlan(available, fallback);
+        boolean changed = !Objects.equals(previousFive, floorFiveBoss) || !Objects.equals(previousSix, floorSixBoss)
+                || !Objects.equals(previousFinal, floorSixFinalBoss) || !Objects.equals(previousSecond, floorSixFinalSecondBoss);
         for (var entry : lineups.entrySet()) {
             List<FloorDefinition.Enemy> replacements = new ArrayList<>(entry.getValue());
             for (int index = 0; index < replacements.size(); index++) {
@@ -187,13 +208,20 @@ public final class AbyssCycle {
             }
             entry.setValue(List.copyOf(replacements));
         }
-        for (String slot : List.of("5:3", "6:2")) {
+        for (String slot : List.of("5:3", "6:2", "6:3")) {
             String key = activeLineups.get(slot);
-            ResourceLocation boss = slot.equals("5:3") ? floorFiveBoss : floorSixBoss;
-            if (key == null || boss == null || !lineups.containsKey(key)) continue;
+            if (key == null || !lineups.containsKey(key)) continue;
             var before = lineups.get(key);
-            var after = before.stream().map(enemy -> enemy.category() == MobCategory.BOSS ? new FloorDefinition.Enemy(boss, enemy.count(), enemy.category(), enemy.stage(), enemy.role()) : enemy).toList();
-            if (!before.equals(after)) { lineups.put(key, after); changed = true; }
+            List<FloorDefinition.Enemy> after = new ArrayList<>();
+            int bossIndex = 0;
+            for (var enemy : com.pla.spiral_abyss.encounter.BossWavePolicy.sequential(before)) {
+                ResourceLocation boss = slot.equals("5:3") ? floorFiveBoss : slot.equals("6:2") ? floorSixBoss : bossIndex == 0 ? floorSixFinalBoss : floorSixFinalSecondBoss;
+                if (enemy.category() == MobCategory.BOSS) {
+                    bossIndex++;
+                    after.add(boss == null ? enemy : new FloorDefinition.Enemy(boss, enemy.count(), enemy.category(), enemy.stage(), enemy.role()));
+                } else after.add(enemy);
+            }
+            if (!before.equals(after)) { lineups.put(key, List.copyOf(after)); changed = true; }
         }
         return changed;
     }
@@ -209,6 +237,8 @@ public final class AbyssCycle {
         tag.putLong("StartedAt", startedAt); tag.putLong("Seed", seed); tag.putBoolean("MixMobs", pools.mixMobs());
         if (floorFiveBoss != null) tag.putString("FloorFiveBoss", floorFiveBoss.toString());
         if (floorSixBoss != null) tag.putString("FloorSixBoss", floorSixBoss.toString());
+        if (floorSixFinalBoss != null) tag.putString("FloorSixFinalBoss", floorSixFinalBoss.toString());
+        if (floorSixFinalSecondBoss != null) tag.putString("FloorSixFinalSecondBoss", floorSixFinalSecondBoss.toString());
         CompoundTag entries = new CompoundTag();
         pools.entries().forEach((category, ids) -> {
             ListTag list = new ListTag(); ids.forEach(id -> list.add(StringTag.valueOf(id.toString())));
@@ -257,6 +287,8 @@ public final class AbyssCycle {
         cycle.start(tag.getLong("StartedAt"), tag.getLong("Seed"), new MobCatalog.Pools(tag.getBoolean("MixMobs"), entries));
         cycle.floorFiveBoss = tag.contains("FloorFiveBoss", Tag.TAG_STRING) ? ResourceLocation.tryParse(tag.getString("FloorFiveBoss")) : null;
         cycle.floorSixBoss = tag.contains("FloorSixBoss", Tag.TAG_STRING) ? ResourceLocation.tryParse(tag.getString("FloorSixBoss")) : null;
+        cycle.floorSixFinalBoss = tag.contains("FloorSixFinalBoss", Tag.TAG_STRING) ? ResourceLocation.tryParse(tag.getString("FloorSixFinalBoss")) : null;
+        cycle.floorSixFinalSecondBoss = tag.contains("FloorSixFinalSecondBoss", Tag.TAG_STRING) ? ResourceLocation.tryParse(tag.getString("FloorSixFinalSecondBoss")) : null;
         for (Tag value : tag.getList("Lineups", Tag.TAG_COMPOUND)) {
             CompoundTag roll = (CompoundTag) value;
             List<FloorDefinition.Enemy> enemies = new ArrayList<>();

@@ -48,6 +48,9 @@ public final class ChallengeTracker {
     private final int waveEnemies;
     private final List<Challenge> challenges;
     private final List<ChallengeCounter> counters;
+    private final int equipmentPartySize, requiredEquipmentPlayers;
+    private final List<Set<UUID>> armorViolations;
+    private final int[] equipmentProgress;
     private final Map<UUID, Shot> shots = new HashMap<>();
     private final Map<UUID, Use> uses = new HashMap<>();
     private final Map<UUID, Damage> lastHits = new HashMap<>();
@@ -64,6 +67,10 @@ public final class ChallengeTracker {
         this.session = session;
         this.waveEnemies = waveEnemies;
         this.challenges = List.copyOf(challenges);
+        equipmentPartySize = session.participants().size();
+        requiredEquipmentPlayers = Challenge.requiredEquipmentPlayers(equipmentPartySize);
+        armorViolations = challenges.stream().map(c -> (Set<UUID>) new HashSet<UUID>()).toList();
+        equipmentProgress = new int[challenges.size()];
         counters = challenges.stream().map(c -> new ChallengeCounter(c.requiredCount(waveEnemies))).toList();
         update(0); // Equipment restrictions apply before enemies spawn, including the first frame.
     }
@@ -74,7 +81,11 @@ public final class ChallengeTracker {
             var counter = counters.get(index);
             boolean count = challenge.type() != Challenge.Type.TIME && challenge.type() != Challenge.Type.NO_ARMOR
                     && challenge.type() != Challenge.Type.ARMOR_ENCHANTMENT;
-            result.add(new Progress(challenge.description(waveEnemies), count ? counter.progress() : 0, count ? counter.target() : 0,
+            Component description = challenge.description(waveEnemies);
+            if (challenge.type() == Challenge.Type.NO_ARMOR || challenge.type() == Challenge.Type.ARMOR_ENCHANTMENT)
+                description = Component.translatable("challenge.spiral_abyss.players_progress", description,
+                        equipmentProgress[index], requiredEquipmentPlayers);
+            result.add(new Progress(description, count ? counter.progress() : 0, count ? counter.target() : 0,
                     counter.complete(), counter.failed()));
         }
         return List.copyOf(result);
@@ -135,19 +146,34 @@ public final class ChallengeTracker {
                     counter.set(counter.failed() ? 0 : challenge.target());
                 }
                 case NO_ARMOR -> {
-                    if (combatants.stream().anyMatch(player -> challenge.forbiddenSlots().stream()
-                            .anyMatch(slot -> !player.getItemBySlot(slot).isEmpty()))) counter.fail();
-                    counter.set(counter.failed() ? 0 : 1);
+                    Set<UUID> violations = armorViolations.get(index);
+                    combatants.stream().filter(player -> challenge.forbiddenSlots().stream()
+                            .anyMatch(slot -> !player.getItemBySlot(slot).isEmpty()))
+                            .forEach(player -> violations.add(player.getUUID()));
+                    updateNoArmor(index, combatants);
                 }
-                case ARMOR_ENCHANTMENT -> counter.set(!combatants.isEmpty() && combatants.stream()
-                        .allMatch(player -> challenge.ids().stream().allMatch(id -> Arrays.stream(ARMOR)
-                                .anyMatch(slot -> hasEnchantment(player.getItemBySlot(slot), id)))) ? 1 : 0);
+                case ARMOR_ENCHANTMENT -> {
+                    equipmentProgress[index] = Math.min(requiredEquipmentPlayers, (int) combatants.stream()
+                        .filter(player -> challenge.ids().stream().allMatch(id -> Arrays.stream(ARMOR)
+                                .anyMatch(slot -> hasEnchantment(player.getItemBySlot(slot), id))))
+                        .count());
+                    counter.set(equipmentProgress[index] >= requiredEquipmentPlayers ? 1 : 0);
+                }
                 default -> { }
             }
         }
         long now = session.level().getGameTime();
         lastHits.values().removeIf(hit -> now - hit.hit.attributedAt > DOT_ATTRIBUTION_TICKS
                 || hit.event.isCanceled() || !(hit.event.getAmount() > 0));
+    }
+    private void updateNoArmor(int index, List<ServerPlayer> combatants) {
+        Set<UUID> violations = armorViolations.get(index);
+        ChallengeCounter counter = counters.get(index);
+        // Each player's violation lasts for this wave; teammates may still meet the fixed quota.
+        if (equipmentPartySize - violations.size() < requiredEquipmentPlayers) counter.fail();
+        long qualifying = combatants.stream().filter(player -> !violations.contains(player.getUUID())).count();
+        equipmentProgress[index] = Math.min(requiredEquipmentPlayers, (int) qualifying);
+        counter.set(!counter.failed() && qualifying >= requiredEquipmentPlayers ? 1 : 0);
     }
     private boolean tracked(Mob mob) {
         return session.controller().state() == FloorController.State.RUNNING && session.controller().owns(mob)
@@ -189,8 +215,8 @@ public final class ChallengeTracker {
         for (int index = 0; index < challenges.size(); index++) {
             Challenge challenge = challenges.get(index);
             if (challenge.type() == Challenge.Type.NO_ARMOR && challenge.forbiddenSlots().contains(slot)) {
-                counters.get(index).fail();
-                counters.get(index).set(0);
+                armorViolations.get(index).add(player.getUUID());
+                updateNoArmor(index, session.combatants());
             }
         }
     }

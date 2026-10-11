@@ -320,7 +320,6 @@ public final class AbyssParties {
     }
     public boolean startKey(ServerPlayer player, KeyEntity key) {
         ArenaSession session = sessionFor(player);
-        if (validInteraction(player, key, session) && player.isShiftKeyDown()) return portals.openArenaMenu(player);
         if (!validInteraction(player, key, session) || !session.controller().start(player, key.position())) return false;
         if (session.host().equals(player.getUUID()) && followedHost(player) != null) {
             profile(player.getUUID()).personalRun = true; data.setDirty();
@@ -405,7 +404,6 @@ public final class AbyssParties {
     public boolean openChest(ServerPlayer player, LootChestEntity chest) {
         ArenaSession session = sessionFor(player);
         if (!validInteraction(player, chest, session)) return false;
-        if (player.isShiftKeyDown()) return portals.openArenaMenu(player);
         if (chest.phase() == LootChestEntity.SPAWN) return false;
         return session.openReward(player, chest.tier());
     }

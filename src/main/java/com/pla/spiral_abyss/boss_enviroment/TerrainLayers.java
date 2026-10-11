@@ -28,6 +28,14 @@ public final class TerrainLayers<K, V> {
         cell.owners.put(owner, new Layer<>(value, priority));
         write.accept(position, cell.visible());
     }
+    /** Capture every original before a block's placement hook can change another cell. */
+    public void putAll(UUID owner, Map<K, V> values, int priority) {
+        values.forEach((position, value) -> {
+            Cell cell = cells.computeIfAbsent(position, key -> new Cell(read.apply(key)));
+            cell.owners.put(owner, new Layer<>(value, priority));
+        });
+        values.keySet().forEach(position -> write.accept(position, cells.get(position).visible()));
+    }
     public void remove(UUID owner) {
         for (var iterator = cells.entrySet().iterator(); iterator.hasNext();) {
             var entry = iterator.next();

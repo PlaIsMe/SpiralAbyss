@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 
 public class KeyEntityRenderer extends MobRenderer<KeyEntity, KeyEntityModel<KeyEntity>> {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(SpiralAbyss.MOD_ID, "textures/entity/key_entity.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "textures/entity/key_entity.png");
     private final EntityRendererProvider.Context context;
 
     public KeyEntityRenderer(EntityRendererProvider.Context context) {

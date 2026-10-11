@@ -1,7 +1,5 @@
 {
   "wave_types": [
-    "boss_minions",
-    "boss_vanguard",
-    "solo_boss"
+    "elite_finale"
   ]
 }

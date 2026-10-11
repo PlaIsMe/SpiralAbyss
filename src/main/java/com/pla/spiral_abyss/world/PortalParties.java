@@ -33,6 +33,7 @@ public final class PortalParties {
     }
 
     public void touch(ServerPlayer player, AbyssPortalFrame frame) {
+        if (!player.isAlive() || player.isSpectator() || player.hasDisconnected() || !frame.active(player.level())) return;
         if (!(player.level().getBlockEntity(frame.anchor()) instanceof AbyssPortalBlockEntity portal)) return;
         tick();
         UUID host = portal.host();
@@ -49,6 +50,8 @@ public final class PortalParties {
         ArenaSession own = parties.hostedBy(player.getUUID());
         if (own != null && !own.players().isEmpty()) { tell(player, "already_hosting"); return; }
         if (own != null) { tell(player, "portal_busy"); return; }
+        // Reentry is a new visit. Even a saved payout requires an explicit floor choice;
+        // floorChoices and enterFloor enforce its originating floor on the server.
         UUID token = UUID.randomUUID();
         selections.put(player.getUUID(), new Selection(token, portal.portalId(), player.getUUID(), player.level().dimension(),
                 frame.anchor(), frame.returnPosition(player), server.getTickCount() + MENU_TIMEOUT_TICKS));

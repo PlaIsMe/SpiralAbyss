@@ -8,9 +8,7 @@
       "decoration_chance": 0.08
     },
     {
-      "item": "minecraft:nether_star",
-      "count": 1,
-      "chance": 0.15
+      "item": "minecraft:nether_star"
     }
   ],
   [
@@ -23,18 +21,14 @@
     },
     {
       "item": "minecraft:elytra",
-      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 5},
-      "count": 1,
-      "chance": 0.15
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 5}
     }
   ],
   [
     "mowziesmobs:ferrous_wroughtnaut",
     {
       "item": "mowziesmobs:wrought_axe",
-      "enchantment": {"minecraft:sharpness": 5, "minecraft:smite": 3, "minecraft:looting": 3},
-      "count": 1,
-      "chance": 0.15
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:smite": 3, "minecraft:looting": 3}
     }
   ],
   [
@@ -46,17 +40,35 @@
       "decoration_chance": 0.02
     },
     {
-      "item": "mowziesmobs:ice_crystal",
-      "count": 1,
-      "chance": 0.15
+      "item": "mowziesmobs:ice_crystal"
     }
   ],
   [
     "mowziesmobs:umvuthi",
     {
-      "item": "mowziesmobs:grant_suns_blessing",
-      "count": 1,
-      "chance": 0.15
+      "item": "mowziesmobs:grant_suns_blessing"
+    }
+  ],
+  [
+    "aquamirae:captain_cornelia",
+    {
+      "environment": ["minecraft:snow_block", "minecraft:packed_ice", "minecraft:blue_ice"],
+      "decoration_environment": ["aquamirae:wisteria_niveis"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "loot_table": "aquamirae:chests/frozen_chest",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "aquamirae:coral_lance",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "aquamirae:whisper_of_the_abyss",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:mending": 1}
     }
   ]
 ]

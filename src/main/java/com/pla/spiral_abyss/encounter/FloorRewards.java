@@ -2,6 +2,7 @@ package com.pla.spiral_abyss.encounter;
 
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.entity.ChestLootEntity;
+import com.pla.spiral_abyss.event.RareRewardBroadcast;
 import net.minecraft.nbt.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -62,8 +63,7 @@ public final class FloorRewards {
         var entries = new ArrayList<>(base.entries());
         var additions = new LinkedHashSet<FloorDefinition.RewardEntry>();
         encountered.forEach(id -> linked.getOrDefault(id, List.of()).forEach(entry -> additions.add(
-                entry.item() ? new FloorDefinition.RewardEntry(entry.id(), true, entry.minCount(),
-                        entry.maxCount(), entry.weight(), entry.chance(), true, entry.enchantments()) : entry)));
+                entry.item() ? RewardPool.rare(entry) : entry)));
         additions.removeAll(base.entries());
         entries.addAll(additions);
         return new FloorDefinition.Rewards(List.copyOf(entries), base.rolls(), base.experience());
@@ -110,7 +110,7 @@ public final class FloorRewards {
                 var item = ForgeRegistries.ITEMS.getValue(rare.id());
                 if (item != null && item != Items.AIR) {
                     rareItems.add(items.size());
-                    items.add(RewardItems.stack(rare, 1));
+                    items.add(RewardItems.stack(rare, RewardPool.RARE_COUNT));
                 }
             }
         }
@@ -143,7 +143,7 @@ public final class FloorRewards {
     public static void releaseItem(ServerLevel level, Vec3 position, ItemStack stack, boolean rare, int floor) {
         if (stack.isEmpty()) return;
         ChestLootEntity item = new ChestLootEntity(level, position.x, position.y + 0.8, position.z, stack.copy(), rare);
-        com.pla.spiral_abyss.event.RareRewardBroadcast.markDrop(item, floor);
+        RareRewardBroadcast.markDrop(item, floor);
         item.setDeltaMovement((level.random.nextDouble() - 0.5) * 0.6, 0.45 + level.random.nextDouble() * 0.2,
                 (level.random.nextDouble() - 0.5) * 0.6);
         item.setDefaultPickUpDelay(); level.addFreshEntity(item);

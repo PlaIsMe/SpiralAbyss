@@ -4,12 +4,6 @@
   "minecraft:husk",
   "minecraft:stray",
   "minecraft:zombie_villager",
-  [
-    "minecraft:drowned",
-    {
-      "loot_table": "minecraft:chests/shipwreck_treasure",
-      "weight": 1,
-      "chance": 0.5
-    }
-  ]
+  "minecraft:drowned",
+  "aquamirae:tortured_soul"
 ]

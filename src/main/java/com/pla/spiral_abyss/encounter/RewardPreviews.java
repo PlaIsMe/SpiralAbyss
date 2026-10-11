@@ -31,6 +31,15 @@ public final class RewardPreviews {
 
     public List<RewardPreview> floor(FloorDefinition.Rewards base, Set<ResourceLocation> enemies) {
         var rewards = FloorRewards.withMobRewards(base, enemies, MobCatalog.rewards());
+        // Include zero-chance entries in the denominator: they can still be selected, then fail.
+        // Retry outcomes and loot-table conditions are intentionally not simulated by the preview.
+        Map<ResourceLocation, Double> tableChances = new HashMap<>();
+        double tableWeight = 0;
+        for (var entry : rewards.entries()) {
+            if (entry.item() || table(entry.id()) == null) continue;
+            tableWeight += entry.weight();
+            tableChances.merge(entry.id(), entry.weight() * entry.chance(), Double::sum);
+        }
         Map<PreviewKey, FloorDefinition.RewardEntry> unique = new LinkedHashMap<>();
         rewards.entries().stream().filter(entry -> entry.chance() > 0)
                 .sorted(Comparator.comparingInt(entry -> !entry.item() ? 0 : entry.rare() ? 2 : 1))
@@ -40,13 +49,15 @@ public final class RewardPreviews {
             if (result.size() >= MAX_REWARDS) break;
             if (entry.item()) {
                 if (available(entry.id())) result.add(new RewardPreview(entry.id(), false, entry.rare(), List.of(), false,
-                        RewardItems.stack(entry, 1)));
+                        RewardItems.stack(entry, 1), entry.rare() ? RewardPool.RARE_CHANCE : 0));
             } else if (table(entry.id()) != null) {
                 Contents contents = cache.computeIfAbsent(entry.id(), id -> {
                     Scan scan = new Scan(); scanTable(id, scan, 0);
                     return new Contents(List.copyOf(scan.items), scan.incomplete);
                 });
-                result.add(new RewardPreview(entry.id(), true, false, contents.items(), contents.incomplete()));
+                double chance = tableWeight > 0 ? tableChances.getOrDefault(entry.id(), 0.0) / tableWeight : 0;
+                result.add(new RewardPreview(entry.id(), true, false, contents.items(), contents.incomplete(),
+                        net.minecraft.world.item.ItemStack.EMPTY, Math.min(1, chance)));
             }
         }
         return List.copyOf(result);

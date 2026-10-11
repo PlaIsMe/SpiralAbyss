@@ -14,7 +14,10 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
@@ -36,6 +39,7 @@ public final class BossEnvironments {
         final List<BossTerrainPlan.Placement> plan;
         final List<Column> columns;
         final Set<BlockPos> placed = new LinkedHashSet<>();
+        final Map<BlockPos, BlockPos> plantBases = new HashMap<>();
         final List<EndCrystal> crystals = new ArrayList<>();
         List<BlockPos> retract = List.of();
         int cursor, ticks, cleanupTicks = -1, cleanupCursor;
@@ -44,7 +48,13 @@ public final class BossEnvironments {
     public BossEnvironments(ServerLevel level, ArenaBounds bounds, UUID host) {
         if (!level.dimension().equals(AbyssDimension.LEVEL)) throw new IllegalArgumentException("Boss environment requires the Abyss");
         this.level = level; this.bounds = bounds; this.host = host;
-        terrain = new TerrainLayers<>(level::getBlockState, (pos, state) -> level.setBlock(pos, state, 3));
+        terrain = new TerrainLayers<>(level::getBlockState, (pos, state) -> {
+            // Each plant pair is prevalidated and restored together. Intermediate half changes
+            // must not destroy its partner through neighbor updates and spill decoration loot.
+            boolean plant = state.getBlock() instanceof DoublePlantBlock
+                    || level.getBlockState(pos).getBlock() instanceof DoublePlantBlock;
+            level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL);
+        });
     }
     public boolean protects(BlockPos pos) { return terrain.contains(pos); }
     public int changedBlocks() { return terrain.size(); }
@@ -138,7 +148,7 @@ public final class BossEnvironments {
                 while (effect.cleanupCursor < target) {
                     BlockPos pos = effect.retract.get(effect.cleanupCursor++);
                     particles(pos, level.getBlockState(pos));
-                    terrain.remove(boss.getUUID(), pos);
+                    removePlacement(effect, pos);
                 }
                 if (effect.cleanupTicks >= CLEANUP_TICKS) { terrain.remove(boss.getUUID()); effects.remove(boss.getUUID()); }
                 continue;
@@ -154,11 +164,38 @@ public final class BossEnvironments {
         BlockPos pos = placement.pos();
         if (pos.getY() < ArenaBounds.FLOOR_Y || level.getBlockEntity(pos) != null || !level.isEmptyBlock(pos) && !terrain.contains(pos)) return;
         if (level.getBlockState(pos.below()).isAir() || !placement.state().canSurvive(level, pos)) return;
+        if (placement.state().getBlock() instanceof DoublePlantBlock) {
+            placePlant(effect, placement);
+            return;
+        }
         // Lift only walkable terrain, never pillars or hazards. Unsafe cells remain skipped.
         if (!makeRoom(placement)) return;
         terrain.put(effect.boss.getUUID(), pos, placement.state(), placement.priority());
         effect.placed.add(pos);
         if ((effect.cursor & 7) == 0) particles(pos, placement.state());
+    }
+    private void placePlant(Effect effect, BossTerrainPlan.Placement placement) {
+        BlockPos lower = placement.pos(), upper = lower.above();
+        // Decoration cannot replace an existing solid overlay or displace either half's actors.
+        if (!level.isEmptyBlock(lower) || !level.isEmptyBlock(upper) || level.getBlockEntity(upper) != null
+                || upper.getY() >= ArenaBounds.CEILING_Y
+                || !level.getEntitiesOfClass(LivingEntity.class, new AABB(lower).expandTowards(0, 1, 0), LivingEntity::isAlive).isEmpty()) return;
+        BlockState lowerState = placement.state().setValue(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER);
+        BlockState upperState = lowerState.setValue(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER);
+        Map<BlockPos, BlockState> pair = new LinkedHashMap<>();
+        pair.put(lower, lowerState); pair.put(upper, upperState);
+        // Some modded plants auto-place their upper half from onPlace. Snapshot both first.
+        effect.placed.addAll(pair.keySet());
+        effect.plantBases.put(lower, lower); effect.plantBases.put(upper, lower);
+        terrain.putAll(effect.boss.getUUID(), pair, placement.priority());
+        if ((effect.cursor & 7) == 0) particles(lower, lowerState);
+    }
+    private void removePlacement(Effect effect, BlockPos pos) {
+        BlockPos lower = effect.plantBases.get(pos);
+        if (lower != null) {
+            terrain.remove(effect.boss.getUUID(), lower.above());
+            terrain.remove(effect.boss.getUUID(), lower);
+        } else terrain.remove(effect.boss.getUUID(), pos);
     }
     private boolean makeRoom(BossTerrainPlan.Placement placement) {
         BlockPos pos = placement.pos();
@@ -227,6 +264,9 @@ public final class BossEnvironments {
         Effect effect = effects.remove(owner);
         if (effect == null) return;
         discardCrystals(effect);
+        // Remove decorations before their support even on immediate cancellation.
+        effect.placed.stream().sorted(Comparator.comparingInt((BlockPos pos) -> pos.getY()).reversed())
+                .forEach(pos -> removePlacement(effect, pos));
         terrain.remove(owner);
     }
     public void clear() {

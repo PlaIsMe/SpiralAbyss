@@ -16,8 +16,8 @@ import net.minecraft.world.phys.Vec3;
 /** Places one saved base at each private party's spawn; floors reuse that same base. */
 public final class AbyssDimension {
     public static final ResourceKey<Level> LEVEL = ResourceKey.create(Registries.DIMENSION,
-            new ResourceLocation(SpiralAbyss.MOD_ID, "spiral_abyss"));
-    private static final ResourceLocation ARENA = new ResourceLocation(SpiralAbyss.MOD_ID, "abyss_base");
+            ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "spiral_abyss"));
+    private static final ResourceLocation ARENA = ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "abyss_base");
     private AbyssDimension() {}
 
     public static void initializeArena(ServerLevel level, AbyssPlayers.Profile profile) {

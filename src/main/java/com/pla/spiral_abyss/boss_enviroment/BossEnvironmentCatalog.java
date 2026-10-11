@@ -137,15 +137,20 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             if (!decoration.has("blocks")) throw new JsonParseException("decoration_environment requires blocks");
             List<BlockState> chosen = new ArrayList<>();
             JsonArray blocks = blockList(decoration.get("blocks"));
+            if (blocks.size() > 16) throw new JsonParseException("decoration_environment supports at most 16 blocks");
             snowDirt = false;
             for (JsonElement value : blocks) {
                 if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
                         && Set.of("snow_dirt", "spiral_abyss:snow_dirt").contains(value.getAsString())) {
                     if (blocks.size() != 1) throw new JsonParseException("snow_dirt must be the only decoration_environment entry");
                     snowDirt = true;
-                } else chosen.add(block(value, true));
+                } else {
+                    try { chosen.add(block(value, true)); }
+                    catch (JsonParseException ex) {
+                        LogUtils.getLogger().warn("Ignoring boss decoration for {}: {}; keeping its terrain", entity, ex.getMessage());
+                    }
+                }
             }
-            if (chosen.size() > 16) throw new JsonParseException("decoration_environment supports at most 16 blocks");
             String placement = decoration.has("placement") ? decoration.get("placement").getAsString() : "surface";
             if (!placement.equals("surface")) throw new JsonParseException("decoration_environment placement must be surface");
             chance = decoration.has("chance") ? decoration.get("chance").getAsDouble() : 0.08;
@@ -174,7 +179,6 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         if (state.hasBlockEntity()) throw new JsonParseException("block entities are not supported: " + id);
         if (state.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || !state.getFluidState().isEmpty()
                 || state.is(net.minecraft.world.level.block.Blocks.TNT)
-                || state.getBlock() instanceof net.minecraft.world.level.block.DoublePlantBlock
                 || !decoration && state.getBlock() instanceof net.minecraft.world.level.block.BushBlock)
             throw new JsonParseException("unsupported terrain/decoration block: " + id);
         return state;

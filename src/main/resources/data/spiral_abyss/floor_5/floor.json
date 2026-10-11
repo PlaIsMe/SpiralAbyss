@@ -1,7 +1,7 @@
 {
   "challenge": {
     "easy": ["time"],
-    "medium": ["weapon", "no_armor"],
+    "medium": ["weapon", "no_armor", "armor_enchantment", "weapon_enchantment"],
     "hard": ["armor_enchantment", "weapon_enchantment"]
   },
   "health_scale": 1.4,

@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "15";
+    private static final String VERSION = "16";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
@@ -24,8 +24,17 @@ public final class AbyssNetwork {
         public WavePreview { enemies = List.copyOf(enemies); challenges = List.copyOf(challenges); }
     }
     public record RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents,
-                                boolean incomplete, net.minecraft.world.item.ItemStack icon) {
-        public RewardPreview { contents = List.copyOf(contents); icon = icon.copy(); }
+                                boolean incomplete, net.minecraft.world.item.ItemStack icon, double displayChance) {
+        public RewardPreview {
+            contents = List.copyOf(contents); icon = icon.copy();
+            if (!Double.isFinite(displayChance) || displayChance < 0 || displayChance > 1)
+                throw new IllegalArgumentException("Invalid Abyss reward preview chance");
+        }
+        public RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents,
+                             boolean incomplete, net.minecraft.world.item.ItemStack icon) {
+            this(id, table, rare, contents, incomplete, icon,
+                    rare ? com.pla.spiral_abyss.encounter.RewardPool.RARE_CHANCE : 0);
+        }
         public RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents, boolean incomplete) {
             this(id, table, rare, contents, incomplete, net.minecraft.world.item.ItemStack.EMPTY);
         }
@@ -151,7 +160,8 @@ public final class AbyssNetwork {
             buffer.writeVarInt(floor.rewards().size());
             for (var reward : floor.rewards()) {
                 buffer.writeResourceLocation(reward.id()); buffer.writeBoolean(reward.table()); buffer.writeBoolean(reward.rare());
-                buffer.writeBoolean(reward.incomplete()); buffer.writeVarInt(reward.contents().size());
+                buffer.writeBoolean(reward.incomplete()); buffer.writeDouble(reward.displayChance());
+                buffer.writeVarInt(reward.contents().size());
                 reward.contents().forEach(buffer::writeResourceLocation);
                 if (!reward.table()) buffer.writeItem(reward.icon());
             }
@@ -194,11 +204,12 @@ public final class AbyssNetwork {
             for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--) {
                 ResourceLocation id = buffer.readResourceLocation();
                 boolean table = buffer.readBoolean(), rare = buffer.readBoolean(), incomplete = buffer.readBoolean();
+                double displayChance = buffer.readDouble();
                 List<ResourceLocation> contents = new ArrayList<>();
                 for (int i = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_CONTENTS); i > 0; i--)
                     contents.add(buffer.readResourceLocation());
                 var icon = table ? net.minecraft.world.item.ItemStack.EMPTY : buffer.readItem();
-                rewards.add(new RewardPreview(id, table, rare, contents, incomplete, icon));
+                rewards.add(new RewardPreview(id, table, rare, contents, incomplete, icon, displayChance));
             }
             floors.add(new FloorPreview(floor, waves, rewards));
         }

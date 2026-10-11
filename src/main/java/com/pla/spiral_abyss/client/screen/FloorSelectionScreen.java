@@ -99,7 +99,8 @@ public final class FloorSelectionScreen extends Screen {
         int cardHeight = Math.min(panelHeight - 48, (panelWidth / 4) * 455 / 256);
         int cardWidth = cardHeight * 256 / 455;
         int right = panelX + cardWidth + 32, rightWidth = panelWidth - cardWidth - 48;
-        int rowHeight = Math.max(18, Math.min(38, (panelHeight - 120) / 3));
+        // Leave space for a full reward tile below the three waves on shorter windows.
+        int rowHeight = Math.max(18, Math.min(38, (panelHeight - 148) / 3));
         int rowGap = 4;
         for (int i = 1; i <= 3; i++) {
             final int number = i;

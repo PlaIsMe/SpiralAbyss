@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.encounter.data;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.encounter.RewardPool;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -36,17 +37,27 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             return new Pools(mixMobs, valid);
         }
     }
-    public record Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
-        public Pool { mobs = List.copyOf(mobs); rewards = immutableRewards(rewards); }
+    public record Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
+                       Set<ResourceLocation> suppressedSpawns) {
+        public Pool { mobs = List.copyOf(mobs); rewards = immutableRewards(rewards); suppressedSpawns = Set.copyOf(suppressedSpawns); }
+        public Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
+            this(mobs, rewards, Set.of());
+        }
     }
     public record Definitions(Map<MobCategory, List<ResourceLocation>> pools, Equipment equipment,
-                              Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
-        public Definitions { pools = new Pools(false, pools).entries(); ghostMobs = Set.copyOf(ghostMobs); rewards = immutableRewards(rewards); }
+                              Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
+                              Set<ResourceLocation> suppressedSpawns) {
+        public Definitions { pools = new Pools(false, pools).entries(); ghostMobs = Set.copyOf(ghostMobs); rewards = immutableRewards(rewards); suppressedSpawns = Set.copyOf(suppressedSpawns); }
+        public Definitions(Map<MobCategory, List<ResourceLocation>> pools, Equipment equipment,
+                           Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
+            this(pools, equipment, ghostMobs, rewards, Set.of());
+        }
     }
     private static volatile Definitions current = new Definitions(Map.of(),
             new Equipment(Set.of(), Set.of(), Set.of(), Set.of(), Set.of()), Set.of(), Map.of());
     public static Equipment equipment() { return current.equipment(); }
     public static boolean isGhostMob(ResourceLocation id) { return current.ghostMobs().contains(id); }
+    public static boolean suppressesSpawn(ResourceLocation id) { return id != null && current.suppressedSpawns().contains(id); }
     public static Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards() { return current.rewards(); }
     public static Pools snapshot() { return new Pools(AbyssConfig.MIX_MOBS.get(), current.pools()).available(MobCatalog::availableMob); }
 
@@ -77,6 +88,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                                   boolean bossPool) {
         Set<ResourceLocation> mobs = new LinkedHashSet<>();
         Set<ResourceLocation> configuredEnvironments = new HashSet<>();
+        Set<ResourceLocation> suppressedSpawns = new LinkedHashSet<>();
         Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards = new LinkedHashMap<>();
         for (JsonElement value : array) {
             JsonArray spec = value.isJsonArray() ? value.getAsJsonArray() : null;
@@ -92,9 +104,20 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                 if (reward.isJsonPrimitive()) {
                     ResourceLocation id = FloorParser.id(reward);
                     boolean item = isItem.test(id);
-                    bonuses.add(new FloorDefinition.RewardEntry(id, item, 1, 1, 1, item ? 0.15 : 0.25));
+                    var entry = new FloorDefinition.RewardEntry(id, item, 1, 1, 1, item ? RewardPool.RARE_CHANCE : 0.25);
+                    bonuses.add(item ? RewardPool.rare(entry) : entry);
                 } else {
                     JsonObject object = reward.getAsJsonObject();
+                    // Explicit auxiliary entity IDs use Forge's generic join hook; these are
+                    // not arbitrary method names or runtime-generated mixin targets.
+                    if (object.has("suppress_spawned_entities")) {
+                        if (object.size() != 1) throw new JsonParseException("suppress_spawned_entities must be separate from reward/environment metadata");
+                        JsonElement targets = object.get("suppress_spawned_entities");
+                        if (!targets.isJsonArray() || targets.getAsJsonArray().isEmpty() || targets.getAsJsonArray().size() > 64)
+                            throw new JsonParseException("suppress_spawned_entities needs 1-64 entity IDs");
+                        for (JsonElement target : targets.getAsJsonArray()) suppressedSpawns.add(FloorParser.id(target));
+                        continue;
+                    }
                     // Boss terrain metadata shares an entry with reward links, but is parsed
                     // by BossEnvironmentCatalog rather than counted as a reward.
                     if (object.has("environment")) {
@@ -105,11 +128,12 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                             throw new JsonParseException("unknown boss environment metadata field " + key);
                         continue;
                     }
-                    bonuses.add(FloorParser.rewardEntry(object, object.has("item") ? 0.15 : 0.25));
+                    var entry = FloorParser.rewardEntry(object, object.has("item") ? RewardPool.RARE_CHANCE : 0.25);
+                    bonuses.add(entry.item() ? RewardPool.rare(entry) : entry);
                 }
             }
         }
-        return new Pool(List.copyOf(mobs), rewards);
+        return new Pool(List.copyOf(mobs), rewards, suppressedSpawns);
     }
     private static JsonArray read(ResourceManager manager, String path) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath("spiral_abyss", path + ".json");
@@ -129,17 +153,19 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     @Override protected Definitions prepare(ResourceManager manager, ProfilerFiller profiler) {
         Map<MobCategory, List<ResourceLocation>> pools = new EnumMap<>(MobCategory.class);
         Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards = new LinkedHashMap<>();
+        Set<ResourceLocation> suppressedSpawns = new LinkedHashSet<>();
         for (MobCategory category : MobCategory.values()) {
             JsonArray poolEntries = read(manager, "mob_pools/" + category.key());
             Pool pool = category == MobCategory.BOSS
                     ? parseBossPool(poolEntries, ForgeRegistries.ITEMS::containsKey)
                     : parsePool(poolEntries, ForgeRegistries.ITEMS::containsKey);
             pools.put(category, pool.mobs());
+            suppressedSpawns.addAll(pool.suppressedSpawns());
             pool.rewards().forEach((id, entries) -> rewards.computeIfAbsent(id, unused -> new ArrayList<>()).addAll(entries));
         }
         return new Definitions(pools, new Equipment(mobType(manager, "armor_mobs"), mobType(manager, "melee_mobs"),
                 mobType(manager, "bow_users"), mobType(manager, "crossbow_users"), mobType(manager, "trident_users"), mobType(manager, "ranged_mobs")),
-                mobType(manager, "ghost_mobs"), rewards);
+                mobType(manager, "ghost_mobs"), rewards, suppressedSpawns);
     }
     @Override protected void apply(Definitions definitions, ResourceManager manager, ProfilerFiller profiler) {
         current = definitions;

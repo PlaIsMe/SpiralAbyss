@@ -16,8 +16,8 @@ import org.joml.Matrix4f;
 
 /** Renders the supplied 3x2 sky atlas directly; no OptiFine or resource-pack installation is needed. */
 public final class AbyssSkyEffects extends DimensionSpecialEffects {
-    public static final ResourceLocation ID = new ResourceLocation(SpiralAbyss.MOD_ID, "spiral_abyss");
-    private static final ResourceLocation TEXTURE = new ResourceLocation(SpiralAbyss.MOD_ID, "textures/environment/galaxy_blue.png");
+    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "spiral_abyss");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "textures/environment/galaxy_blue.png");
     // Atlas order: bottom, top, south, west, north, east. Each quad faces the cube's interior.
     private static final float[][][] FACES = {
             {{-1,-1,-1}, {-1,-1,1}, {1,-1,1}, {1,-1,-1}},

@@ -1,7 +1,8 @@
 package com.pla.spiral_abyss.client.handler;
 
 import com.pla.spiral_abyss.SpiralAbyss;
-import com.pla.spiral_abyss.client.renderer.KeyEntityRenderer;
+import com.pla.spiral_abyss.client.renderer.*;
+import com.pla.spiral_abyss.init.BlockEntityInit;
 import com.pla.spiral_abyss.init.EntityInit;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -13,12 +14,11 @@ public final class ClientModHandler {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(EntityInit.KEY_ENTITY.get(), KeyEntityRenderer::new);
-        event.registerEntityRenderer(EntityInit.SCROLL_ENTITY.get(), com.pla.spiral_abyss.client.renderer.ScrollEntityRenderer::new);
-        event.registerBlockEntityRenderer(com.pla.spiral_abyss.init.BlockEntityInit.ABYSS_PORTAL.get(),
-                com.pla.spiral_abyss.client.renderer.AbyssPortalRenderer::new);
-        event.registerEntityRenderer(EntityInit.COPPER_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::copper);
-        event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::iron);
-        event.registerEntityRenderer(EntityInit.GOLDEN_CHEST.get(), com.pla.spiral_abyss.client.renderer.LootChestRenderer::golden);
-        event.registerEntityRenderer(EntityInit.CHEST_LOOT.get(), com.pla.spiral_abyss.client.renderer.ChestLootRenderer::new);
+        event.registerEntityRenderer(EntityInit.SCROLL_ENTITY.get(), ScrollEntityRenderer::new);
+        event.registerBlockEntityRenderer(BlockEntityInit.ABYSS_PORTAL.get(), AbyssPortalRenderer::new);
+        event.registerEntityRenderer(EntityInit.COPPER_CHEST.get(), LootChestRenderer::copper);
+        event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), LootChestRenderer::iron);
+        event.registerEntityRenderer(EntityInit.GOLDEN_CHEST.get(), LootChestRenderer::golden);
+        event.registerEntityRenderer(EntityInit.CHEST_LOOT.get(), ChestLootRenderer::new);
     }
 }

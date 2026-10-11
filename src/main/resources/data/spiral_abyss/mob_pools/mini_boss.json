@@ -21,7 +21,13 @@
     }
   ],
   "mutantmonsters:mutant_creeper",
-  "mutantmonsters:mutant_skeleton",
+  [
+    "mutantmonsters:mutant_skeleton",
+    {
+      "suppress_spawned_entities": ["mutantmonsters:body_part"]
+    }
+  ],
   "mutantmonsters:mutant_zombie",
-  "mutantmonsters:mutant_enderman"
+  "mutantmonsters:mutant_enderman",
+  "aquamirae:eel"
 ]

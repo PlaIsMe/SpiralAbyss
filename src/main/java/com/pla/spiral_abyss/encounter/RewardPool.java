@@ -7,6 +7,14 @@ import java.util.function.Predicate;
 
 /** Optional mods may disappear between datapack authoring and use. Resolve a finite pool first. */
 public final class RewardPool {
+    public static final double RARE_CHANCE = 0.05;
+    public static final int RARE_COUNT = 1;
+
+    /** Mob-linked items share one policy; legacy per-entry chance/count fields cannot override it. */
+    public static RewardEntry rare(RewardEntry entry) {
+        return new RewardEntry(entry.id(), true, RARE_COUNT, RARE_COUNT, entry.weight(),
+                RARE_CHANCE, true, entry.enchantments());
+    }
     private final List<RewardEntry> tables;
     private final List<RewardEntry> items;
     private final int tableWeight;
@@ -47,7 +55,7 @@ public final class RewardPool {
         for (int player = 0; player < eligiblePlayers; player++) {
             for (RewardEntry request : requested) {
                 RewardEntry entry = bonus(request, random);
-                if (entry == null || random.nextDouble() >= entry.chance()) continue;
+                if (entry == null || random.nextDouble() >= RARE_CHANCE) continue;
                 // Reservoir selection avoids favoring the first boss or the first participant.
                 if (random.nextInt(++successes) == 0) selected = entry;
             }

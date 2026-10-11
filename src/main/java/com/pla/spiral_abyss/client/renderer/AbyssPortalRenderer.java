@@ -17,7 +17,7 @@ import java.lang.reflect.Method;
 
 /** One continuous, double-sided portal surface, clipped around the gate frame and controller. */
 public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
-    private static final ResourceLocation PORTAL_TEXTURE = new ResourceLocation("minecraft", "textures/entity/end_portal.png");
+    private static final ResourceLocation PORTAL_TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/end_portal.png");
     private static final Method IRIS_PACK_ACTIVE = irisPackActive();
     private final Font font;
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }

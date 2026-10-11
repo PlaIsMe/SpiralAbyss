@@ -13,6 +13,9 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
+import static com.pla.spiral_abyss.encounter.data.MobCategory.COMMON_MOB;
+import static com.pla.spiral_abyss.encounter.data.MobCategory.FODDER_MOB;
+
 /** Creates a complete wave or rolls back every mob it added. */
 public final class WaveSpawner {
     public static final String RUN_TAG = "spiral_abyss_run";
@@ -38,9 +41,9 @@ public final class WaveSpawner {
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
                             MobSpawnType.COMMAND, group, null);
                     if (mob instanceof net.minecraft.world.entity.monster.Slime slime && entry.category() != null) {
-                        if (entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.FODDER_MOB)
+                        if (entry.category() == FODDER_MOB)
                             slime.setSize(1 + level.random.nextInt(2), true);
-                        else if (entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.COMMON_MOB) slime.setSize(4, true);
+                        else if (entry.category() == COMMON_MOB) slime.setSize(4, true);
                     }
                     if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
                     if (mob instanceof net.minecraft.world.entity.monster.piglin.Piglin piglin) piglin.setBaby(false);
