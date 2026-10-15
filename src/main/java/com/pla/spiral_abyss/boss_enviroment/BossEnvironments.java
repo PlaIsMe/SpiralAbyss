@@ -41,6 +41,8 @@ public final class BossEnvironments {
         final Set<BlockPos> placed = new LinkedHashSet<>();
         final Map<BlockPos, BlockPos> plantBases = new HashMap<>();
         final List<EndCrystal> crystals = new ArrayList<>();
+        final BossPlacedEntities entities = new BossPlacedEntities();
+        BossWater water;
         List<BlockPos> retract = List.of();
         int cursor, ticks, cleanupTicks = -1, cleanupCursor;
         Effect(Mob boss, Profile profile, List<BossTerrainPlan.Placement> plan, List<Column> columns) { this.boss = boss; this.profile = profile; this.plan = plan; this.columns = columns; }
@@ -56,7 +58,14 @@ public final class BossEnvironments {
             level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL);
         });
     }
-    public boolean protects(BlockPos pos) { return terrain.contains(pos); }
+    public boolean protects(BlockPos pos) { return terrain.contains(pos) || effects.values().stream().anyMatch(effect -> effect.water != null && effect.water.contains(pos)); }
+    public boolean ownsPlacement(Entity entity) {
+        return entity.level() == level && effects.values().stream().anyMatch(effect -> effect.cleanupTicks < 0 && effect.entities.owns(entity));
+    }
+    public double waterSurface() {
+        return effects.values().stream().anyMatch(effect -> effect.profile.waterDepth() == 15 && effect.ticks >= effect.profile.ticks() && effect.cleanupTicks < 0)
+                ? ArenaBounds.FLOOR_Y + 15 : 0;
+    }
     public int changedBlocks() { return terrain.size(); }
     public int activeBosses() { return effects.size(); }
     public boolean cleaning() { return effects.values().stream().anyMatch(effect -> effect.cleanupTicks >= 0); }
@@ -88,7 +97,9 @@ public final class BossEnvironments {
                 for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) if (pillarCell(column, x, z))
                     plan.add(new BossTerrainPlan.Placement(column.base().offset(x, y, z), column.state(), 2));
             plan.sort(Comparator.comparingDouble((BossTerrainPlan.Placement placement) -> radialOrder(placement.pos(), columns, center)).thenComparingInt(placement -> placement.pos().getY()));
-            effects.put(mob.getUUID(), new Effect(mob, profile, List.copyOf(plan), columns));
+            Effect effect = new Effect(mob, profile, List.copyOf(plan), columns);
+            if (profile.waterDepth() > 0) effect.water = new BossWater(level, center, profile.waterDepth());
+            effects.put(mob.getUUID(), effect);
         }
     }
     private List<Column> columns(Profile profile, BlockPos center, boolean dragonShape) {
@@ -150,19 +161,79 @@ public final class BossEnvironments {
                     particles(pos, level.getBlockState(pos));
                     removePlacement(effect, pos);
                 }
+                if (effect.water != null) effect.water.retract(effect.cleanupTicks, CLEANUP_TICKS);
                 if (effect.cleanupTicks >= CLEANUP_TICKS) { terrain.remove(boss.getUUID()); effects.remove(boss.getUUID()); }
                 continue;
             }
+            effect.entities.tick(level, bounds, effect.profile.waterDepth() == 15);
             if (effect.ticks >= effect.profile.ticks()) continue;
             effect.ticks++;
             int target = (int) Math.ceil(effect.plan.size() * effect.ticks / (double) effect.profile.ticks());
             while (effect.cursor < target) place(effect, effect.plan.get(effect.cursor++));
-            if (effect.ticks == effect.profile.ticks()) for (Column column : effect.columns) crystal(effect, column);
+            if (effect.water != null) effect.water.grow(effect.ticks, effect.profile.ticks());
+            if (effect.ticks == effect.profile.ticks()) {
+                finishPlacement(effect);
+                for (Column column : effect.columns) crystal(effect, column);
+            }
+        }
+    }
+    private void finishPlacement(Effect effect) {
+        placeBlocks(effect);
+        boolean halfWater = effect.profile.waterDepth() == 15;
+        if (effect.profile.centered() || halfWater) {
+            var destination = BossPlacedEntities.surface(level, bounds.center(), halfWater);
+            var boss = effect.boss;
+            var moved = boss.getBoundingBox().move(destination.subtract(boss.position()));
+            if (!level.noCollision(boss, moved)) throw new IllegalStateException("Boss environment center is obstructed");
+            boss.teleportTo(destination.x, destination.y, destination.z);
+            boss.getNavigation().stop(); boss.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO); boss.fallDistance = 0;
+        }
+        if (halfWater) {
+            for (var player : level.players()) {
+                if (Math.abs(player.getX() - bounds.center().x) > ArenaBounds.HALF_SIZE
+                        || Math.abs(player.getZ() - bounds.center().z) > ArenaBounds.HALF_SIZE
+                        || player.getY() >= ArenaBounds.FLOOR_Y + 15) continue;
+                var destination = new net.minecraft.world.phys.Vec3(player.getX(), ArenaBounds.FLOOR_Y + 15, player.getZ());
+                if (!level.noCollision(player, player.getBoundingBox().move(destination.subtract(player.position()))))
+                    destination = BossPlacedEntities.surface(level, bounds.entrance(), true);
+                if (!level.noCollision(player, player.getBoundingBox().move(destination.subtract(player.position())))) continue;
+                player.stopRiding();
+                player.connection.teleport(destination.x, destination.y, destination.z, player.getYRot(), player.getXRot());
+                player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO); player.fallDistance = 0;
+            }
+        }
+        effect.entities.spawn(level, bounds, host, effect.boss, effect.profile);
+    }
+    private void placeBlocks(Effect effect) {
+        Set<BlockPos> used = new HashSet<>();
+        for (var entry : effect.profile.blocks()) {
+            BlockState state;
+            try { state = BossEnvironmentCatalog.block(new com.google.gson.JsonPrimitive(entry.id().toString())); }
+            catch (com.google.gson.JsonParseException ex) {
+                com.mojang.logging.LogUtils.getLogger().warn("Skipping environment block {}: {}", entry.id(), ex.getMessage()); continue;
+            }
+            var anchor = entry.position().resolve(bounds.center(), 0.5);
+            int placed = 0;
+            for (int attempt = 0; attempt < 256 && placed < entry.count(); attempt++) {
+                var point = BossPlacedEntities.candidate(anchor, attempt, 1);
+                if (Math.abs(point.x - bounds.center().x) > ArenaBounds.HALF_SIZE - 0.5
+                        || Math.abs(point.z - bounds.center().z) > ArenaBounds.HALF_SIZE - 0.5) continue;
+                point = BossPlacedEntities.surface(level, point, effect.profile.waterDepth() == 15);
+                BlockPos pos = BlockPos.containing(point.x, Math.ceil(point.y), point.z);
+                if (used.contains(pos) || Math.abs(pos.getX() + 0.5 - bounds.center().x) > ArenaBounds.HALF_SIZE - 0.5
+                        || Math.abs(pos.getZ() + 0.5 - bounds.center().z) > ArenaBounds.HALF_SIZE - 0.5
+                        || pos.getY() >= ArenaBounds.CEILING_Y - 2 || !level.isEmptyBlock(pos) && (effect.water == null || !effect.water.contains(pos))
+                        || !state.canSurvive(level, pos)) continue;
+                if (!makeRoom(new BossTerrainPlan.Placement(pos, state, 0))) continue;
+                terrain.put(effect.boss.getUUID(), pos, state, 3);
+                effect.placed.add(pos); used.add(pos); placed++;
+            }
+            if (placed != entry.count()) com.mojang.logging.LogUtils.getLogger().warn("Placed {}/{} environment blocks for {}", placed, entry.count(), entry.id());
         }
     }
     private void place(Effect effect, BossTerrainPlan.Placement placement) {
         BlockPos pos = placement.pos();
-        if (pos.getY() < ArenaBounds.FLOOR_Y || level.getBlockEntity(pos) != null || !level.isEmptyBlock(pos) && !terrain.contains(pos)) return;
+        if (pos.getY() < ArenaBounds.FLOOR_Y || level.getBlockEntity(pos) != null || !level.isEmptyBlock(pos) && !terrain.contains(pos) && (effect.water == null || !effect.water.contains(pos))) return;
         if (level.getBlockState(pos.below()).isAir() || !placement.state().canSurvive(level, pos)) return;
         if (placement.state().getBlock() instanceof DoublePlantBlock) {
             placePlant(effect, placement);
@@ -196,6 +267,8 @@ public final class BossEnvironments {
             terrain.remove(effect.boss.getUUID(), lower.above());
             terrain.remove(effect.boss.getUUID(), lower);
         } else terrain.remove(effect.boss.getUUID(), pos);
+        // A terrain layer can have captured water while growing. Never resurrect it during drainage.
+        if (effect.water != null) effect.water.restore(pos);
     }
     private boolean makeRoom(BossTerrainPlan.Placement placement) {
         BlockPos pos = placement.pos();
@@ -255,6 +328,7 @@ public final class BossEnvironments {
     }
     private void retract(Effect effect) {
         discardCrystals(effect);
+        effect.entities.clear();
         effect.cleanupTicks = 0;
         BlockPos center = BlockPos.containing(bounds.center());
         effect.retract = effect.placed.stream().sorted(Comparator.comparingDouble((BlockPos pos) -> radialOrder(pos, effect.columns, center)).thenComparingInt(BlockPos::getY).reversed()).toList();
@@ -264,10 +338,12 @@ public final class BossEnvironments {
         Effect effect = effects.remove(owner);
         if (effect == null) return;
         discardCrystals(effect);
+        effect.entities.clear();
         // Remove decorations before their support even on immediate cancellation.
         effect.placed.stream().sorted(Comparator.comparingInt((BlockPos pos) -> pos.getY()).reversed())
                 .forEach(pos -> removePlacement(effect, pos));
         terrain.remove(owner);
+        if (effect.water != null) effect.water.clear();
     }
     public void clear() {
         for (UUID owner : List.copyOf(effects.keySet())) remove(owner);

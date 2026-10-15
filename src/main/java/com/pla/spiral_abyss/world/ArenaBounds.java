@@ -10,6 +10,7 @@ public record ArenaBounds(Vec3 center) {
     public static final double FLIGHT_RADIUS = 128;
     public static final double FLOOR_Y = 65;
     public static final double CEILING_Y = 120;
+    public static final double FLIGHT_CEILING_Y = 240;
 
     public Vec3 entrance() { return center.add(0, 0, 8); }
     public AABB structureArea() { return new AABB(center.x - 34, 64, center.z - 34, center.x + 35, 121, center.z + 35); }
@@ -24,7 +25,9 @@ public record ArenaBounds(Vec3 center) {
     public boolean rescueMob(Entity entity, boolean ghost) {
         // Above the floor, flight/jump logic can use the larger, bounded flight area.
         if (Math.abs(entity.getX() - center.x) > FLIGHT_RADIUS
-                || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS || entity.getY() > 240) return true;
+                || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS
+                || entity.getBoundingBox().maxY > (entity instanceof net.minecraft.world.entity.Mob mob
+                && ArenaFlight.combatFlyer(mob) ? CEILING_Y : FLIGHT_CEILING_Y)) return true;
         // Ghost types may pursue targets below the arena floor without being returned to center.
         if (ghost && entity.getY() < FLOOR_Y) return false;
         if (entity.getY() < feetFloor(entity)) return true;

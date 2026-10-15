@@ -1,12 +1,11 @@
 package com.pla.spiral_abyss.encounter;
 
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -20,10 +19,11 @@ import static com.pla.spiral_abyss.encounter.data.MobCategory.FODDER_MOB;
 public final class WaveSpawner {
     public static final String RUN_TAG = "spiral_abyss_run";
     public static final String DAMAGE_TAG = "spiral_abyss_damage_scale";
-    private static final UUID HEALTH_MODIFIER = UUID.fromString("2fce3415-4a70-4976-a728-98234fdac4e3");
-
+    public static final String BOSS_TAG = "spiral_abyss_wave_boss";
     public List<Mob> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
-                           FloorDefinition.Wave wave, List<FloorDefinition.Enemy> composition, UUID runId, WaveEquipment equipment) {
+                           List<FloorDefinition.Enemy> composition, UUID runId,
+                           WaveEquipment equipment, int floor, double partyScale,
+                           MobCatalog.ScalingSnapshot scaling) {
         List<Mob> created = new ArrayList<>();
         try {
             for (var entry : composition) {
@@ -54,11 +54,9 @@ public final class WaveSpawner {
                     mob.stopRiding();
                     mob.setPersistenceRequired();
                     mob.getPersistentData().putUUID(RUN_TAG, runId);
-                    mob.getPersistentData().putDouble(DAMAGE_TAG, wave.damageScale());
-                    var health = mob.getAttribute(Attributes.MAX_HEALTH);
-                    if (health != null) health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
-                            "Spiral Abyss health", wave.healthScale() - 1, AttributeModifier.Operation.MULTIPLY_TOTAL));
-                    mob.setHealth(mob.getMaxHealth());
+                    mob.getPersistentData().putBoolean(BOSS_TAG,
+                            entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.BOSS);
+                    WaveScaling.apply(mob, floor, entry.category(), entry.id(), partyScale, scaling);
                     if (!place(level, mob, center)) throw new IllegalStateException("No safe spawn position for " + entry.id());
                     mob.setTarget(target);
                     if (!level.addFreshEntity(mob)) throw new IllegalStateException("Spawn rejected for " + entry.id());
@@ -73,6 +71,12 @@ public final class WaveSpawner {
     }
 
     public boolean place(ServerLevel level, Mob mob, Vec3 center) {
+        var environment = com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+        if (environment != null && environment.centered()) {
+            level.getChunkAt(BlockPos.containing(center));
+            mob.moveTo(center.x, center.y, center.z, 0, 0);
+            return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);
+        }
         if (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
             level.getChunkAt(BlockPos.containing(center));
             mob.moveTo(center.x, center.y + 20, center.z, level.random.nextFloat() * 360, 0);

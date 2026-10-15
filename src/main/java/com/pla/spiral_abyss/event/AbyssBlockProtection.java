@@ -41,7 +41,8 @@ public final class AbyssBlockProtection {
     }
     @SubscribeEvent
     public static void protectBossTerrain(net.minecraftforge.event.entity.living.LivingDestroyBlockEvent event) {
-        if (managedTerrain(event.getEntity().level(), event.getPos())) event.setCanceled(true);
+        if (BlockInit.isAbyssArchitecture(event.getState().getBlock())
+                || managedTerrain(event.getEntity().level(), event.getPos())) event.setCanceled(true);
     }
 
     private static boolean restricted(Player player) {

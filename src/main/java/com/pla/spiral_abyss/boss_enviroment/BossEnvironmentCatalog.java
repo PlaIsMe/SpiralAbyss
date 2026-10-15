@@ -17,8 +17,17 @@ import java.util.*;
 public final class BossEnvironmentCatalog extends SimplePreparableReloadListener<Map<ResourceLocation, BossEnvironmentCatalog.Profile>> {
     public record Pillars(BlockState block, int minimum, int maximum, int minHeight, int maxHeight, boolean crystals) {}
     public record Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
-                          BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt) {
-        public Profile { palette = List.copyOf(palette); decorations = List.copyOf(decorations); }
+                          BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt,
+                          int waterDepth, List<EnvironmentPlacements.Entry> entities, List<EnvironmentPlacements.Entry> blocks) {
+        public Profile {
+            palette = List.copyOf(palette); decorations = List.copyOf(decorations);
+            entities = List.copyOf(entities); blocks = List.copyOf(blocks);
+        }
+        public boolean centered() { return !entities.isEmpty() || !blocks.isEmpty(); }
+        public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
+                       BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt) {
+            this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars, decorations, snowDirt, 0, List.of(), List.of());
+        }
         public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
                        BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations) {
             this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars, decorations, false);
@@ -83,7 +92,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                 ResourceLocation entity = FloorParser.id(entry.get(0));
                 for (int index = 1; index < entry.size(); index++) {
                     JsonElement metadata = entry.get(index);
-                    if (!metadata.isJsonObject() || !metadata.getAsJsonObject().has("environment")) continue;
+                    if (!metadata.isJsonObject() || !isMetadata(metadata.getAsJsonObject())) continue;
                     if (!seen.add(entity)) throw new JsonParseException("duplicate environment for " + entity);
                     try {
                         result.put(entity, poolEnvironment(entity, metadata.getAsJsonObject(), result.get(entity)));
@@ -94,20 +103,23 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             }
         } catch (Exception ex) { LogUtils.getLogger().error("Invalid boss environment metadata in {}: {}", file, ex.getMessage()); }
     }
-    /** boss.json overrides terrain/decorations only; geometry and dragon pillars keep their profile. */
+    public static boolean isMetadata(JsonObject object) {
+        return object.has("environment") || object.has("decoration_environment") || object.has("entity_place") || object.has("block_place");
+    }
+    /** Geometry and dragon pillars keep their profile while pool metadata supplies effects. */
     public static Profile poolEnvironment(ResourceLocation entity, JsonObject metadata, Profile base) {
         JsonObject json;
         JsonElement environment = metadata.get("environment");
-        if (environment == null) throw new JsonParseException("environment is required");
-        if (environment.isJsonObject()) {
+        if (environment != null && environment.isJsonObject()) {
             if (metadata.size() != 1) throw new JsonParseException("advanced environment object cannot have sibling decoration fields");
             json = environment.getAsJsonObject();
         } else {
             for (String key : metadata.keySet()) if (!Set.of("environment", "decoration_environment",
-                    "decoration_chance", "decoration_placement").contains(key))
+                    "decoration_chance", "decoration_placement", "entity_place", "block_place").contains(key))
                 throw new JsonParseException("unknown boss environment metadata field " + key);
             json = new JsonObject();
-            json.add("terrain_blocks", environment);
+            if (environment != null) json.add("terrain_blocks", environment);
+            for (String field : List.of("entity_place", "block_place")) if (metadata.has(field)) json.add(field, metadata.get(field));
             if (metadata.has("decoration_environment")) {
                 JsonObject decoration = new JsonObject();
                 decoration.add("blocks", metadata.get("decoration_environment"));
@@ -117,18 +129,26 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             } else if (metadata.has("decoration_chance") || metadata.has("decoration_placement"))
                 throw new JsonParseException("decoration_environment is required for decoration chance/placement");
         }
-        for (String key : json.keySet()) if (!Set.of("terrain_blocks", "decoration_environment").contains(key))
+        for (String key : json.keySet()) if (!Set.of("terrain_blocks", "decoration_environment", "entity_place", "block_place").contains(key))
             throw new JsonParseException("unknown environment field " + key);
         List<BlockState> terrain = base == null ? List.of() : base.palette();
         if (json.has("terrain_blocks")) {
             List<BlockState> chosen = new ArrayList<>();
-            for (JsonElement value : blockList(json.get("terrain_blocks"))) chosen.add(block(value));
-            if (chosen.isEmpty() || chosen.size() > 16) throw new JsonParseException("terrain_blocks needs 1..16 installed stable blocks");
-            terrain = chosen;
+            JsonArray blocks = blockList(json.get("terrain_blocks"));
+            if (blocks.size() > 16) throw new JsonParseException("terrain_blocks supports at most 16 blocks");
+            for (JsonElement value : blocks) {
+                try { chosen.add(block(value)); }
+                catch (JsonParseException ex) {
+                    LogUtils.getLogger().warn("Ignoring boss terrain for {}: {}", entity, ex.getMessage());
+                }
+            }
+            if (!chosen.isEmpty()) terrain = chosen;
+            else if (terrain.isEmpty()) throw new JsonParseException("terrain_blocks has no installed stable blocks");
         }
-        if (terrain.isEmpty()) throw new JsonParseException("new boss environments require terrain_blocks");
+
         List<BlockState> decorations = base == null ? List.of() : base.decorations();
         boolean snowDirt = base != null && base.snowDirt();
+        int waterDepth = base == null ? 0 : base.waterDepth();
         double chance = base == null ? 0 : base.hazardChance();
         if (json.has("decoration_environment")) {
             JsonObject decoration = json.getAsJsonObject("decoration_environment");
@@ -139,8 +159,14 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             JsonArray blocks = blockList(decoration.get("blocks"));
             if (blocks.size() > 16) throw new JsonParseException("decoration_environment supports at most 16 blocks");
             snowDirt = false;
+            waterDepth = 0;
             for (JsonElement value : blocks) {
-                if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+                String preset = value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+                        ? value.getAsString().replace("spiral_abyss:", "") : "";
+                if (Set.of("full_water", "half_water").contains(preset)) {
+                    if (blocks.size() != 1) throw new JsonParseException("Water must be the only decoration_environment entry");
+                    waterDepth = preset.equals("full_water") ? 120 : 15;
+                } else if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
                         && Set.of("snow_dirt", "spiral_abyss:snow_dirt").contains(value.getAsString())) {
                     if (blocks.size() != 1) throw new JsonParseException("snow_dirt must be the only decoration_environment entry");
                     snowDirt = true;
@@ -163,7 +189,12 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         int patches = base == null ? 14 : base.patches(), ticks = base == null ? 100 : base.ticks();
         Pillars pillars = base == null ? null : base.pillars();
         BlockState legacyHazard = decorations.isEmpty() ? null : decorations.get(0);
-        return new Profile(entity, terrain, radius, height, patches, ticks, legacyHazard, chance, pillars, decorations, snowDirt);
+        List<EnvironmentPlacements.Entry> entities = json.has("entity_place") ? EnvironmentPlacements.parse(json, "entity_place", "entity")
+                : base == null ? List.of() : base.entities();
+        List<EnvironmentPlacements.Entry> blocks = json.has("block_place") ? EnvironmentPlacements.parse(json, "block_place", "block")
+                : base == null ? List.of() : base.blocks();
+        return new Profile(entity, terrain, radius, height, patches, ticks, legacyHazard, chance, pillars, decorations, snowDirt,
+                waterDepth, entities, blocks);
     }
     private static JsonArray blockList(JsonElement value) {
         if (value == null) throw new JsonParseException("block list is required");
@@ -171,7 +202,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         if (!value.isJsonPrimitive()) throw new JsonParseException("block list must be a block ID or array");
         JsonArray list = new JsonArray(); list.add(value); return list;
     }
-    private static BlockState block(JsonElement value) { return block(value, false); }
+    static BlockState block(JsonElement value) { return block(value, false); }
     private static BlockState block(JsonElement value, boolean decoration) {
         ResourceLocation id = FloorParser.id(value);
         if (!ForgeRegistries.BLOCKS.containsKey(id) || ForgeRegistries.BLOCKS.getValue(id).defaultBlockState().isAir()) throw new JsonParseException("unavailable block " + id);
@@ -183,7 +214,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             throw new JsonParseException("unsupported terrain/decoration block: " + id);
         return state;
     }
-    private static int integer(JsonObject json, String key, int fallback, int min, int max) {
+    static int integer(JsonObject json, String key, int fallback, int min, int max) {
         if (json.has(key) && (!json.get(key).isJsonPrimitive() || !json.get(key).getAsJsonPrimitive().isNumber())) throw new JsonParseException(key + " must be a number");
         double value = json.has(key) ? json.get(key).getAsDouble() : fallback;
         if (!Double.isFinite(value) || value != Math.rint(value) || value < min || value > max) throw new JsonParseException(key + " must be integer " + min + ".." + max);

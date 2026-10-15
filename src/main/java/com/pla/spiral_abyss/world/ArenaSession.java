@@ -291,7 +291,7 @@ public final class ArenaSession {
         if (bounds().outsidePlayer(player)) {
             player.stopRiding();
             Vec3 safe = lastSafe.getOrDefault(player.getUUID(), bounds().entrance());
-            if (!level.noCollision(player, player.getBoundingBox().move(safe.subtract(player.position())))) safe = surfaceDestination(player, bounds().entrance());
+            if (safe.y < controller.bossEnvironments().waterSurface() || !level.noCollision(player, player.getBoundingBox().move(safe.subtract(player.position())))) safe = surfaceDestination(player, bounds().entrance());
             player.teleportTo(level, safe.x, safe.y, safe.z, player.getYRot(), player.getXRot());
             player.setDeltaMovement(Vec3.ZERO); player.fallDistance = 0;
         } else if (player.onGround()) lastSafe.put(player.getUUID(), player.position());
@@ -299,11 +299,11 @@ public final class ArenaSession {
 
     public void rescueMob(Mob mob) {
         if (com.pla.spiral_abyss.encounter.DragonArena.defeated(mob)) return;
+        ArenaFlight.steer(mob, bounds());
         if (!bounds().rescueMob(mob, MobCatalog.isGhostMob(EntityType.getKey(mob.getType())))) return;
         Vec3 center = surfaceDestination(mob, bounds().center());
         mob.teleportTo(center.x, center.y + (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon ? 20 : 0.1), center.z);
-        mob.getNavigation().stop();
-        mob.setDeltaMovement(Vec3.ZERO); mob.fallDistance = 0;
+        ArenaFlight.stop(mob);
     }
 
     private boolean furnitureLoaded() {
@@ -319,6 +319,11 @@ public final class ArenaSession {
 
     /** Resolve emergency return positions against live terrain instead of the original Y=65 plane. */
     private Vec3 surfaceDestination(Entity entity, Vec3 destination) {
+        double water = controller.bossEnvironments().waterSurface();
+        if (water > 0) {
+            Vec3 candidate = new Vec3(destination.x, water, destination.z);
+            if (level.noCollision(entity, entity.getBoundingBox().move(candidate.subtract(entity.position())))) return candidate;
+        }
         for (int y = (int) ArenaBounds.FLOOR_Y - 1; y < ArenaBounds.CEILING_Y; y++) {
             BlockPos pos = BlockPos.containing(destination.x, y, destination.z);
             var shape = level.getBlockState(pos).getCollisionShape(level, pos);

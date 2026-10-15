@@ -96,6 +96,17 @@ public final class FloorProgress {
         if (!claimed() || hasPayouts() || !unlocked(floor + 1)) throw new IllegalStateException("Claim the current floor first");
         floor++; dirty.run();
     }
+    /** Operator test shortcut: commit perfect results and mark every chest through this floor looted. */
+    public void skipThrough(int number) {
+        requireFloor(number);
+        for (int current = 1; current <= number; current++) {
+            Arrays.fill(stars[current], 3);
+            tiers[current] = 7;
+            for (ChestPayout payout : payouts[current]) if (payout.active()) payout.complete();
+        }
+        floor = Math.max(floor, Math.min(number + 1, FloorParser.MAX_FLOORS));
+        dirty.run();
+    }
     public void reset() {
         floor = 1;
         for (int[] waveStars : stars) Arrays.fill(waveStars, 0);

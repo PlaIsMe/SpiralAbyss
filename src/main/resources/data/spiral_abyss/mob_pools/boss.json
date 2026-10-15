@@ -1,4 +1,8 @@
 [
+  {"scaling": {
+    "5": {"health": {"type": "absolute", "value": 1000}, "damage": 2},
+    "6": {"health": {"type": "absolute", "value": 1500}, "damage": 2}
+  }},
   [
     "minecraft:wither",
     {
@@ -69,6 +73,136 @@
     {
       "item": "aquamirae:whisper_of_the_abyss",
       "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "alexscaves:luxtructosaurus",
+    {
+      "environment": ["alexscaves:flood_basalt", "alexscaves:primal_magma", "minecraft:smooth_basalt"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.00
+    },
+    {
+      "loot_table": "alexscaves:chests/caveman_house",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:extinction_spear",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:chomping_spirit": 2, "alexscaves:herd_phalanx": 2, "alexscaves:plummeting_flight": 3}
+    }
+  ],
+  [
+    "alexscaves:forsaken",
+    {
+      "environment": ["minecraft:packed_mud", "minecraft:dirt"],
+      "decoration_environment": ["alexscaves:thornwood_log", "alexscaves:thornwood_fence", "alexscaves:thornwood_wood", "alexscaves:thornwood_branch", "alexscaves:guano_layer"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.05
+    },
+    {
+      "loot_table": "alexscaves:chests/forlorn_ruins",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:desolate_dagger",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:mending": 1, "alexscaves:double_stab": 1, "alexscaves:sated_blade": 2, "minecraft:looting": 2}
+    },
+    {
+      "item": "alexscaves:dreadbow",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:twilight_perfection": 3, "alexscaves:relentless_darkness": 1}
+    },
+    {
+      "item": "alexscaves:dreadbow",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:dark_nock": 3, "alexscaves:precise_volley": 1}
+    }
+  ],
+  [
+    "alexscaves:licowitch",
+    {
+      "environment": ["alexscaves:block_of_frosted_chocolate", "alexscaves:rock_candy_purple", "alexscaves:rock_candy_white", "alexscaves:rock_candy_green"],
+      "decoration_environment": ["alexscaves:block_of_chocolate", "alexscaves:sweetberry_ice_cream", "alexscaves:vanilla_ice_cream", "alexscaves:chocolate_ice_cream", "alexscaves:candy_cane"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.08
+    },
+    {
+      "loot_table": "alexscaves:chests/licowitch_tower_secret",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:sugar_staff",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:spell_lasting": 3, "alexscaves:humungous_hex": 2, "alexscaves:multiple_mint": 2, "alexscaves:seekcandy": 1}
+    }
+  ],
+  [
+    "alexscaves:tremorzilla",
+    {
+      "environment": ["alexscaves:radrock", "alexscaves:acidic_radrock", "minecraft:mud"],
+      "decoration_environment": ["alexscaves:waste_drum", "alexscaves:radrock_uranium_ore", "alexscaves:sulfur_cluster", "alexscaves:sulfur_bud_large", "alexscaves:sulfur_bud_medium", "alexscaves:sulfur_bud_small"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
+    {
+      "loot_table": "alexscaves:chests/toxic_ruins",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:raygun",
+      "enchantment": {"alexscaves:energy_efficiency": 3, "alexscaves:solar": 1, "alexscaves:x_ray": 1
+      }
+    },
+    {
+      "item": "alexscaves:raygun",
+      "enchantment": {"alexscaves:energy_efficiency": 3, "alexscaves:solar": 1, "alexscaves:gamma_ray": 1}
+    }
+  ],
+  [
+    "alexscaves:magnetron",
+    {
+      "environment": ["alexscaves:galena", "alexscaves:packed_galena", "alexscaves:energized_galena_scarlet", "alexscaves:energized_galena_azure", "alexscaves:energized_galena_neutral"],
+      "decoration_environment": ["alexscaves:scarlet_neodymium_pillar", "alexscaves:scarlet_neodymium_node", "alexscaves:azure_neodymium_pillar", "alexscaves:azure_neodymium_node"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.04
+    },
+    {
+      "suppress_falling_blocks": ["alexscaves:heart_of_iron"]
+    },
+    {
+      "loot_table": "alexscaves:chests/magnetic_ruins",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:resistor_shield",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:arrow_inducting": 1, "alexscaves:heavy_slam": 3}
+    }
+  ],
+  [
+    "alexscaves:hullbreaker",
+    {
+      "environment": ["minecraft:prismarine"],
+      "decoration_environment": ["full_water"]
+    },
+    {
+      "loot_table": "alexscaves:chests/abyssal_ruins",
+      "weight": 1,
+      "chance": 0.4
+    },
+    {
+      "item": "alexscaves:sea_staff",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:enveloping_bubble": 1, "alexscaves:bouncing_bolt": 1, "alexscaves:seapairing": 1, "alexscaves:triple_splash": 1, "alexscaves:soak_seeking": 3}
+    },
+    {
+      "item": "alexscaves:ortholance",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:flinging": 3, "alexscaves:sea_swing": 1, "alexscaves:tsunami": 1}
+    },
+    {
+      "item": "alexscaves:magic_conch",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:charting_call": 3, "alexscaves:lasting_morale": 3}
     }
   ]
 ]

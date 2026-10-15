@@ -4,8 +4,6 @@
     "medium": ["time"],
     "hard": ["projectile", "explosion", "take_damage", "fishing", "totem", "trickshot", "ender_pearl_hit", "shield_block"]
   },
-  "health_scale": 1.2,
-  "damage_scale": 1.1,
   "rewards": {
     "rolls": 2,
     "experience": 300,

@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "16";
+    private static final String VERSION = "17";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
@@ -50,9 +50,9 @@ public final class AbyssNetwork {
         public RareReward { player = player.copy(); item = item.copy(); }
     }
     public record ChallengeView(net.minecraft.network.chat.Component description, int progress, int target, boolean satisfied, boolean failed) {}
-    public record EncounterStatus(boolean active, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges) {
+    public record EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges) {
         public EncounterStatus { challenges = List.copyOf(challenges); }
-        public static final EncounterStatus HIDDEN = new EncounterStatus(false, 0, 0, 0, 0, 0, 0, List.of());
+        public static final EncounterStatus HIDDEN = new EncounterStatus(false, false, 0, 0, 0, 0, 0, 0, List.of());
     }
     private AbyssNetwork() {}
     public static void register() {
@@ -78,11 +78,12 @@ public final class AbyssNetwork {
                 }).add();
         CHANNEL.messageBuilder(EncounterStatus.class, 2, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder((message, buffer) -> {
-                    buffer.writeBoolean(message.active); buffer.writeVarInt(message.floor); buffer.writeVarInt(message.wave);
+                    buffer.writeBoolean(message.active); buffer.writeBoolean(message.preparing);
+                    buffer.writeVarInt(message.floor); buffer.writeVarInt(message.wave);
                     buffer.writeVarInt(message.defeated); buffer.writeVarInt(message.total); buffer.writeVarInt(message.seconds); buffer.writeVarInt(message.countdownSeconds);
                     writeChallenges(buffer, message.challenges);
                 })
-                .decoder(buffer -> new EncounterStatus(buffer.readBoolean(), buffer.readVarInt(), buffer.readVarInt(),
+                .decoder(buffer -> new EncounterStatus(buffer.readBoolean(), buffer.readBoolean(), buffer.readVarInt(), buffer.readVarInt(),
                         buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), readChallenges(buffer)))
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                         () -> () -> com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay.update(message)))

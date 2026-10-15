@@ -30,15 +30,16 @@ public final class FloorController {
     private final FloorProgress progress;
     private final Supplier<FloorCatalog.Snapshot> catalog;
     private final WaveSpawner spawner = new WaveSpawner();
+    private final BossHealthBars bossHealthBars = new BossHealthBars();
     private final FloorClock clock = new FloorClock();
     private final WaveStages<Mob> stages = new WaveStages<>();
     private final BossEnvironments bossEnvironments;
-    private FloorDefinition.Wave scaledWave;
     private WaveEquipment waveEquipment;
     private net.minecraft.resources.ResourceLocation selectedWaveType;
     private State state;
     private FloorDefinition floor;
     private MobCatalog.Equipment equipment;
+    private MobCatalog.ScalingSnapshot mobScaling = MobCatalog.ScalingSnapshot.EMPTY;
     private com.pla.spiral_abyss.config.GearConfig.Floor gear;
     private Map<net.minecraft.resources.ResourceLocation, List<FloorDefinition.RewardEntry>> mobRewards = Map.of();
     private final Set<net.minecraft.resources.ResourceLocation> encounteredMobs = new LinkedHashSet<>();
@@ -51,6 +52,9 @@ public final class FloorController {
     private List<Challenge> challenges = List.of();
     private ChallengeTracker challengeTracker;
     private int revision;
+    private AbyssNetwork.EncounterStatus readyHud;
+    private int readyHudFloor;
+    private List<Challenge> readyChallenges = List.of();
 
     public FloorController(ArenaSession session, Supplier<FloorCatalog.Snapshot> catalog) {
         this.session = session;
@@ -74,9 +78,61 @@ public final class FloorController {
     public List<ChallengeTracker.Progress> challengeProgress() {
         return challengeTracker == null ? List.of() : challengeTracker.progress();
     }
-    public AbyssNetwork.EncounterStatus hudStatus() {
-        var views = challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList();
-        return active() ? new AbyssNetwork.EncounterStatus(true, currentFloor(), currentWave(), stages.removed(), waveEnemies, clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views) : AbyssNetwork.EncounterStatus.HIDDEN;
+    public AbyssNetwork.EncounterStatus hudStatus(ServerPlayer viewer) {
+        if (active()) {
+            var views = challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList();
+            return new AbyssNetwork.EncounterStatus(true, false, currentFloor(), currentWave(), stages.removed(), waveEnemies,
+                    clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views);
+        }
+        if ((state != State.READY && state != State.FAILED) || showsChest()) return AbyssNetwork.EncounterStatus.HIDDEN;
+        if (readyHud == null || readyHudFloor != currentFloor()) {
+            readyHudFloor = currentFloor();
+            readyHud = prepareHudStatus();
+        }
+        return readyHudFor(viewer);
+    }
+    private AbyssNetwork.EncounterStatus readyHudFor(ServerPlayer viewer) {
+        if (readyHud == AbyssNetwork.EncounterStatus.HIDDEN) return readyHud;
+        List<AbyssNetwork.ChallengeView> views = null;
+        for (int index = 0; index < readyChallenges.size(); index++) {
+            Challenge challenge = readyChallenges.get(index);
+            boolean blocked = switch (challenge.type()) {
+                case NO_ARMOR -> challenge.forbiddenSlots().stream()
+                        .anyMatch(slot -> !viewer.getItemBySlot(slot).isEmpty());
+                case ARMOR_ENCHANTMENT -> !ChallengeTracker.wearsArmorEnchantments(viewer, challenge.ids());
+                default -> false;
+            };
+            if (!blocked) continue;
+            if (views == null) views = new ArrayList<>(readyHud.challenges());
+            var original = views.get(index);
+            // In a preparation snapshot, failed means currently blocked by equipment;
+            // the combat tracker has not started and no failure is committed.
+            views.set(index, new AbyssNetwork.ChallengeView(original.description(), original.progress(),
+                    original.target(), false, true));
+        }
+        return views == null ? readyHud : new AbyssNetwork.EncounterStatus(true, true,
+                readyHud.floor(), readyHud.wave(), 0, 0, 0, 0, views);
+    }
+    private AbyssNetwork.EncounterStatus prepareHudStatus() {
+        readyChallenges = List.of();
+        FloorDefinition definition = catalog.get().floors().get(currentFloor());
+        if (definition == null || definition.waves().isEmpty()) return AbyssNetwork.EncounterStatus.HIDDEN;
+        try {
+            List<Challenge> selected = session.challenges(currentFloor());
+            if (selected.size() != 3) return AbyssNetwork.EncounterStatus.HIDDEN;
+            int population = session.cycleLineup(currentFloor(), 1, definition.waves().get(0)).stream()
+                    .mapToInt(FloorDefinition.Enemy::count).sum();
+            var views = selected.stream().map(challenge -> new AbyssNetwork.ChallengeView(
+                    challenge.description(population), 0,
+                    challenge.type() == Challenge.Type.TIME || challenge.type() == Challenge.Type.NO_ARMOR
+                            || challenge.type() == Challenge.Type.ARMOR_ENCHANTMENT ? 0 : challenge.requiredCount(population),
+                    false, false)).toList();
+            readyChallenges = List.copyOf(selected);
+            return new AbyssNetwork.EncounterStatus(true, true, currentFloor(), 1, 0, 0, 0, 0, views);
+        } catch (IllegalArgumentException ex) {
+            LogUtils.getLogger().warn("Cannot preview Abyss floor {} preparation challenges: {}", currentFloor(), ex.getMessage());
+            return AbyssNetwork.EncounterStatus.HIDDEN;
+        }
     }
     public UUID runId() { return runId; }
     public boolean showsChest() { return state == State.COMPLETED || progress.pending() != null; }
@@ -100,6 +156,7 @@ public final class FloorController {
         }
         if (!session.captureParty()) return message(player, "host_required");
         equipment = MobCatalog.equipment();
+        mobScaling = MobCatalog.scalingSnapshot();
         mobRewards = MobCatalog.rewards();
         encounteredMobs.clear();
         gear = com.pla.spiral_abyss.config.GearConfig.load(currentFloor());
@@ -147,6 +204,7 @@ public final class FloorController {
         try { bossEnvironments.tick(); }
         catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
         stages.removeInvalid(mob -> DragonArena.finished(mob, level));
+        bossHealthBars.tick(stages.enemies(), session.players());
         for (Mob mob : stages.enemies()) {
             if (DragonArena.defeated(mob)) { session.keepMobActive(mob); continue; }
             session.rescueMob(mob);
@@ -179,9 +237,8 @@ public final class FloorController {
     private boolean startWave(ServerPlayer target) {
         try {
             var wave = floor.waves().get(waveIndex);
-            scaledWave = new FloorDefinition.Wave(wave.healthScale() * partyScale, wave.damageScale() * partyScale, wave.categories(), wave.bosses(), wave.waveTypes());
-            stages.prepare(session.cycleLineup(currentFloor(), currentWave(), scaledWave));
-            selectedWaveType = session.selectedWaveType(currentFloor(), currentWave(), scaledWave);
+            stages.prepare(session.cycleLineup(currentFloor(), currentWave(), wave));
+            selectedWaveType = session.selectedWaveType(currentFloor(), currentWave(), wave);
             waveEquipment = new WaveEquipment(equipment, gear, level.random);
             waveEnemies = stages.total();
             spawnStage(target);
@@ -201,7 +258,8 @@ public final class FloorController {
     private void spawnStage(ServerPlayer target) {
         stages.advance(composition -> {
             LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} starting: {}", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size(), composition);
-            var created = spawner.spawn(level, center, target, scaledWave, composition, runId, waveEquipment);
+            var created = spawner.spawn(level, center, target, composition, runId,
+                    waveEquipment, currentFloor(), partyScale, mobScaling);
             created.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
             created.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
             return created;
@@ -232,6 +290,8 @@ public final class FloorController {
         int nextRevision = catalog.get().revision();
         if (revision == nextRevision) return;
         revision = nextRevision;
+        readyHud = null;
+        readyChallenges = List.of();
         if (active()) fail("reloaded");
     }
 
@@ -244,16 +304,19 @@ public final class FloorController {
         cleanup();
         session.finishAttempt();
         state = progress.pending() != null ? State.COMPLETED : State.READY;
+        readyHud = null;
+        readyChallenges = List.of();
     }
 
     public void defeated() { if (active()) fail("party_defeated"); }
 
     private void cleanup() {
+        bossHealthBars.clear();
         bossEnvironments.clear();
         stages.clear(Entity::discard);
         selectedWaveType = null;
-        scaledWave = null;
         waveEquipment = null;
+        mobScaling = MobCatalog.ScalingSnapshot.EMPTY;
         encounteredMobs.clear();
         runId = null;
         clock.clear();

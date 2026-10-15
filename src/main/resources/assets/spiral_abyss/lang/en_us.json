@@ -45,6 +45,8 @@
   "message.spiral_abyss.arenas_full": "All 16 Abyss arenas are occupied, or the dimension is unavailable. Try again later.",
   "message.spiral_abyss.party_unavailable": "This party is already fighting. Join before the next attempt starts.",
   "message.spiral_abyss.reset": "Your six Abyss floors have been reset.",
+  "message.spiral_abyss.skip_floor": "Floors 1-%s now have 9 stars and all chests marked looted. Selected floor: %s.",
+  "message.spiral_abyss.skip_floor_party_looting": "Finish the shared chest payout before skipping floors.",
   "message.spiral_abyss.floor_unavailable": "That floor is unavailable. Choose a loaded floor from 1 to 6.",
   "screen.spiral_abyss.floors": "Spiral Abyss",
   "screen.spiral_abyss.floor": "Floor %s",

@@ -416,6 +416,23 @@ public final class AbyssParties {
         ArenaSession session = sessionFor(player);
         return session == null ? tell(player, "wrong_dimension") : session.controller().nextFloor(player);
     }
+    public boolean skipFloors(ServerPlayer player, int number) {
+        if (number < 1 || number > com.pla.spiral_abyss.encounter.data.FloorParser.MAX_FLOORS) return false;
+        ArenaSession owned = hostedBy(player.getUUID());
+        if (owned != null && owned.looting() && !owned.players().isEmpty()
+                && (sessionFor(player) == null || owned.players().size() > 1))
+            return tell(player, "skip_floor_party_looting");
+        // End the current visit before changing saved claims, so a live room and its
+        // captured roster cannot observe a partially skipped floor.
+        if (player.level().dimension().equals(AbyssDimension.LEVEL) && !leave(player)) return false;
+        portals.invalidate(player);
+        AbyssNetwork.closeFloors(player);
+        var progress = profile(player.getUUID()).progress;
+        progress.skipThrough(number);
+        player.sendSystemMessage(Component.translatable("message.spiral_abyss.skip_floor", number,
+                progress.floor()));
+        return true;
+    }
     public boolean reset(ServerPlayer player) {
         ArenaSession session = sessions.get(player.getUUID());
         // An original owner returning outside cannot erase the successor's live encounter or chest.
@@ -495,7 +512,7 @@ public final class AbyssParties {
         hudStates.keySet().retainAll(online);
         for (ServerPlayer player : online) {
             ArenaSession session = sessionFor(player);
-            var status = session == null ? AbyssNetwork.EncounterStatus.HIDDEN : session.controller().hudStatus();
+            var status = session == null ? AbyssNetwork.EncounterStatus.HIDDEN : session.controller().hudStatus(player);
             if (!status.equals(hudStates.put(player, status))) AbyssNetwork.encounterStatus(player, status);
         }
         // An offline eliminated player may reconnect after victory, reset, shutdown, or a dimension transfer.
@@ -506,6 +523,11 @@ public final class AbyssParties {
         }
         List<Entity> stale = new ArrayList<>();
         for (Entity entity : level.getAllEntities()) {
+            if (entity.getPersistentData().hasUUID("spiral_abyss_environment_owner")) {
+                ArenaSession owner = sessions.get(hostOf(entity));
+                if (owner == null || !owner.controller().bossEnvironments().ownsPlacement(entity)) stale.add(entity);
+                continue;
+            }
             if (entity instanceof Projectile projectile) {
                 if (projectile instanceof net.minecraft.world.entity.projectile.ThrownTrident trident && trident.isNoPhysics()
                         && trident.getPersistentData().getBoolean(com.pla.spiral_abyss.event.AbyssMobDrops.NO_PICKUP)
@@ -539,7 +561,7 @@ public final class AbyssParties {
                 stale.clear();
                 for (Entity entity : world.getAllEntities()) {
                     if (entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)
-                            && sessions.values().stream().noneMatch(s -> s.controller().owns(entity))) stale.add(entity);
+                            && sessions.values().stream().noneMatch(s -> s.controller().owns(entity) || s.controller().bossEnvironments().ownsPlacement(entity))) stale.add(entity);
                 }
                 stale.forEach(Entity::discard);
             }

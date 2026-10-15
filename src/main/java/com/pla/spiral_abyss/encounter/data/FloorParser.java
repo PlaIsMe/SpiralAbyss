@@ -22,8 +22,8 @@ public final class FloorParser {
         require(number >= 1 && number <= MAX_FLOORS, "floor number must be 1..6");
         require(waves.size() == 3, "a challenge floor needs exactly three waves");
         var challenge = challenges(floor.get("challenge"));
-        double health = scale(floor, "health_scale", 1);
-        double damage = scale(floor, "damage_scale", 1);
+        require(!floor.has("health_scale") && !floor.has("damage_scale"),
+                "health_scale and damage_scale belong in mob_pools scaling metadata");
         int delay = WaveChallenges.TRANSITION_TICKS;
         int ticks = WaveChallenges.TIME_LIMIT_TICKS;
         JsonObject loot = floor.has("rewards") ? object(floor.get("rewards"), "rewards") : new JsonObject();
@@ -55,7 +55,7 @@ public final class FloorParser {
                     if (amount > 0) categories.put(category, amount);
                     count += amount;
                 }
-                Set<String> known = new HashSet<>(List.of("total_time", "health_scale", "damage_scale", "bosses", "wave_types"));
+                Set<String> known = new HashSet<>(List.of("total_time", "bosses", "wave_types"));
                 // Legacy total_time fields are accepted; challenge timing is fixed at five minutes per wave.
                 for (MobCategory category : MobCategory.values()) known.add(category.key());
                 for (String key : wave.keySet()) require(known.contains(key), "unknown wave field: " + key);
@@ -72,7 +72,7 @@ public final class FloorParser {
                         require(waveTypes.containsKey(typeId), "unknown or invalid wave type: " + typeId);
                         choices.add(waveTypes.get(typeId));
                     }
-                    var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), Map.of(), List.of(), choices);
+                    var parsedWave = new FloorDefinition.Wave(Map.of(), List.of(), choices);
                     BossWavePolicy.validate(number, entry.getKey(), parsedWave);
                     floorEnemies += parsedWave.minimumEnemies();
                     parsed.add(parsedWave);
@@ -103,7 +103,7 @@ public final class FloorParser {
                 }
                 require(count > 0 && count <= 128, "each wave needs 1..128 mobs");
                 floorEnemies += count;
-                var parsedWave = new FloorDefinition.Wave(scale(wave, "health_scale", health), scale(wave, "damage_scale", damage), categories, enemies);
+                var parsedWave = new FloorDefinition.Wave(categories, enemies);
                 BossWavePolicy.validate(number, entry.getKey(), parsedWave);
                 parsed.add(parsedWave);
             } catch (IllegalArgumentException | JsonParseException ex) {
@@ -218,15 +218,6 @@ public final class FloorParser {
             }
         }
         return new FloorDefinition.RewardEntry(rewardId, item, min, max, weight, chance, false, enchantments);
-    }
-
-    private static double scale(JsonObject obj, String key, double fallback) {
-        if (!obj.has(key)) return fallback;
-        JsonElement value = obj.get(key);
-        require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber(), key + " must be a number");
-        double number = value.getAsDouble();
-        require(Double.isFinite(number) && number > 0 && number <= 1000, key + " must be > 0 and <= 1000");
-        return number;
     }
 
     private static int integer(JsonObject obj, String key, int fallback, int min, int max) {

@@ -22,6 +22,38 @@
   </a>
 </p>
 
+## Boss environment examples
+
+Add these fields to a boss's metadata object in `data/spiral_abyss/mob_pools/boss.json`, keeping reward objects separate:
+
+```json
+[
+  ["minecraft:elder_guardian", {
+    "environment": ["minecraft:prismarine"],
+    "decoration_environment": ["half_water"],
+    "entity_place": [
+      {"entity": "minecraft:guardian", "position": "north far", "count": 2},
+      {"entity": "minecraft:guardian", "position": "north east corner middle", "count": 1}
+    ],
+    "block_place": [
+      {"block": "minecraft:sea_lantern", "position": "middle", "count": 1},
+      {"block": "minecraft:prismarine", "position": "close_south", "count": 4}
+    ]
+  }]
+]
+```
+
+- `full_water`: fills the 65 x 65 base footprint 120 blocks high, Y=65–184.
+- `half_water`: fills it 15 blocks high, Y=65–79, then lifts players and the boss to the water surface.
+- `entity_place`: a list of vanilla or installed mod entity IDs, positions and counts. Entities initially face the boss and are removed with its environment; they do not add to wave counts or rewards.
+- `block_place`: the same format with block IDs; temporary blocks restore their original positions when the environment ends.
+
+The player ceiling remains Y=120. Water cannot flow in the Abyss, including out of the base. Other dimensions retain normal water flow. Full-water placements use the underwater solid surface; half-water placements use the water/solid surface. Defeat, cancellation, failure and reload clean up the environment.
+
+Use `middle` for the key position, or north/south/east/west and diagonal directions with `close`, `middle` or `far`: `close_north`, `north middle`, `north east corner far`. Far positions remain inside the playable boundary. Counts spread objects around the chosen anchor. Either nonempty placement list centers the boss. Placements appear after terrain/water growth and use the resulting surface. Ordinary surface decorations such as soul fire can also accompany placement lists.
+
+Replace IDs with installed mod IDs as needed. Each placement list supports at most 64 total objects; unavailable IDs and obstructed placements are skipped with warnings. Blocks use default states and must be stable terrain blocks (no fluids, falling blocks, TNT, plants or block entities). Players, item entities and arena furniture cannot be placed. Each water preset must be the only `decoration_environment` entry. `environment` is optional for water-only or placement-only setups.
+
 ## License & Use
 
 All Rights Reserved

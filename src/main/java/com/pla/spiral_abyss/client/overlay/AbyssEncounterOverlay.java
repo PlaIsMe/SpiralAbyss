@@ -30,29 +30,33 @@ public final class AbyssEncounterOverlay {
         if (!state.active() || client.options.hideGui || client.player == null || client.level == null
                 || !client.level.dimension().equals(AbyssDimension.LEVEL)) return;
         var font = client.font;
-        if (state.countdownSeconds() > 0) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(width / 2F, 12, 0);
-            graphics.pose().scale(COUNTDOWN_SCALE, COUNTDOWN_SCALE, 1);
-            graphics.drawCenteredString(font, Integer.toString(state.countdownSeconds()), 0, 0, 0xFFFFFFFF);
-            graphics.pose().popPose();
-        } else AbyssClockRenderer.combat(graphics, font, width / 2, 12, state.seconds(), TIMER_SCALE);
+        if (!state.preparing()) {
+            if (state.countdownSeconds() > 0) {
+                graphics.pose().pushPose();
+                graphics.pose().translate(width / 2F, 12, 0);
+                graphics.pose().scale(COUNTDOWN_SCALE, COUNTDOWN_SCALE, 1);
+                graphics.drawCenteredString(font, Integer.toString(state.countdownSeconds()), 0, 0, 0xFFFFFFFF);
+                graphics.pose().popPose();
+            } else AbyssClockRenderer.combat(graphics, font, width / 2, 12, state.seconds(), TIMER_SCALE);
+        }
         int left = 12, top = Math.max(44, height / 4);
-        graphics.drawString(font, Component.translatable("hud.spiral_abyss.defeated", state.defeated(), state.total()),
+        if (!state.preparing()) graphics.drawString(font,
+                Component.translatable("hud.spiral_abyss.defeated", state.defeated(), state.total()),
                 left, top, 0xFFFFFFFF, true);
+        int floorWaveY = state.preparing() ? top : top + font.lineHeight + 6;
         graphics.drawString(font, Component.translatable("hud.spiral_abyss.floor_wave", state.floor(), state.wave()),
-                left, top + font.lineHeight + 6, 0xFFFFFFFF, true);
-        int challengeY = top + 2 * (font.lineHeight + 6);
+                left, floorWaveY, 0xFFFFFFFF, true);
+        int challengeY = floorWaveY + font.lineHeight + 6;
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"),
                 left, challengeY, 0xFFFFFFFF, true);
         challengeY += font.lineHeight + 4;
         int objectiveWidth = Math.max(40, Math.min(340, width - left - 38));
         for (var challenge : state.challenges()) {
-            boolean earned = challenge.satisfied() && !challenge.failed();
-            int color = earned ? 0xFFFFFFFF : 0xFF888888;
+            boolean highlighted = state.preparing() ? !challenge.failed() : challenge.satisfied() && !challenge.failed();
+            int color = highlighted ? 0xFFFFFFFF : 0xFF888888;
             // The icon belongs to the server's rolled objective, not an elapsed-time tier.
             graphics.renderItem(STAR, left, challengeY - 3);
-            if (!earned) graphics.fill(left, challengeY - 3, left + 16, challengeY + 13, 0x99505050);
+            if (!highlighted) graphics.fill(left, challengeY - 3, left + 16, challengeY + 13, 0x99505050);
             Component objective = challenge.target() > 0
                     ? Component.translatable("challenge.spiral_abyss.progress", challenge.description(), challenge.progress(), challenge.target())
                     : challenge.description();

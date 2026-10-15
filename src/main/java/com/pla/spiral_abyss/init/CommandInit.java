@@ -18,6 +18,10 @@ public final class CommandInit {
                 .executes(c -> AbyssParties.get(c.getSource().getServer()).portals().openArenaMenu(c.getSource().getPlayerOrException()) ? 1 : 0)
                 .then(Commands.literal("floor").then(Commands.argument("number", IntegerArgumentType.integer(1, FloorParser.MAX_FLOORS)).executes(c ->
                         AbyssParties.get(c.getSource().getServer()).enterFloor(c.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(c, "number")) ? 1 : 0)))
-                .then(Commands.literal("next_floor").executes(c -> AbyssParties.get(c.getSource().getServer()).nextFloor(c.getSource().getPlayerOrException()) ? 1 : 0)));
+                .then(Commands.literal("next_floor").executes(c -> AbyssParties.get(c.getSource().getServer()).nextFloor(c.getSource().getPlayerOrException()) ? 1 : 0))
+                .then(Commands.literal("skip_floor").requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("number", IntegerArgumentType.integer(1, FloorParser.MAX_FLOORS)).executes(c ->
+                                AbyssParties.get(c.getSource().getServer()).skipFloors(c.getSource().getPlayerOrException(),
+                                        IntegerArgumentType.getInteger(c, "number")) ? 1 : 0))));
     }
 }

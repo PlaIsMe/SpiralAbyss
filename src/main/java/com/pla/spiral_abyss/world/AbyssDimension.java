@@ -36,16 +36,22 @@ public final class AbyssDimension {
 
     public static void restoreArena(ServerLevel level, AbyssPlayers.Profile profile) {
         if (!level.dimension().equals(LEVEL)) throw new IllegalArgumentException("Not the Abyss");
+        com.pla.spiral_abyss.event.AbyssArchitectureRepair.edit(level, () -> restoreArenaBlocks(level, profile));
+    }
+
+    private static void restoreArenaBlocks(ServerLevel level, AbyssPlayers.Profile profile) {
         Vec3 center = profile.bounds().center();
         var template = level.getStructureManager().get(ARENA).orElseThrow(() -> new IllegalStateException("Missing abyss_base template"));
         var size = template.getSize();
         if (size.getX() != 65 || size.getY() != 6 || size.getZ() != 65)
             throw new IllegalStateException("abyss_base must fit its 65 x 6 x 65 spawn footprint");
         BlockPos origin = BlockPos.containing(center).offset(-size.getX() / 2, -1, -size.getZ() / 2);
-        if (profile.needsLegacyCleanup()) clearLegacyArena(level, BlockPos.containing(center));
         // Always restore this host's footprint, including creative additions above the base.
-        BlockPos top = new BlockPos(origin.getX() + size.getX() - 1, (int) ArenaBounds.CEILING_Y,
+        BlockPos top = new BlockPos(origin.getX() + size.getX() - 1, (int) ArenaBounds.FLOOR_Y + 120,
                 origin.getZ() + size.getZ() - 1);
+        // Include the old template's extra east column. Already-empty cells may still have queued repairs.
+        com.pla.spiral_abyss.event.AbyssArchitectureRepair.forget(level, origin, top.east());
+        if (profile.needsLegacyCleanup()) clearLegacyArena(level, BlockPos.containing(center));
         for (BlockPos pos : BlockPos.betweenClosed(origin, top)) {
             if (!level.isEmptyBlock(pos)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
         }

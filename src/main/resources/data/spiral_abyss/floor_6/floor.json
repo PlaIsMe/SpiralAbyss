@@ -4,8 +4,6 @@
     "medium": ["weapon", "no_armor"],
     "hard": ["armor_enchantment", "weapon_enchantment"]
   },
-  "health_scale": 1.5,
-  "damage_scale": 1.25,
   "rewards": {
     "rolls": 2,
     "experience": 600,

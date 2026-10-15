@@ -15,6 +15,7 @@ public final class BossTerrainPlan {
     public static double distance(BlockPos pos, BlockPos center) { return Math.hypot(pos.getX() - center.getX(), pos.getZ() - center.getZ()); }
     public static Comparator<Placement> outward(BlockPos center) { return Comparator.comparingDouble((Placement placement) -> distance(placement.pos(), center)).thenComparingInt(placement -> placement.pos().getY()); }
     public static List<Placement> patches(Profile profile, BlockPos center, RandomSource random) {
+        if (profile.palette().isEmpty()) return List.of();
         record Ridge(double x, double z, double width) {}
         List<Ridge> ridges = new ArrayList<>();
         double rotation = random.nextDouble() * Math.PI * 2;

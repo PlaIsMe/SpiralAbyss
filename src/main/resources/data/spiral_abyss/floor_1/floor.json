@@ -4,8 +4,6 @@
     "medium": ["time"],
     "hard": ["time"]
   },
-  "health_scale": 1.0,
-  "damage_scale": 1.0,
   "rewards": {
     "rolls": 2,
     "experience": 100,

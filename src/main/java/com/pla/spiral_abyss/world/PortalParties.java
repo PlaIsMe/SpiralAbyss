@@ -24,6 +24,10 @@ public final class PortalParties {
     private record ArenaMenu(UUID token, UUID arenaHost, int floor, UUID followingHost, boolean personalRun, int selectable, int expires) {}
     public PortalParties(AbyssParties parties, MinecraftServer server) { this.parties = parties; this.server = server; }
     public void invalidateAll() { selections.clear(); arenaMenus.clear(); }
+    public void invalidate(ServerPlayer player) {
+        selections.remove(player.getUUID());
+        arenaMenus.remove(player.getUUID());
+    }
 
     /** Only the party bound to this physical portal may drive its floor indicator or guest admission. */
     public ArenaSession boundSession(AbyssPortalBlockEntity portal) {

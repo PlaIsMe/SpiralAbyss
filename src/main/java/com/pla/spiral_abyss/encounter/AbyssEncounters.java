@@ -7,6 +7,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingHealEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.*;
@@ -57,5 +59,19 @@ public final class AbyssEncounters {
             double scale = attacker.getPersistentData().getDouble(WaveSpawner.DAMAGE_TAG);
             if (Double.isFinite(scale) && scale > 0) event.setAmount((float) (event.getAmount() * scale));
         }
+    }
+    @SubscribeEvent(priority = EventPriority.LOWEST) public static void scaleEffectiveHealth(LivingDamageEvent event) {
+        if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)
+                || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
+        double ratio = mob.getPersistentData().getDouble(WaveScaling.HEALTH_DAMAGE_RATIO_TAG);
+        if (Double.isFinite(ratio) && ratio > 0 && ratio != 1)
+            event.setAmount((float) (event.getAmount() * ratio));
+    }
+    @SubscribeEvent(priority = EventPriority.LOWEST) public static void scaleEffectiveHealing(LivingHealEvent event) {
+        if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)
+                || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
+        double ratio = mob.getPersistentData().getDouble(WaveScaling.HEALTH_DAMAGE_RATIO_TAG);
+        if (Double.isFinite(ratio) && ratio > 0 && ratio != 1)
+            event.setAmount((float) (event.getAmount() * ratio));
     }
 }

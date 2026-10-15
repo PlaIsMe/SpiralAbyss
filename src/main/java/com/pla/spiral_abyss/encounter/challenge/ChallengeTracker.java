@@ -154,8 +154,7 @@ public final class ChallengeTracker {
                 }
                 case ARMOR_ENCHANTMENT -> {
                     equipmentProgress[index] = Math.min(requiredEquipmentPlayers, (int) combatants.stream()
-                        .filter(player -> challenge.ids().stream().allMatch(id -> Arrays.stream(ARMOR)
-                                .anyMatch(slot -> hasEnchantment(player.getItemBySlot(slot), id))))
+                        .filter(player -> wearsArmorEnchantments(player, challenge.ids()))
                         .count());
                     counter.set(equipmentProgress[index] >= requiredEquipmentPlayers ? 1 : 0);
                 }
@@ -300,6 +299,11 @@ public final class ChallengeTracker {
     private static boolean hasEnchantment(ItemStack stack, ResourceLocation id) {
         var enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
         return enchantment != null && EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack) > 0;
+    }
+    /** The preparation HUD and live combat use the same worn-armor requirement. */
+    public static boolean wearsArmorEnchantments(ServerPlayer player, List<ResourceLocation> ids) {
+        return ids.stream().allMatch(id -> Arrays.stream(ARMOR)
+                .anyMatch(slot -> hasEnchantment(player.getItemBySlot(slot), id)));
     }
     private ItemStack projectileWeapon(ServerPlayer player) {
         ItemStack using = player.getUseItem();

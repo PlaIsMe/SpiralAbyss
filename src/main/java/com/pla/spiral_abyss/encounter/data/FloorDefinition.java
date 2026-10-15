@@ -19,11 +19,10 @@ public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rew
         challenge = Map.copyOf(choices);
     }
 
-    public record Wave(double healthScale, double damageScale,
-                       Map<MobCategory, Integer> categories, List<Enemy> bosses, List<WaveType> waveTypes) {
+    public record Wave(Map<MobCategory, Integer> categories, List<Enemy> bosses, List<WaveType> waveTypes) {
         public Wave { categories = Map.copyOf(categories); bosses = List.copyOf(bosses); waveTypes = List.copyOf(waveTypes); }
-        public Wave(double healthScale, double damageScale, Map<MobCategory, Integer> categories, List<Enemy> bosses) {
-            this(healthScale, damageScale, categories, bosses, List.of());
+        public Wave(Map<MobCategory, Integer> categories, List<Enemy> bosses) {
+            this(categories, bosses, List.of());
         }
         public int minimumEnemies() {
             return waveTypes.isEmpty() ? categories.values().stream().mapToInt(Integer::intValue).sum()
