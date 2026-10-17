@@ -204,5 +204,76 @@
       "item": "alexscaves:magic_conch",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "alexscaves:charting_call": 3, "alexscaves:lasting_morale": 3}
     }
+  ],
+  [
+    "cataclysm:netherite_monstrosity",
+    {
+      "item": "cataclysm:infernal_forge",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:efficiency": 5, "minecraft:fortune": 5}
+    }
+  ],
+  [
+    "cataclysm:ignis",
+    {
+      "item": "cataclysm:the_incinerator",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    }
+  ],
+  [
+    "cataclysm:ancient_remnant",
+    {
+      "item": "cataclysm:wrath_of_the_desert",
+      "enchantment": {"minecraft:power": 5}
+    },
+    {
+      "item": "cataclysm:meat_shredder",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    }
+  ],
+  [
+    "cataclysm:the_harbinger",
+    {
+      "item": "cataclysm:wither_assault_shoulder_weapon"
+    }
+  ],
+  [
+    "cataclysm:ender_guardian",
+    {
+      "item": "cataclysm:gauntlet_of_guard",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    }
+  ],
+  [
+    "cataclysm:the_leviathan",
+    {
+      "environment": ["minecraft:prismarine"],
+      "decoration_environment": ["full_water"]
+    },
+    {
+      "item": "cataclysm:tidal_claws",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    }
+  ],
+  [
+    "cataclysm:maledictus",
+    {
+      "item": "cataclysm:soul_render",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    }
+  ],
+  [
+    "cataclysm:scylla",
+    {
+      "item": "cataclysm:ceraunus",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    },
+    {
+      "item": "cataclysm:astrape",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+    },
+    {
+      "item": "cataclysm:brontes",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:efficiency": 5, "minecraft:fortune": 5}
+    }
   ]
 ]

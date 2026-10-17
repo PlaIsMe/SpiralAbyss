@@ -34,5 +34,15 @@
   ],
   "mutantmonsters:mutant_zombie",
   "mutantmonsters:mutant_enderman",
-  "aquamirae:eel"
+  "aquamirae:eel",
+  "cataclysm:kobolediator",
+  "cataclysm:ender_golem",
+  "cataclysm:amethyst_crab",
+  "cataclysm:coral_golem",
+  "cataclysm:coralssus",
+  "cataclysm:ignited_revenant",
+  "cataclysm:the_prowler",
+  "cataclysm:aptrgangr",
+  "cataclysm:clawdian",
+  "cataclysm:wadjet"
 ]

@@ -7,5 +7,6 @@
   "minecraft:stray",
   "minecraft:piglin",
   "minecraft:piglin_brute",
-  "minecraft:wither_skeleton"
+  "minecraft:wither_skeleton",
+  "cataclysm:drowned_host"
 ]
