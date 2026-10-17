@@ -60,6 +60,7 @@ public final class AbyssEncounters {
             if (Double.isFinite(scale) && scale > 0) event.setAmount((float) (event.getAmount() * scale));
         }
     }
+    // Compatibility for existing saved encounters; new spawns use actual above-cap HP.
     @SubscribeEvent(priority = EventPriority.LOWEST) public static void scaleEffectiveHealth(LivingDamageEvent event) {
         if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)
                 || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;

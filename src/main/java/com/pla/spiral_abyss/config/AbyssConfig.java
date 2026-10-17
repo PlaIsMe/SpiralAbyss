@@ -8,6 +8,7 @@ public final class AbyssConfig {
     public static final ForgeConfigSpec.BooleanValue MIX_MOBS;
     public static final ForgeConfigSpec.IntValue RESET_DAYS;
     public static final ForgeConfigSpec.BooleanValue BROADCAST_RARE_LOOT;
+    public static final ForgeConfigSpec.DoubleValue RARE_REWARD_CHANCE;
     static {
         var builder = new ForgeConfigSpec.Builder();
         RESET_DAYS = builder.comment("Server-wide reset interval in real-world days, including server downtime.",
@@ -19,6 +20,10 @@ public final class AbyssConfig {
         BROADCAST_RARE_LOOT = builder.comment("Announce successful pickups of rare gold-trail Abyss rewards to every online player.",
                 "Controls both the animated reward banner and the chat announcement; read only by the server.")
                 .define("broadcast_rare_loot", true);
+        RARE_REWARD_CHANCE = builder.comment("Base rare reward probability per eligible player and mob-linked item roll in a Golden Chest.",
+                "0.05 = 5%, 0 disables rare rewards, 1 = 100%. Each chest still grants at most ONE rare item.",
+                "Read by the server when generating new rewards; already-opened chest contents remain unchanged.")
+                .defineInRange("rare_reward_chance", 0.05, 0.0, 1.0);
         SPEC = builder.build();
     }
     private AbyssConfig() {}

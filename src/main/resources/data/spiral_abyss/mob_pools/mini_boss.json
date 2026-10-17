@@ -25,7 +25,12 @@
       "chance": 0.4
     }
   ],
-  "mutantmonsters:mutant_creeper",
+  [
+    "mutantmonsters:mutant_creeper",
+    {
+      "suppress_spawned_entities": ["mutantmonsters:creeper_minion_egg"]
+    }
+  ],
   [
     "mutantmonsters:mutant_skeleton",
     {
@@ -33,7 +38,12 @@
     }
   ],
   "mutantmonsters:mutant_zombie",
-  "mutantmonsters:mutant_enderman",
+  [
+    "mutantmonsters:mutant_enderman",
+    {
+      "suppress_spawned_entities": ["mutantmonsters:endersoul_fragment"]
+    }
+  ],
   "aquamirae:eel",
   "cataclysm:kobolediator",
   "cataclysm:ender_golem",

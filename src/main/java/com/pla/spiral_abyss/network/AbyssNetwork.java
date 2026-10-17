@@ -12,7 +12,8 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "17";
+    private static final String VERSION = "19";
+    private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
@@ -44,6 +45,13 @@ public final class AbyssNetwork {
         public FloorPreview(int floor, List<WavePreview> waves) { this(floor, waves, List.of()); }
     }
     public record CloseFloors() {}
+    public record RequestJournal() {}
+    public record OpenJournal(long resetRemainingMillis, long poseSeed, List<BannerBoss> bosses) {
+        public OpenJournal { bosses = List.copyOf(bosses); }
+    }
+    public record BannerBoss(int floor, int wave, ResourceLocation id, List<RewardPreview> rewards) {
+        public BannerBoss { rewards = List.copyOf(rewards); }
+    }
     public record SelectFloor(UUID token, int floor) {}
     public record KeepFloorsOpen(UUID token) {}
     public record RareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
@@ -107,6 +115,56 @@ public final class AbyssNetwork {
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                         () -> () -> com.pla.spiral_abyss.client.overlay.RareRewardOverlay.enqueue(message.player, message.item)))
                 .add();
+        CHANNEL.messageBuilder(RequestJournal.class, 6, NetworkDirection.PLAY_TO_SERVER)
+                .encoder((message, buffer) -> {})
+                .decoder(buffer -> new RequestJournal())
+                .consumerMainThread((message, context) -> {
+                    ServerPlayer sender = context.get().getSender();
+                    if (sender == null || !sender.isAlive() || sender.hasDisconnected()) return;
+                    int now = sender.server.getTickCount();
+                    Integer last = JOURNAL_REQUESTS.get(sender);
+                    if (last != null && now - last < 5) return;
+                    JOURNAL_REQUESTS.put(sender, now);
+                    var parties = AbyssParties.get(sender.server);
+                    if (sender.level().dimension().equals(com.pla.spiral_abyss.world.AbyssDimension.LEVEL)) {
+                        parties.portals().openArenaMenu(sender);
+                        return;
+                    }
+                    CHANNEL.send(PacketDistributor.PLAYER.with(() -> sender),
+                            new OpenJournal(parties.resetRemainingMillis(), parties.cycle().bannerPoseSeed(),
+                                    com.pla.spiral_abyss.encounter.JournalPreviews.bosses(sender)));
+                }).add();
+        CHANNEL.messageBuilder(OpenJournal.class, 7, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(AbyssNetwork::writeJournal)
+                .decoder(AbyssNetwork::readJournal)
+                .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                        () -> () -> com.pla.spiral_abyss.client.handler.JournalClientHandler.open(message)))
+                .add();
+    }
+    private static void writeJournal(OpenJournal message, FriendlyByteBuf buffer) {
+        buffer.writeLong(message.resetRemainingMillis()); buffer.writeLong(message.poseSeed());
+        buffer.writeVarInt(message.bosses().size());
+        for (var boss : message.bosses()) {
+            buffer.writeVarInt(boss.floor()); buffer.writeVarInt(boss.wave()); buffer.writeResourceLocation(boss.id());
+            buffer.writeVarInt(boss.rewards().size());
+            for (var reward : boss.rewards()) {
+                buffer.writeResourceLocation(reward.id()); buffer.writeItem(reward.icon()); buffer.writeDouble(reward.displayChance());
+            }
+        }
+    }
+    private static OpenJournal readJournal(FriendlyByteBuf buffer) {
+        long remaining = buffer.readLong(), poseSeed = buffer.readLong();
+        List<BannerBoss> bosses = new ArrayList<>();
+        for (int b = bounded(buffer, 4); b > 0; b--) {
+            int floor = bounded(buffer, 6), wave = bounded(buffer, 3);
+            ResourceLocation id = buffer.readResourceLocation();
+            List<RewardPreview> rewards = new ArrayList<>();
+            for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--)
+                rewards.add(new RewardPreview(buffer.readResourceLocation(), false, true, List.of(), false,
+                        buffer.readItem(), buffer.readDouble()));
+            bosses.add(new BannerBoss(floor, wave, id, rewards));
+        }
+        return new OpenJournal(remaining, poseSeed, bosses);
     }
     public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside) {
         var progress = AbyssParties.get(player.server).profile(player.getUUID()).progress;
@@ -217,6 +275,7 @@ public final class AbyssNetwork {
         return floors;
     }
     public static void select(UUID token, int floor) { CHANNEL.sendToServer(new SelectFloor(token, floor)); }
+    public static void requestJournal() { CHANNEL.sendToServer(new RequestJournal()); }
     public static void broadcastRareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
         CHANNEL.send(PacketDistributor.ALL.noArg(), new RareReward(player, item));
     }

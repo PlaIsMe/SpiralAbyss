@@ -3,7 +3,6 @@ package com.pla.spiral_abyss.init;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.entity.KeyEntity;
 import com.pla.spiral_abyss.entity.*;
-import com.pla.spiral_abyss.entity.ScrollEntity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -39,7 +38,4 @@ public class EntityInit {
     public static void register(IEventBus eventBus) {
         ENTITY_TYPES.register(eventBus);
     }
-    public static final RegistryObject<EntityType<ScrollEntity>> SCROLL_ENTITY =
-            ENTITY_TYPES.register("scroll_entity", () -> EntityType.Builder.of(ScrollEntity::new, MobCategory.MISC)
-                    .sized(1.0f, 1.2f).build("scroll_entity"));
 }

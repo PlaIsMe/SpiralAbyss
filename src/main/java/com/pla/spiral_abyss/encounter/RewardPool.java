@@ -7,8 +7,12 @@ import java.util.function.Predicate;
 
 /** Optional mods may disappear between datapack authoring and use. Resolve a finite pool first. */
 public final class RewardPool {
+    // Default for parsed definitions; actual server rolls/previews use rareChance().
     public static final double RARE_CHANCE = 0.05;
     public static final int RARE_COUNT = 1;
+    public static double rareChance() {
+        return com.pla.spiral_abyss.config.AbyssConfig.RARE_REWARD_CHANCE.get();
+    }
 
     /** Mob-linked items share one policy; legacy per-entry chance/count fields cannot override it. */
     public static RewardEntry rare(RewardEntry entry) {
@@ -50,12 +54,13 @@ public final class RewardPool {
     }
     /** Keep every participant's bonus chance, but select only one of the successful rolls. */
     public RewardEntry singleBonus(List<RewardEntry> requested, RandomSource random, int eligiblePlayers) {
+        double chance = rareChance();
         RewardEntry selected = null;
         int successes = 0;
         for (int player = 0; player < eligiblePlayers; player++) {
             for (RewardEntry request : requested) {
                 RewardEntry entry = bonus(request, random);
-                if (entry == null || random.nextDouble() >= RARE_CHANCE) continue;
+                if (entry == null || random.nextDouble() >= chance) continue;
                 // Reservoir selection avoids favoring the first boss or the first participant.
                 if (random.nextInt(++successes) == 0) selected = entry;
             }

@@ -64,6 +64,7 @@ public final class PortalParties {
     }
 
     public boolean openArenaMenu(ServerPlayer player) {
+        if (!player.isAlive() || player.isSpectator() || player.hasDisconnected()) return false;
         ArenaSession session = parties.sessionFor(player);
         if (session == null) return false;
         UUID token = UUID.randomUUID();

@@ -25,6 +25,8 @@ public final class AbyssCycle {
     private final Map<String, String> activeLineups = new TreeMap<>();
     private final Map<Integer, List<Challenge>> challenges = new TreeMap<>();
     public boolean initialized() { return pools != null; }
+    /** Persisted cycle identity for visual choices; independent of the moving countdown. */
+    public long bannerPoseSeed() { return startedAt; }
     public MobCatalog.Pools pools() { return pools; }
     public long deadline(int days) { return days <= 0 ? -1 : startedAt + days * DAY_MILLIS; }
     public long remainingMillis(long now, int days) { return days <= 0 ? -1 : Math.max(0, deadline(days) - now); }

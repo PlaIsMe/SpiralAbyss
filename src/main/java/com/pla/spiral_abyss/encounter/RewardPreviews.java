@@ -41,7 +41,8 @@ public final class RewardPreviews {
             tableChances.merge(entry.id(), entry.weight() * entry.chance(), Double::sum);
         }
         Map<PreviewKey, FloorDefinition.RewardEntry> unique = new LinkedHashMap<>();
-        rewards.entries().stream().filter(entry -> entry.chance() > 0)
+        double rareChance = RewardPool.rareChance();
+        rewards.entries().stream().filter(entry -> (entry.rare() ? rareChance : entry.chance()) > 0)
                 .sorted(Comparator.comparingInt(entry -> !entry.item() ? 0 : entry.rare() ? 2 : 1))
                 .forEach(entry -> unique.putIfAbsent(new PreviewKey(entry.id(), entry.item(), entry.rare(), entry.enchantments()), entry));
         List<RewardPreview> result = new ArrayList<>();
@@ -49,7 +50,7 @@ public final class RewardPreviews {
             if (result.size() >= MAX_REWARDS) break;
             if (entry.item()) {
                 if (available(entry.id())) result.add(new RewardPreview(entry.id(), false, entry.rare(), List.of(), false,
-                        RewardItems.stack(entry, 1), entry.rare() ? RewardPool.RARE_CHANCE : 0));
+                        RewardItems.stack(entry, 1), entry.rare() ? rareChance : 0));
             } else if (table(entry.id()) != null) {
                 Contents contents = cache.computeIfAbsent(entry.id(), id -> {
                     Scan scan = new Scan(); scanTable(id, scan, 0);

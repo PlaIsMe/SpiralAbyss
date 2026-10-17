@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss.encounter.challenge;
 
 import com.pla.spiral_abyss.encounter.FloorController;
+import com.pla.spiral_abyss.encounter.MobDeathLifecycle;
 import com.pla.spiral_abyss.encounter.WaveChallenges;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.network.chat.Component;
@@ -40,7 +41,7 @@ public final class ChallengeTracker {
                        boolean playerBurning, boolean mobBurning, Set<ResourceLocation> playerEffects,
                        Set<ResourceLocation> mobEffects, long attributedAt) {}
     private record Damage(Mob mob, Hit hit, LivingDamageEvent event) {}
-    private record Death(Mob mob, Hit hit, LivingDeathEvent event) {}
+    private record Death(Mob mob, Hit hit, LivingDeathEvent event, LivingDamageEvent damageEvent) {}
     private record Impact(Challenge.Type type, ProjectileImpactEvent event) {}
     private static final int DOT_ATTRIBUTION_TICKS = 300;
     private static final EquipmentSlot[] ARMOR = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
@@ -54,6 +55,7 @@ public final class ChallengeTracker {
     private final Map<UUID, Shot> shots = new HashMap<>();
     private final Map<UUID, Use> uses = new HashMap<>();
     private final Map<UUID, Damage> lastHits = new HashMap<>();
+    private final Map<UUID, Damage> delayedHits = new HashMap<>();
     private final List<Damage> damage = new ArrayList<>();
     private final List<LivingDamageEvent> receivedDamage = new ArrayList<>();
     private final List<Impact> impacts = new ArrayList<>();
@@ -130,7 +132,10 @@ public final class ChallengeTracker {
         // administrative removals never increment kill challenges.
         for (Iterator<Death> iterator = deaths.values().iterator(); iterator.hasNext();) {
             Death death = iterator.next();
-            if (death.event.isCanceled()) { iterator.remove(); continue; }
+            if (death.event.isCanceled() || death.damageEvent != null
+                    && (death.damageEvent.isCanceled() || !(death.damageEvent.getAmount() > 0))) {
+                iterator.remove(); continue;
+            }
             if (death.mob.isDeadOrDying() || death.mob.getRemovalReason() == Entity.RemovalReason.KILLED) {
                 if (countedDeaths.add(death.mob.getUUID())) countKill(death.mob.getUUID(), death.hit);
                 iterator.remove();
@@ -164,6 +169,7 @@ public final class ChallengeTracker {
         long now = session.level().getGameTime();
         lastHits.values().removeIf(hit -> now - hit.hit.attributedAt > DOT_ATTRIBUTION_TICKS
                 || hit.event.isCanceled() || !(hit.event.getAmount() > 0));
+        delayedHits.values().removeIf(hit -> !tracked(hit.mob));
     }
     private void updateNoArmor(int index, List<ServerPlayer> combatants) {
         Set<UUID> violations = armorViolations.get(index);
@@ -220,8 +226,13 @@ public final class ChallengeTracker {
         }
     }
     public void damaged(Mob mob, LivingDamageEvent event) {
-        if (!(event.getAmount() > 0) || !tracked(mob)) return;
+        if (!tracked(mob)) return;
         Hit hit = capture(mob, event.getSource());
+        // Mutant Zombie/Creeper retain this exact DamageSource until their final death.
+        // Snapshot now, including an unattributed hit, rather than borrowing a later held item.
+        if (MobDeathLifecycle.delayedMutant(mob))
+            delayedHits.put(mob.getUUID(), new Damage(mob, hit, event));
+        if (!(event.getAmount() > 0)) return;
         if (hit == null) return;
         Damage evidence = new Damage(mob, hit, event);
         lastHits.put(mob.getUUID(), evidence);
@@ -237,8 +248,13 @@ public final class ChallengeTracker {
     }
     public void died(Mob mob, LivingDeathEvent event) {
         if (!tracked(mob)) return;
-        Hit hit = capture(mob, event.getSource());
-        if (hit != null) deaths.put(mob.getUUID(), new Death(mob, hit, event));
+        Damage delayed = delayedHits.get(mob.getUUID());
+        boolean sameHit = delayed != null && delayed.event.getSource() == event.getSource();
+        Hit hit = sameHit ? delayed.hit : capture(mob, event.getSource());
+        if (sameHit && hit != null && session.combatants().stream()
+                .noneMatch(player -> player.getUUID().equals(hit.player))) return;
+        if (hit != null) deaths.put(mob.getUUID(), new Death(mob, hit, event,
+                sameHit ? delayed.event : null));
     }
     private void countKill(UUID mob, Hit hit) {
         for (int index = 0; index < challenges.size(); index++) {

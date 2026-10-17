@@ -14,7 +14,6 @@ public final class ClientModHandler {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(EntityInit.KEY_ENTITY.get(), KeyEntityRenderer::new);
-        event.registerEntityRenderer(EntityInit.SCROLL_ENTITY.get(), ScrollEntityRenderer::new);
         event.registerBlockEntityRenderer(BlockEntityInit.ABYSS_PORTAL.get(), AbyssPortalRenderer::new);
         event.registerEntityRenderer(EntityInit.COPPER_CHEST.get(), LootChestRenderer::copper);
         event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), LootChestRenderer::iron);

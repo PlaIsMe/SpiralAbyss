@@ -117,7 +117,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                 && !id.toString().equals("minecraft:player") && !id.toString().equals("spiral_abyss:key_entity")
                 && !id.toString().equals("spiral_abyss:copper_chest") && !id.toString().equals("spiral_abyss:iron_chest")
                 && !id.toString().equals("spiral_abyss:golden_chest")
-                && !id.toString().equals("spiral_abyss:reward_chest") && !id.toString().equals("spiral_abyss:scroll_entity");
+                && !id.toString().equals("spiral_abyss:reward_chest");
     }
 
     public static Pool parsePool(JsonArray array) {

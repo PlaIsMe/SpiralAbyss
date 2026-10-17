@@ -68,7 +68,7 @@ public final class AbyssMobDrops {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void auxiliaryInteract(PlayerInteractEvent.EntityInteract event) {
         if (suppressAuxiliary(event.getTarget())) {
-            // A datapack reload can enable suppression while old body parts are already loaded.
+            // A datapack reload can enable suppression while old loot carriers are already loaded.
             event.getTarget().discard();
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);

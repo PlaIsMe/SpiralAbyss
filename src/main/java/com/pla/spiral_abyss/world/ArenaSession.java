@@ -308,7 +308,7 @@ public final class ArenaSession {
 
     private boolean furnitureLoaded() {
         BlockPos center = BlockPos.containing(bounds().center());
-        // Side chests and the scroll occupy different chunks from the center key.
+        // Side chests can occupy different chunks from the center key.
         // Wait for the same bounded 3x3 region forced by initializeArena so saved
         // furniture is visible to deduplication before any replacements are created.
         for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++)
@@ -353,28 +353,15 @@ public final class ArenaSession {
             if (profile.progress.payout(tier).chestTicks() >= 0) chestMask |= 1 << (tier - 1);
         boolean showChests = controller.showsChest() && chestMask != 0;
         KeyEntity key = null;
-        ScrollEntity scroll = null;
         Map<Integer, LootChestEntity> chests = new HashMap<>();
         for (ArenaInteractable entity : furniture) {
             if (hide || !host().equals(entity.arenaHost())) { entity.discard(); continue; }
-            if (entity instanceof ScrollEntity candidate && scroll == null) { scroll = candidate; continue; }
             if (entity instanceof KeyEntity candidate && !showChests && key == null) { key = candidate; continue; }
             if (entity instanceof LootChestEntity candidate && showChests && (chestMask & (1 << (candidate.tier() - 1))) != 0
                     && !chests.containsKey(candidate.tier())) { chests.put(candidate.tier(), candidate); continue; }
             entity.discard();
         }
         if (hide) return;
-        if (scroll == null) {
-            scroll = EntityInit.SCROLL_ENTITY.get().create(level);
-            if (scroll != null) {
-                scroll.setArenaHost(host());
-                Vec3 position = bounds().entrance().add(0, 1, 20);
-                scroll.moveTo(position.x, position.y, position.z, 180, 0);
-                scroll.yBodyRot = scroll.yBodyRotO = 180;
-                scroll.yHeadRot = scroll.yHeadRotO = 180;
-                level.addFreshEntity(scroll);
-            }
-        }
         if (!showChests && key == null) {
             key = EntityInit.KEY_ENTITY.get().create(level);
             if (key != null) {

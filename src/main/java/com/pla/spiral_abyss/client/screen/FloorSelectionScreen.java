@@ -33,6 +33,7 @@ public final class FloorSelectionScreen extends Screen {
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
             screen.replied = true; screen.minecraft.setScreen(null);
         }
+        else if (Minecraft.getInstance().screen instanceof AbyssJournalScreen) Minecraft.getInstance().setScreen(null);
     }
     public FloorSelectionScreen(AbyssNetwork.OpenFloors state) {
         super(Component.translatable("screen.spiral_abyss.floors")); this.state = state;

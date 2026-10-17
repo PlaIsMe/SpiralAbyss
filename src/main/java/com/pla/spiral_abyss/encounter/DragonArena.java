@@ -39,8 +39,9 @@ public final class DragonArena {
     }
     public static boolean finished(Mob mob, ServerLevel level) {
         if (mob.isRemoved() || mob.level() != level || level.getEntity(mob.getUUID()) != mob) return true;
-        // Vanilla dragon death lasts 200 ticks after landing. Keep its entity/tickets until removal.
-        return !(mob instanceof EnderDragon) && (mob.isDeadOrDying() || !mob.isAlive());
+        // Keep dragons and delayed mutant deaths (including zombie revivals) in the wave
+        // until their own lifecycle removes them. Their death events may arrive much later.
+        return !MobDeathLifecycle.waitsForRemoval(mob) && (mob.isDeadOrDying() || !mob.isAlive());
     }
     public static BlockPos node(BlockPos origin, int index) {
         if (index < 0 || index >= 24) throw new IllegalArgumentException("Dragon node index must be 0..23");

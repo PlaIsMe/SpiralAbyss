@@ -326,10 +326,6 @@ public final class AbyssParties {
         }
         return true;
     }
-    public boolean openScroll(ServerPlayer player, ScrollEntity scroll) {
-        ArenaSession session = sessionFor(player);
-        return validInteraction(player, scroll, session) && !session.controller().active() && portals.openArenaMenu(player);
-    }
     public UUID followedHost(ServerPlayer player) {
         ArenaSession session = sessionFor(player);
         if (session != null && session.isLeader(player) && !session.host().equals(player.getUUID())) return null;
