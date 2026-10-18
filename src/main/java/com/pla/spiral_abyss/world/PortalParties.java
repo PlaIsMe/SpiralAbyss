@@ -60,7 +60,7 @@ public final class PortalParties {
         selections.put(player.getUUID(), new Selection(token, portal.portalId(), player.getUUID(), player.level().dimension(),
                 frame.anchor(), frame.returnPosition(player), server.getTickCount() + MENU_TIMEOUT_TICKS));
         AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), floorChoices(player),
-                126, false);
+                126, false, frame.anchor());
     }
 
     public boolean openArenaMenu(ServerPlayer player) {

@@ -151,6 +151,9 @@
   "ui.spiral_abyss.help.curve.description": "Use four inward-facing curves: bottom-half curves above, top-half curves below. Find these frame pieces in Ruined Abyss Gate loot chests.",
   "ui.spiral_abyss.help.activation": "Activation Block",
   "ui.spiral_abyss.help.activation.description": "Found in End City loot chests and as a rare drop on Abyss floors 5 and 6. Use another Activation Block on an active portal to reset your personal rewards.",
+  "screen.spiral_abyss.entering": "Entering the Spiral Abyss",
+  "subtitles.spiral_abyss.portal.entry": "Abyss portal swirls",
+  "screen.spiral_abyss.entry_controls": "Space / Enter: Skip    Esc: Cancel",
   "ui.spiral_abyss.help.overview": "Build an Abyss Gate",
   "ui.spiral_abyss.help.overview.description": "Build this 5 × 6 gate in the Overworld. Keep its opening empty and dry. Hover over any block or label to learn more."
 }

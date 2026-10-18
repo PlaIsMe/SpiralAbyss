@@ -30,6 +30,7 @@ public class SpiralAbyss {
         LootInit.MODIFIERS.register(modEventBus);
         ItemInit.ITEMS.register(modEventBus);
         CreativeTabInit.TABS.register(modEventBus);
+        SoundInit.SOUNDS.register(modEventBus);
         AbyssNetwork.register();
         MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
     }

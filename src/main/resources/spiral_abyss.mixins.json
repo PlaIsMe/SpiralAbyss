@@ -24,6 +24,9 @@
     "AbyssDragonTakeoffMixin",
     "AbyssCrystalMixin"
   ],
+  "client": [
+    "PortalEntryCameraMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

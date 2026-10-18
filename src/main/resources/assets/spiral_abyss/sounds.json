@@ -1,0 +1,8 @@
+{
+  "portal.entry": {
+    "subtitle": "subtitles.spiral_abyss.portal.entry",
+    "sounds": [
+      { "name": "spiral_abyss:portal/entry", "preload": true }
+    ]
+  }
+}

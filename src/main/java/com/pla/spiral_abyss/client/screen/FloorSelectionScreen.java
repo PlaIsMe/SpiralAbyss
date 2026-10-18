@@ -30,6 +30,7 @@ public final class FloorSelectionScreen extends Screen {
     private RewardPreviewPanel rewardPanel;
 
     public static void closeForReset() {
+        com.pla.spiral_abyss.client.portal.PortalEntryAnimation.closeForReset();
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
             screen.replied = true; screen.minecraft.setScreen(null);
         }

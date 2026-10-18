@@ -63,7 +63,6 @@ Third-party components listed below remain subject to their respective licenses.
 ## Credits
 
 - Earth button artwork adapted from [earth-cube](https://sketchfab.com/3d-models/earth-cube-ed594f0b3a5b4bcc947561af91a9742e) by madexc, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was rendered for the menu button.
-- Scroll entity model adapted from [Minecraft style scroll | Blockbench](https://sketchfab.com/3d-models/minecraft-style-scroll-blockbench-71ad2da73cd9409a81c8e17721fc797e) by 3DartSam (samirdevuz), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was adapted for the animated entity.
 - Broadcast UI textures and portions of the animation/rendering code were adapted from Fancy Toasts by Bivrik, licensed under the MIT License.
 
 ### Fancy Toasts — MIT License

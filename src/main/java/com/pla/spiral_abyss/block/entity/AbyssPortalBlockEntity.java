@@ -67,6 +67,7 @@ public final class AbyssPortalBlockEntity extends BlockEntity {
         }
     }
     @Override public AABB getRenderBoundingBox() {
-        return new AABB(frame().at(-AbyssPortalFrame.RADIUS, 0), frame().at(AbyssPortalFrame.RADIUS, AbyssPortalFrame.TOP).offset(1, 1, 1));
+        return new AABB(frame().at(-AbyssPortalFrame.RADIUS, 0), frame().at(AbyssPortalFrame.RADIUS, AbyssPortalFrame.TOP).offset(1, 1, 1))
+                .inflate(1, .5, 1);
     }
 }

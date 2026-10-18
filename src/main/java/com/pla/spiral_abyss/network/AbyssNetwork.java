@@ -12,13 +12,17 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "19";
+    private static final String VERSION = "20";
     private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
-                             long resetRemainingMillis, List<FloorPreview> floors) {
+                             long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal) {
         public OpenFloors { floors = List.copyOf(floors); }
+        public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
+                          long resetRemainingMillis, List<FloorPreview> floors) {
+            this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, null);
+        }
     }
     public record EnemyPreview(ResourceLocation id, int count) {}
     public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
@@ -65,16 +69,10 @@ public final class AbyssNetwork {
     private AbyssNetwork() {}
     public static void register() {
         CHANNEL.messageBuilder(OpenFloors.class, 0, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder((message, buffer) -> {
-                    buffer.writeUUID(message.token); buffer.writeVarInt(message.claimed); buffer.writeVarInt(message.unlocked);
-                    buffer.writeVarInt(message.selectable); buffer.writeVarInt(message.visible);
-                    buffer.writeBoolean(message.inside); buffer.writeLong(message.resetRemainingMillis);
-                    writePreviews(buffer, message.floors);
-                })
-                .decoder(buffer -> new OpenFloors(buffer.readUUID(), buffer.readVarInt(), buffer.readVarInt(),
-                        buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer)))
+                .encoder(AbyssNetwork::writeFloors)
+                .decoder(AbyssNetwork::readFloors)
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.screen.FloorSelectionScreen.open(message)))
+                        () -> () -> com.pla.spiral_abyss.client.portal.PortalEntryAnimation.open(message)))
                 .add();
         CHANNEL.messageBuilder(SelectFloor.class, 1, NetworkDirection.PLAY_TO_SERVER)
                 .encoder((message, buffer) -> { buffer.writeUUID(message.token); buffer.writeVarInt(message.floor); })
@@ -141,6 +139,18 @@ public final class AbyssNetwork {
                         () -> () -> com.pla.spiral_abyss.client.handler.JournalClientHandler.open(message)))
                 .add();
     }
+    private static void writeFloors(OpenFloors message, FriendlyByteBuf buffer) {
+        buffer.writeUUID(message.token); buffer.writeVarInt(message.claimed); buffer.writeVarInt(message.unlocked);
+        buffer.writeVarInt(message.selectable); buffer.writeVarInt(message.visible);
+        buffer.writeBoolean(message.inside); buffer.writeLong(message.resetRemainingMillis);
+        writePreviews(buffer, message.floors);
+        buffer.writeNullable(message.entryPortal, FriendlyByteBuf::writeBlockPos);
+    }
+    private static OpenFloors readFloors(FriendlyByteBuf buffer) {
+        return new OpenFloors(buffer.readUUID(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
+                buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer),
+                buffer.readNullable(FriendlyByteBuf::readBlockPos));
+    }
     private static void writeJournal(OpenJournal message, FriendlyByteBuf buffer) {
         buffer.writeLong(message.resetRemainingMillis()); buffer.writeLong(message.poseSeed());
         buffer.writeVarInt(message.bosses().size());
@@ -167,11 +177,15 @@ public final class AbyssNetwork {
         return new OpenJournal(remaining, poseSeed, bosses);
     }
     public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside) {
+        openFloors(player, token, claimed, selectable, visible, inside, null);
+    }
+    public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside,
+                                  net.minecraft.core.BlockPos entryPortal) {
         var progress = AbyssParties.get(player.server).profile(player.getUUID()).progress;
         int unlocked = 0;
         for (int floor = 1; floor <= 6; floor++) if (progress.unlocked(floor)) unlocked |= 1 << floor;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenFloors(token, claimed, unlocked, selectable, visible, inside,
-                AbyssParties.get(player.server).resetRemainingMillis(), previews(player)));
+                AbyssParties.get(player.server).resetRemainingMillis(), previews(player), entryPortal));
     }
     /** Preview uses the same persisted cycle lineups as spawning; the client never rolls mobs. */
     private static List<FloorPreview> previews(ServerPlayer player) {
