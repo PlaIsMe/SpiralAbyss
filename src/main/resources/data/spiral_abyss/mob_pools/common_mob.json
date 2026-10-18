@@ -17,5 +17,12 @@
   "cataclysm:deepling",
   "cataclysm:deepling_angler",
   "cataclysm:the_watcher",
-  "cataclysm:drowned_host"
+  "cataclysm:drowned_host",
+  "block_factorys_bosses:soul_knight_wither_skeleton",
+  "block_factorys_bosses:flaming_skeleton_guard_sword",
+  "block_factorys_bosses:pirate_rook",
+  "block_factorys_bosses:dragon_guard_sword",
+  "block_factorys_bosses:flaming_skeleton_guard_fireball",
+  "block_factorys_bosses:crossbow_pirate",
+  "block_factorys_bosses:soul_skeleton"
 ]

@@ -108,10 +108,10 @@ final class BannerBossRenderer {
         try {
             if (portrait == null) {
                 graphics.flush();
-                for (int attempt = 0; attempt < 4; attempt++) {
+                for (int attempt = 0; attempt < 10; attempt++) {
                     portrait = capture(graphics, entity, (float) Math.pow(.55, attempt));
                     Crop crop = crops.get(portrait.getColorTextureId());
-                    if (attempt == 3 || (crop.x() > 0 && crop.y() > 0
+                    if (attempt == 9 || (crop.x() > 0 && crop.y() > 0
                             && crop.x() + crop.width() < portrait.width
                             && crop.y() + crop.height() < portrait.height)) break;
                     destroyPortrait(portrait);
@@ -160,13 +160,18 @@ final class BannerBossRenderer {
                 float modelHeight = dragon ? 9F : Math.max(1F, entity.getBbHeight() * 1.22F);
                 float scale = zoom * .65F * Math.min((pixelWidth - 24F) / modelWidth, (pixelHeight - 24F) / modelHeight);
                 PoseStack modelPose = new PoseStack();
-                modelPose.translate(pixelWidth / 2F, pixelHeight * (dragon ? 0.54F : 0.82F), -11000);
+                modelPose.translate(pixelWidth / 2F, pixelHeight * (dragon || OptionalGeoPreview.supports(entity) ? 0.54F : 0.82F), -11000);
                 modelPose.scale(scale, scale, -scale);
                 modelPose.mulPose(new Quaternionf().rotateZ((float) Math.PI)
                         .rotateY((float) Math.toRadians(dragon ? 150 : -16)));
                 // Direct registered renderer avoids world shadows and changes to shadow settings.
-                RenderSystem.runAsFancy(() -> dispatcher.getRenderer(entity).render(entity, 0F, 1F,
-                        modelPose, graphics.bufferSource(), 15728880));
+                RenderSystem.runAsFancy(() -> {
+                    if (!OptionalGeoPreview.render(entity, entity.getUUID().getMostSignificantBits(),
+                            modelPose, graphics.bufferSource(), 15728880)) {
+                        dispatcher.getRenderer(entity).render(entity, 0F, 1F,
+                                modelPose, graphics.bufferSource(), 15728880);
+                    }
+                });
                 graphics.flush();
                 crops.put(target.getColorTextureId(), BannerPortrait.finish(target));
                 success = true;

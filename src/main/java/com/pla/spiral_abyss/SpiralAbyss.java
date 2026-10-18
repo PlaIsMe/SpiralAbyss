@@ -27,7 +27,6 @@ public class SpiralAbyss {
         EntityInit.ENTITY_TYPES.register(modEventBus);
         BlockInit.BLOCKS.register(modEventBus);
         BlockEntityInit.BLOCK_ENTITIES.register(modEventBus);
-        LootInit.MODIFIERS.register(modEventBus);
         ItemInit.ITEMS.register(modEventBus);
         CreativeTabInit.TABS.register(modEventBus);
         SoundInit.SOUNDS.register(modEventBus);

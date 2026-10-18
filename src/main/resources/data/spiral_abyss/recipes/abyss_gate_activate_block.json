@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    " D ",
+    "DLD",
+    " D "
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond" },
+    "L": { "item": "minecraft:lodestone" }
+  },
+  "result": {
+    "item": "spiral_abyss:abyss_gate_activate_block",
+    "count": 1
+  }
+}

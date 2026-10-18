@@ -275,5 +275,61 @@
       "item": "cataclysm:brontes",
       "enchantment": {"minecraft:unbreaking": 5, "minecraft:efficiency": 5, "minecraft:fortune": 5}
     }
+  ],
+  [
+    "block_factorys_bosses:infernal_dragon",
+    {
+      "item": "block_factorys_bosses:dragon_bones_chestplate",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 10, "minecraft:thorns": 10}
+    },
+    {
+      "item": "block_factorys_bosses:dragon_bones_leggings",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 10, "minecraft:thorns": 10}
+    }
+  ],
+  [
+    "block_factorys_bosses:underworld_knight",
+    {
+      "item": "block_factorys_bosses:knight_sword",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping": 3, "minecraft:fire_aspect": 2}
+    }
+  ],
+
+  [
+    "block_factorys_bosses:yeti",
+    {
+      "environment": ["minecraft:dirt"],
+      "decoration_environment": ["snow_dirt"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "block_factorys_bosses:ice_gauntlet",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "block_factorys_bosses:sandworm",
+    {
+      "environment": ["minecraft:sand"],
+      "decoration_environment": ["minecraft:dead_bush"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "block_factorys_bosses:sandworm_gauntlet",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "block_factorys_bosses:kraken",
+    {
+      "item": "block_factorys_bosses:undying_tentacle",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    },
+    {
+      "item": "block_factorys_bosses:kraken_trident",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:loyalty": 3}
+    }
   ]
 ]

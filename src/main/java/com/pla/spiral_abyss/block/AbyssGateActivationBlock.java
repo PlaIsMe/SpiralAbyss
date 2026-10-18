@@ -3,19 +3,15 @@ package com.pla.spiral_abyss.block;
 import net.minecraft.core.*;
 import com.pla.spiral_abyss.block.entity.AbyssPortalBlockEntity;
 import com.pla.spiral_abyss.init.BlockEntityInit;
-import com.pla.spiral_abyss.init.ItemInit;
 import com.pla.spiral_abyss.world.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.*;
 import net.minecraft.sounds.*;
-import net.minecraft.world.*;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.*;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.*;
@@ -49,25 +45,6 @@ public final class AbyssGateActivationBlock extends HorizontalDirectionalBlock i
             if (placer instanceof ServerPlayer player)
                 player.sendSystemMessage(Component.translatable("message.spiral_abyss.portal_activated"));
         }
-    }
-    @Override public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        ItemStack held = player.getItemInHand(hand);
-        if (!held.is(ItemInit.ABYSS_GATE_ACTIVATE_BLOCK_ITEM.get()) || player.isSpectator()) return InteractionResult.PASS;
-        // Consume the interaction even on an invalid controller: do not accidentally place another block.
-        if (level.isClientSide) return InteractionResult.SUCCESS;
-        if (!level.dimension().equals(Level.OVERWORLD)) return message(player, "portal_overworld_only");
-        if (player.getCooldowns().isOnCooldown(held.getItem())) return InteractionResult.FAIL;
-        var frame = AbyssPortalFrame.fromActivation(pos, state);
-        if (!frame.active(level)) return message(player, "invalid_portal");
-        if (!AbyssParties.get(((ServerPlayer) player).server).reset((ServerPlayer) player)) return InteractionResult.FAIL;
-        player.getCooldowns().addCooldown(held.getItem(), 20);
-        if (!player.getAbilities().instabuild) held.shrink(1);
-        level.playSound(null, pos, SoundEvents.END_PORTAL_SPAWN, SoundSource.BLOCKS, 0.7F, 1F);
-        return InteractionResult.CONSUME;
-    }
-    private static InteractionResult message(Player player, String key) {
-        player.displayClientMessage(Component.translatable("message.spiral_abyss." + key), true);
-        return InteractionResult.FAIL;
     }
     @Override public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
         if (!level.isClientSide && (!state.is(replacement.getBlock()) || state.getValue(FACING) != replacement.getValue(FACING)))

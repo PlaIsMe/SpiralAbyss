@@ -16,16 +16,17 @@ import java.util.*;
 final class EnemyPreviewRenderer {
     private final Map<ResourceLocation, LivingEntity> entities = new HashMap<>();
     private final Set<ResourceLocation> unavailable = new HashSet<>();
+    private final BannerBossRenderer geoPortraits = new BannerBossRenderer(0);
     Component name(ResourceLocation id) {
         var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
         return type == null ? Component.literal(id.toString()) : type.getDescription();
     }
-    void clear() { entities.clear(); unavailable.clear(); }
+    void clear() { entities.clear(); unavailable.clear(); geoPortraits.clear(); }
     void render(GuiGraphics graphics, ResourceLocation id, int x, int y, int width, int height) {
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || unavailable.contains(id)) { fallback(graphics, x, y, width, height); return; }
         LivingEntity entity = entities.get(id);
-        if (entity == null) {
+        if (entity == null || entity.level() != client.level) {
             try {
                 var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
                 var created = type == null ? null : type.create(client.level);
@@ -36,6 +37,12 @@ final class EnemyPreviewRenderer {
                 unavailable.add(id); LogUtils.getLogger().warn("Cannot create Abyss enemy preview {}", id, exception);
                 fallback(graphics, x, y, width, height); return;
             }
+        }
+        // Animated mod models can extend far beyond their collision boxes. Capture their
+        // initialized pose once and fit its visible silhouette into the wave card.
+        if (OptionalGeoPreview.supports(entity)) {
+            geoPortraits.render(graphics, id, x, y, width, height);
+            return;
         }
         float modelWidth = Math.max(0.5F, entity.getBbWidth() * 1.35F), modelHeight = Math.max(0.5F, entity.getBbHeight() * 1.15F);
         float scale = Math.min((width - 4) / modelWidth, (height - 4) / modelHeight);

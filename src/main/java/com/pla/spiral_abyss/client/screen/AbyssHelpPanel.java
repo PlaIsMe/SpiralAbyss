@@ -85,7 +85,10 @@ public final class AbyssHelpPanel {
             }
             // Label leaders and details sit in front of the 3D geometry.
             graphics.pose().translate(0, 0, 250);
-            for (Kind kind : Kind.values()) label(graphics, kind, hovered == kind);
+            for (Kind kind : Kind.values()) {
+                if (hovered != Kind.ACTIVATION || kind != Kind.VERTICAL) label(graphics, kind, hovered == kind);
+            }
+            if (hovered == Kind.ACTIVATION) ActivationRecipePreview.render(graphics);
             details(graphics, hovered);
         } finally {
             graphics.pose().popPose();
@@ -148,7 +151,7 @@ public final class AbyssHelpPanel {
         graphics.drawString(font, title, 0, 0, 0xFFF3E4C5, false);
         graphics.pose().popPose();
         // Find the largest size that fits every translated line into the card.
-        // Wrapping is recalculated at each size; no suffix or reset instruction is discarded.
+        // Wrapping is recalculated at each size so all translated instructions remain visible.
         float low = 0, high = 1.25F;
         int spacing = font.lineHeight + 2;
         for (int i = 0; i < 16; i++) {
