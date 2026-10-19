@@ -25,6 +25,7 @@ public class ModEventBusClientEvents {
     @SubscribeEvent
     public static void registerLayer(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(ModModelLayers.KEY_ENTITY_LAYER, KeyEntityModel::createBodyLayer);
+        event.registerLayerDefinition(ExperienceChestModel.LAYER_LOCATION, ExperienceChestModel::createBodyLayer);
         event.registerLayerDefinition(CopperChestModel.LAYER_LOCATION,
                 CopperChestModel::createBodyLayer);
         event.registerLayerDefinition(IronChestModel.LAYER_LOCATION,

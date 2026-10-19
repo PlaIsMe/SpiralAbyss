@@ -19,5 +19,6 @@ public final class ClientModHandler {
         event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), LootChestRenderer::iron);
         event.registerEntityRenderer(EntityInit.GOLDEN_CHEST.get(), LootChestRenderer::golden);
         event.registerEntityRenderer(EntityInit.CHEST_LOOT.get(), ChestLootRenderer::new);
+        event.registerEntityRenderer(EntityInit.EXPERIENCE_CHEST.get(), ExperienceChestRenderer::new);
     }
 }

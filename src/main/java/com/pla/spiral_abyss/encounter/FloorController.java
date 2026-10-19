@@ -48,6 +48,7 @@ public final class FloorController {
     private int waveIndex;
     private int delayTicks;
     private int waveEnemies;
+    private boolean endlessLooted;
     private final int[] attemptStars = new int[WaveChallenges.WAVE_COUNT];
     private List<Challenge> challenges = List.of();
     private ChallengeTracker challengeTracker;
@@ -64,13 +65,14 @@ public final class FloorController {
         this.catalog = catalog;
         this.bossEnvironments = new BossEnvironments(level, session.bounds(), session.host());
         this.state = progress.pending() != null ? State.COMPLETED : State.READY;
+        if (session.endless()) this.state = State.READY;
         this.revision = catalog.get().revision();
     }
 
     public State state() { return state; }
     public BossEnvironments bossEnvironments() { return bossEnvironments; }
-    public int currentFloor() { return progress.floor(); }
-    public int currentWave() { return waveIndex + 1; }
+    public int currentFloor() { return session.endless() ? EndlessWaves.FLOOR : progress.floor(); }
+    public int currentWave() { return session.endless() && !active() ? session.profile().endlessWave : waveIndex + 1; }
     public int remainingTicks() { return clock.remainingTicks(); }
     public int remainingEnemies() { return stages.enemies().size(); }
     public List<Mob> enemies() { return stages.enemies(); }
@@ -78,7 +80,12 @@ public final class FloorController {
     public List<ChallengeTracker.Progress> challengeProgress() {
         return challengeTracker == null ? List.of() : challengeTracker.progress();
     }
+    public boolean waitingForExperience() { return session.endless() && session.profile().endlessCheckpoint > 0 && !active(); }
+    public boolean showsEndlessChest() { return waitingForExperience() || session.endless() && endlessLooted && state == State.BETWEEN_WAVES; }
     public AbyssNetwork.EncounterStatus hudStatus(ServerPlayer viewer) {
+        if (session.endless()) return new AbyssNetwork.EncounterStatus(true, !active(), EndlessWaves.FLOOR,
+                currentWave(), stages.removed(), waveEnemies, active() ? clock.remainingSeconds() : 0,
+                state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, List.of());
         if (active()) {
             var views = challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList();
             return new AbyssNetwork.EncounterStatus(true, false, currentFloor(), currentWave(), stages.removed(), waveEnemies,
@@ -139,7 +146,7 @@ public final class FloorController {
         }
     }
     public UUID runId() { return runId; }
-    public boolean showsChest() { return state == State.COMPLETED || progress.pending() != null; }
+    public boolean showsChest() { return session.endless() ? waitingForExperience() : state == State.COMPLETED || progress.pending() != null; }
 
     public boolean start(ServerPlayer player, Vec3 keyPosition) {
         refreshDefinitions();
@@ -148,6 +155,7 @@ public final class FloorController {
         if (active()) return message(player, "already_running");
         if (showsChest() && session.looting()) return message(player, "already_completed");
         if (level.getDifficulty() == Difficulty.PEACEFUL) return message(player, "peaceful");
+        if (session.endless()) return startEndless(player);
         if (!session.partyCanEnterFloor(player, progress.floor())) return false;
         floor = catalog.get().floors().get(progress.floor());
         if (floor == null) return message(player, "missing_floor", progress.floor());
@@ -188,6 +196,10 @@ public final class FloorController {
 
     public void tick() {
         refreshDefinitions();
+        if (waitingForExperience() && session.profile().endlessPayout.active()) {
+            tickEndlessPayout();
+            return;
+        }
         if (!active()) return;
         ServerPlayer target = session.combatants().stream().findFirst().orElse(null);
         if (target == null) { fail("abandoned"); return; }
@@ -196,14 +208,16 @@ public final class FloorController {
             if (--delayTicks <= 0) {
                 // A lingering attack can defeat a teammate during the countdown.
                 session.reviveForNextWave();
-                waveIndex++; startWave(target);
+                waveIndex++;
+                if (session.endless() && !session.captureEndlessWave()) { fail("host_required"); return; }
+                startWave(target);
             }
             return;
         }
         // Spend every combat tick, including the tick of the final kill. A wave at
         // its five-minute deadline fails even when the final removal is observed now.
         if (clock.tick(true)) { fail("time_up"); return; }
-        challengeTracker.update(clock.elapsedTicks());
+        if (challengeTracker != null) challengeTracker.update(clock.elapsedTicks());
         // Only the current stage's captured entity identities can advance this encounter.
         try { bossEnvironments.tick(); }
         catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
@@ -228,6 +242,7 @@ public final class FloorController {
                 return;
             }
             LogUtils.getLogger().debug("Wave type {} complete; floor {} wave {} complete", selectedWaveType, currentFloor(), currentWave());
+            if (session.endless()) { completeEndlessWave(); return; }
             if (waveIndex < attemptStars.length) attemptStars[waveIndex] = challengeTracker.stars();
             if (waveIndex + 1 == floor.waves().size()) complete();
             else {
@@ -240,14 +255,26 @@ public final class FloorController {
 
     private boolean startWave(ServerPlayer target) {
         try {
-            var wave = floor.waves().get(waveIndex);
-            stages.prepare(session.cycleLineup(currentFloor(), currentWave(), wave));
-            selectedWaveType = session.selectedWaveType(currentFloor(), currentWave(), wave);
+            if (session.endless()) {
+                endlessLooted = false;
+                int wave = waveIndex + 1;
+                session.profile().saveEndlessWave(wave);
+                var selected = EndlessWaves.select(wave, session.endlessSeed(wave), FloorCatalog.waveTypes().values(),
+                        MobCatalog.snapshot(), equipment);
+                stages.prepare(selected.enemies()); selectedWaveType = selected.type();
+                gear = com.pla.spiral_abyss.config.GearConfig.loadEndless(wave);
+                partyScale = FloorRewards.partyScale(session.participants().size());
+                runId = UUID.randomUUID();
+            } else {
+                var wave = floor.waves().get(waveIndex);
+                stages.prepare(session.cycleLineup(currentFloor(), currentWave(), wave));
+                selectedWaveType = session.selectedWaveType(currentFloor(), currentWave(), wave);
+            }
             waveEquipment = new WaveEquipment(equipment, gear, level.random);
             waveEnemies = stages.total();
             spawnStage(target);
             // Spawning is synchronous: capture starting equipment before the first combat tick.
-            challengeTracker = new ChallengeTracker(session, challenges, waveEnemies);
+            challengeTracker = session.endless() ? null : new ChallengeTracker(session, challenges, waveEnemies);
             clock.start(WaveChallenges.TIME_LIMIT_TICKS);
             state = State.RUNNING;
             session.refreshDisplay();
@@ -263,12 +290,72 @@ public final class FloorController {
         stages.advance(composition -> {
             LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} starting: {}", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size(), composition);
             var created = spawner.spawn(level, center, target, composition, runId,
-                    waveEquipment, currentFloor(), partyScale, mobScaling);
+                    waveEquipment, currentFloor(), partyScale, mobScaling, session.endless() ? waveIndex + 1 : 0);
             created.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
             created.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
             return created;
         });
         bossEnvironments.begin(stages.enemies());
+    }
+
+    private boolean startEndless(ServerPlayer player) {
+        if (waitingForExperience()) return message(player, "already_completed");
+        if (!session.captureParty()) return message(player, "host_required");
+        equipment = MobCatalog.equipment(); mobScaling = MobCatalog.scalingSnapshot();
+        encounteredMobs.clear(); challenges = List.of();
+        waveIndex = session.profile().endlessWave - 1; delayTicks = 0;
+        return startWave(player);
+    }
+    private void completeEndlessWave() {
+        bossHealthBars.clear();
+        session.finishAttempt();
+        int wave = waveIndex + 1;
+        session.profile().saveEndlessWave(wave);
+        if (wave % 10 == 0 && wave > session.profile().endlessRewardedWave) {
+            session.profile().saveEndlessCheckpoint(wave);
+            state = State.COMPLETED;
+            runId = null;
+        } else {
+            state = State.BETWEEN_WAVES;
+            delayTicks = WaveChallenges.TRANSITION_TICKS;
+        }
+        session.refreshDisplay();
+    }
+    public boolean openEndlessCheckpoint(ServerPlayer player) {
+        if (!waitingForExperience() || !session.contains(player) || !player.isAlive() || player.isSpectator()
+                || session.profile().endlessPayout.active()
+                || (!session.host().equals(player.getUUID()) && !session.participants().contains(player.getUUID()))
+                || session.players().stream().noneMatch(p -> p.getUUID().equals(session.host()) && p.isAlive() && !p.isSpectator())) return false;
+        // Save the exact roll before animation; reentry resumes without rerolling or paying twice.
+        int wave = session.profile().endlessCheckpoint;
+        int experience = wave > session.profile().endlessRewardedWave ? EndlessWaves.experience(wave, level.random) : 0;
+        session.profile().markEndlessRewarded(wave);
+        session.profile().endlessPayout.begin(new FloorRewards.Bundle(List.of(), experience));
+        session.refreshDisplay();
+        return true;
+    }
+    private void tickEndlessPayout() {
+        // An offline owner's payout pauses, just as it does after the room is released.
+        if (session.players().stream().noneMatch(p -> p.getUUID().equals(session.host()) && p.isAlive() && !p.isSpectator())) return;
+        var payout = session.profile().endlessPayout;
+        payout.tickOpening();
+        if (payout.chestTicks() < com.pla.spiral_abyss.entity.LootChestEntity.OPEN_TICKS
+                + com.pla.spiral_abyss.entity.LootChestEntity.DROP_INTERVAL_TICKS) {
+            session.refreshDisplay();
+            return;
+        }
+        int experience = payout.pending().experience();
+        payout.complete();
+        int wave = session.profile().endlessCheckpoint;
+        session.profile().saveEndlessCheckpoint(0);
+        FloorRewards.releaseExperience(level, center, experience);
+        waveIndex = wave - 1;
+        equipment = MobCatalog.equipment(); mobScaling = MobCatalog.scalingSnapshot();
+        if (!session.captureParty()) { state = State.READY; session.refreshDisplay(); return; }
+        endlessLooted = true;
+        runId = UUID.randomUUID();
+        state = State.BETWEEN_WAVES; delayTicks = WaveChallenges.TRANSITION_TICKS;
+        session.refreshDisplay();
     }
 
     private void complete() {
@@ -307,7 +394,7 @@ public final class FloorController {
     public void close() {
         cleanup();
         session.finishAttempt();
-        state = progress.pending() != null ? State.COMPLETED : State.READY;
+        state = !session.endless() && progress.pending() != null ? State.COMPLETED : State.READY;
         readyHud = null;
         readyChallenges = List.of();
     }
@@ -315,6 +402,7 @@ public final class FloorController {
     public void defeated() { if (active()) fail("party_defeated"); }
 
     private void cleanup() {
+        endlessLooted = false;
         bossHealthBars.clear();
         bossEnvironments.clear();
         stages.clear(Entity::discard);

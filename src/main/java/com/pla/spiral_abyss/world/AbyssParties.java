@@ -23,6 +23,7 @@ import java.util.*;
 
 /** Server-thread portal party management. Floor changes reuse a slot; empty parties release it. */
 public final class AbyssParties {
+    public static final int ENDLESS_FLOOR = 7;
     public static final int DIMENSION_SIZE = 2304;
     private static final String RETURN = "spiral_abyss_return", VISIT = "spiral_abyss_visit_host", VISIT_FLOOR = "spiral_abyss_visit_floor",
             RETURN_REQUIRED = "spiral_abyss_return_required";
@@ -117,7 +118,7 @@ public final class AbyssParties {
     public AbyssPlayers.Profile profile(UUID player) { return data.profile(player); }
     public void bindPortal(UUID host, UUID portal) { data.profile(host).portal = portal; data.setDirty(); }
     public boolean checkUnlocked(ServerPlayer recipient, ServerPlayer player, int floor) {
-        if (data.profile(player.getUUID()).progress.unlocked(floor)) return true;
+        if (floor == ENDLESS_FLOOR || data.profile(player.getUUID()).progress.unlocked(floor)) return true;
         recipient.sendSystemMessage(Component.translatable("message.spiral_abyss.floor_locked_player", player.getDisplayName(), floor));
         return false;
     }
@@ -181,6 +182,7 @@ public final class AbyssParties {
         return session;
     }
     public boolean enterOwn(ServerPlayer player) {
+        if (profile(player.getUUID()).endlessMode) return enterFloor(player, ENDLESS_FLOOR);
         var progress = data.profile(player.getUUID()).progress;
         int floor = progress.pendingFloor() != 0 ? progress.pendingFloor() : progress.floor();
         if (!progress.unlocked(floor)) floor = 1;
@@ -192,6 +194,11 @@ public final class AbyssParties {
         if (host.equals(player.getUUID())) {
             if (!enter(player, host)) return false;
             follow(player.getUUID(), null);
+        } else if (session.endless()) {
+            // Endless physical entry joins the current fight without copying personal progress.
+            if (!enter(player, host)) return false;
+            follow(player.getUUID(), host);
+            profile(player.getUUID()).personalRun = false; data.setDirty();
         } else {
             int floor = GuestFloorRules.portalDestination(profile(player.getUUID()).progress, session.controller().currentFloor());
             if (!travelFollowing(player, host, floor, true)) return false;
@@ -223,27 +230,29 @@ public final class AbyssParties {
         return true;
     }
     private boolean enterOwnFloor(ServerPlayer player, int number) {
-        if (!com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
+        if (number != ENDLESS_FLOOR && !com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
         if (!checkUnlocked(player, player, number)) return false;
         ArenaSession current = sessionFor(player);
         var progress = data.profile(player.getUUID()).progress;
-        if (current == null && progress.pendingFloor() != 0 && number != progress.pendingFloor())
+        if (number != ENDLESS_FLOOR && current == null && progress.pendingFloor() != 0 && number != progress.pendingFloor())
             return tell(player, "claim_first");
         if (current != null && !current.canNavigate(player)) return tell(player, "claim_first");
         ArenaSession own = sessions.get(player.getUUID());
         if (own != null && !own.isLeader(player)) return tell(player, "host_only");
         if ((current != null && current.controller().active()) || (own != null && own.controller().active())) return tell(player, "already_running");
         boolean acknowledged = current != null && current.canNavigate(player);
-        if (!progress.canSelectFloor(number, acknowledged)) return tell(player, "claim_first");
-        if (own != null && progress.floor() != number && !separateGuests(player, own)) return false;
+        if (number != ENDLESS_FLOOR && !progress.canSelectFloor(number, acknowledged)) return tell(player, "claim_first");
+        if (own != null && own.controller().currentFloor() != number && !separateGuests(player, own)) return false;
         // Travel/admission must succeed before changing saved progression.
         if (!enter(player, player.getUUID())) return false;
         ArenaSession session = sessionFor(player);
         // Rebuilding this bounded slot clears loose drops; floor-bound opened cursors remain saved.
-        progress.selectFloor(number, acknowledged);
+        if (number != ENDLESS_FLOOR) progress.selectFloor(number, acknowledged);
         CompoundTag mark = persisted(player);
         mark.putInt(VISIT_FLOOR, number); player.getPersistentData().put(Player.PERSISTED_NBT_TAG, mark);
         session.controller().close(); session.clearParticipants();
+        profile(player.getUUID()).setEndlessMode(number == ENDLESS_FLOOR);
+        session.controller().close();
         // A new lease was restored by its constructor. Existing sessions need the same repair
         // when the host changes/retries a floor; guest admission must never rebuild a live fight.
         if (own != null) session.restoreStructure();
@@ -279,7 +288,7 @@ public final class AbyssParties {
         persisted.putUUID(VISIT, host); persisted.putInt(VISIT_FLOOR, session.controller().currentFloor());
         player.getPersistentData().put(Player.PERSISTED_NBT_TAG, persisted);
         session.admit(player);
-        if (host.equals(player.getUUID()) && !session.controller().active() && session.profile().progress.claimed()) {
+        if (!session.endless() && host.equals(player.getUUID()) && !session.controller().active() && session.profile().progress.claimed()) {
             session.controller().close(); session.refreshDisplay();
         }
         // Vanilla initializes clients with the overworld border, even after changing dimensions.
@@ -340,7 +349,7 @@ public final class AbyssParties {
     public int guestDestination(ServerPlayer player) {
         UUID host = followedHost(player);
         ArenaSession current = sessionFor(player);
-        if (host == null || current == null || current.controller().active()) return 0;
+        if (host == null || current == null || current.controller().active() || current.endless()) return 0;
         return GuestFloorRules.next(profile(player.getUUID()).progress, current.controller().currentFloor(), current.canNavigate(player));
     }
     public boolean followFloor(ServerPlayer player, int number) {
@@ -348,7 +357,7 @@ public final class AbyssParties {
         if (host == null) return tell(player, "selection_expired");
         ArenaSession current = sessionFor(player);
         if (current == null || current.controller().active()) return tell(player, "already_running");
-        if (!current.canNavigate(player) || !profile(player.getUUID()).progress.canSelectFloor(number, true))
+        if (!current.canNavigate(player) || number != ENDLESS_FLOOR && !profile(player.getUUID()).progress.canSelectFloor(number, true))
             return tell(player, "claim_first");
         return travelFollowing(player, host, number, false);
     }
@@ -356,12 +365,14 @@ public final class AbyssParties {
         if (player.getUUID().equals(host)) return false;
         var progress = profile(player.getUUID()).progress;
         ArenaSession current = sessionFor(player);
-        if (!progress.canSelectFloor(number, !portalEntry && current != null && current.canNavigate(player)))
+        if (number != ENDLESS_FLOOR && !progress.canSelectFloor(number, !portalEntry && current != null && current.canNavigate(player)))
             return tell(player, "claim_first");
         ArenaSession destination = hostedBy(host);
-        boolean join = destination != null && GuestFloorRules.joinHost(portalEntry, profile(player.getUUID()).personalRun,
+        boolean join = destination != null && (destination.endless() && number == ENDLESS_FLOOR
+                && (portalEntry || !profile(player.getUUID()).personalRun) && !destination.controller().active()
+                || !destination.endless() && GuestFloorRules.joinHost(portalEntry, profile(player.getUUID()).personalRun,
                 number, destination.controller().currentFloor(), destination.controller().active(),
-                progress.pendingFloor() != 0 || destination.looting());
+                progress.pendingFloor() != 0 || destination.looting()));
         boolean entered = join ? enter(player, host) : enterOwnFloor(player, number);
         if (entered) {
             follow(player.getUUID(), host);
@@ -380,13 +391,14 @@ public final class AbyssParties {
         if (sessions.size() + required > AbyssPlayers.ARENA_SLOTS) return tell(requester, "arenas_full");
         for (ServerPlayer guest : guests) {
             ArenaSession own = hostedBy(guest.getUUID());
-            if (!canTravel(guest) || !profile(guest.getUUID()).progress.canSelectFloor(oldFloor)
+            if (!canTravel(guest) || oldFloor != ENDLESS_FLOOR && !profile(guest.getUUID()).progress.canSelectFloor(oldFloor)
                     || (own != null && (!own.players().isEmpty() || own.controller().active())))
                 return tell(requester, "guest_transfer_blocked", guest.getDisplayName());
         }
         for (ServerPlayer guest : guests) {
             var personal = profile(guest.getUUID()).progress;
-            personal.selectFloor(oldFloor);
+            if (oldFloor != ENDLESS_FLOOR) personal.selectFloor(oldFloor);
+            profile(guest.getUUID()).setEndlessMode(oldFloor == ENDLESS_FLOOR);
             if (!enter(guest, guest.getUUID())) throw new IllegalStateException("Prevalidated guest transfer failed");
             follow(guest.getUUID(), session.host());
             // Waiting on the previous floor can still follow the host before its next fight starts.
@@ -402,6 +414,12 @@ public final class AbyssParties {
         if (!validInteraction(player, chest, session)) return false;
         if (chest.phase() == LootChestEntity.SPAWN) return false;
         return session.openReward(player, chest.tier());
+    }
+    public boolean openExperienceChest(ServerPlayer player, ExperienceChestEntity chest) {
+        ArenaSession session = sessionFor(player);
+        return validInteraction(player, chest, session) && session.endless()
+                && chest.phase() == LootChestEntity.IDLE
+                && session.controller().openEndlessCheckpoint(player);
     }
     private boolean validInteraction(ServerPlayer player, ArenaInteractable entity, ArenaSession session) {
         return session != null && player.isAlive() && !player.isSpectator() && !entity.isRemoved()

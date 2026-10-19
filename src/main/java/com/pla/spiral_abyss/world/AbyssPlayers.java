@@ -20,6 +20,8 @@ public final class AbyssPlayers extends SavedData {
     public void resetAllProgress() {
         profiles.values().forEach(profile -> {
             profile.progress.reset(); profile.followingHost = null; profile.personalRun = false;
+            profile.endlessMode = false; profile.endlessWave = 1; profile.endlessCheckpoint = 0; profile.endlessRewardedWave = 0;
+            profile.endlessPayout = new com.pla.spiral_abyss.encounter.ChestPayout(this::setDirty);
             profile.portal = null; profile.cycleReturnRequired = true; profile.requestArenaReset();
         });
         setDirty();
@@ -33,6 +35,16 @@ public final class AbyssPlayers extends SavedData {
         /** Personal play remains separate until the player leaves and reenters a physical portal. */
         public boolean personalRun;
         public boolean cycleReturnRequired;
+        /** Endless progression belongs only to this original arena owner, independently of normal floor claims. */
+        public boolean endlessMode;
+        public int endlessWave = 1;
+        public int endlessCheckpoint;
+        public int endlessRewardedWave;
+        public com.pla.spiral_abyss.encounter.ChestPayout endlessPayout = new com.pla.spiral_abyss.encounter.ChestPayout(AbyssPlayers.this::setDirty);
+        public void setEndlessMode(boolean enabled) { endlessMode = enabled; setDirty(); }
+        public void saveEndlessWave(int wave) { endlessWave = Math.max(1, wave); setDirty(); }
+        public void saveEndlessCheckpoint(int wave) { endlessCheckpoint = Math.max(0, wave); setDirty(); }
+        public void markEndlessRewarded(int wave) { endlessRewardedWave = Math.max(endlessRewardedWave, wave); setDirty(); }
         private boolean arenaResetRequested;
         private Profile(UUID owner, int slot, FloorProgress progress) {
             this.owner = owner; this.slot = slot; this.progress = progress;
@@ -77,6 +89,11 @@ public final class AbyssPlayers extends SavedData {
             profile.personalRun = entry.contains("PersonalRun") ? entry.getBoolean("PersonalRun") : profile.followingHost != null;
             profile.arenaResetRequested = entry.getBoolean("ResetArena");
             profile.cycleReturnRequired = entry.getBoolean("CycleReturnRequired");
+            profile.endlessMode = entry.getBoolean("EndlessMode");
+            profile.endlessWave = Math.max(1, entry.getInt("EndlessWave"));
+            profile.endlessCheckpoint = Math.max(0, entry.getInt("EndlessCheckpoint"));
+            profile.endlessRewardedWave = Math.max(0, entry.getInt("EndlessRewardedWave"));
+            profile.endlessPayout = com.pla.spiral_abyss.encounter.ChestPayout.load(entry.getCompound("EndlessPayout"), data::setDirty);
         }
         return data;
     }
@@ -91,6 +108,11 @@ public final class AbyssPlayers extends SavedData {
             entry.putUUID("Owner", profile.owner);
             entry.putBoolean("ResetArena", profile.arenaResetRequested);
             entry.putBoolean("CycleReturnRequired", profile.cycleReturnRequired);
+            entry.putBoolean("EndlessMode", profile.endlessMode);
+            entry.putInt("EndlessWave", profile.endlessWave);
+            entry.putInt("EndlessCheckpoint", profile.endlessCheckpoint);
+            entry.putInt("EndlessRewardedWave", profile.endlessRewardedWave);
+            entry.put("EndlessPayout", profile.endlessPayout.save());
             if (profile.portal != null) entry.putUUID("Portal", profile.portal);
             if (profile.followingHost != null) entry.putUUID("FollowingHost", profile.followingHost);
             entry.putBoolean("PersonalRun", profile.personalRun);

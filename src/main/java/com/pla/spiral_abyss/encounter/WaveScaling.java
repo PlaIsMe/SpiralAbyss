@@ -16,6 +16,24 @@ public final class WaveScaling {
 
     private WaveScaling() {}
 
+    public static void applyEndless(Mob mob, int wave, MobCategory category, double partyScale) {
+        var health = mob.getAttribute(Attributes.MAX_HEALTH);
+        if (health != null) {
+            health.removeModifier(HEALTH_MODIFIER);
+            health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
+                    "Spiral Abyss health", 0, AttributeModifier.Operation.MULTIPLY_TOTAL));
+            double initial = health.getValue();
+            double target = (category == MobCategory.BOSS ? EndlessWaves.bossHealth(wave)
+                    : initial * EndlessWaves.mobScale(wave)) * partyScale;
+            health.removeModifier(HEALTH_MODIFIER);
+            if (initial > 0 && Double.isFinite(target)) health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
+                    "Spiral Abyss health", target / initial - 1, AttributeModifier.Operation.MULTIPLY_TOTAL));
+            mob.getPersistentData().remove(HEALTH_DAMAGE_RATIO_TAG);
+        }
+        mob.setHealth(mob.getMaxHealth());
+        mob.getPersistentData().putDouble(WaveSpawner.DAMAGE_TAG, EndlessWaves.mobScale(wave) * partyScale);
+    }
+
     public static void apply(Mob mob, int floor, MobCategory category,
                              ResourceLocation mobId, double partyScale,
                              MobCatalog.ScalingSnapshot plans) {

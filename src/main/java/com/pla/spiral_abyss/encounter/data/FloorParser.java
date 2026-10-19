@@ -95,7 +95,8 @@ public final class FloorParser {
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "reward_chest"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "copper_chest"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "iron_chest"))
-                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest")),
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "golden_chest"))
+                            && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "experience_chest")),
                             "arena furniture cannot be a wave enemy");
                     enemies.add(new FloorDefinition.Enemy(mobId, amount));
                     count += amount;

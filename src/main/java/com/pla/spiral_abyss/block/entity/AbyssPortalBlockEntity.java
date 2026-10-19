@@ -48,7 +48,7 @@ public final class AbyssPortalBlockEntity extends BlockEntity {
         super.load(tag);
         if (tag.hasUUID("PortalId")) portalId = tag.getUUID("PortalId");
         host = tag.hasUUID("Host") ? tag.getUUID("Host") : null;
-        displayedFloor = Math.max(0, Math.min(6, tag.getInt("DisplayedFloor")));
+        displayedFloor = Math.max(0, Math.min(7, tag.getInt("DisplayedFloor")));
         hostRunning = tag.getBoolean("HostRunning");
     }
     public AbyssPortalBlockEntity(BlockPos pos, BlockState state) { super(BlockEntityInit.ABYSS_PORTAL.get(), pos, state); }

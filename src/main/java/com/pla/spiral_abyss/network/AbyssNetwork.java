@@ -12,13 +12,17 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "21";
+    private static final String VERSION = "22";
     private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
-                             long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal) {
-        public OpenFloors { floors = List.copyOf(floors); }
+                             long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal, int endlessWave) {
+        public OpenFloors { floors = List.copyOf(floors); endlessWave = Math.max(1, endlessWave); }
+        public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
+                          long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal) {
+            this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, entryPortal, 1);
+        }
         public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
                           long resetRemainingMillis, List<FloorPreview> floors) {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, null);
@@ -85,7 +89,7 @@ public final class AbyssNetwork {
                 .decoder(buffer -> new SelectFloor(buffer.readUUID(), buffer.readVarInt()))
                 .consumerMainThread((message, context) -> {
                     ServerPlayer sender = context.get().getSender();
-                    if (sender != null && message.floor >= -1 && message.floor <= 6)
+                    if (sender != null && message.floor >= -1 && message.floor <= 7)
                         AbyssParties.get(sender.server).portals().choose(sender, message.token, message.floor);
                 }).add();
         CHANNEL.messageBuilder(EncounterStatus.class, 2, NetworkDirection.PLAY_TO_CLIENT)
@@ -152,11 +156,12 @@ public final class AbyssNetwork {
         buffer.writeBoolean(message.inside); buffer.writeLong(message.resetRemainingMillis);
         writePreviews(buffer, message.floors);
         buffer.writeNullable(message.entryPortal, FriendlyByteBuf::writeBlockPos);
+        buffer.writeVarInt(message.endlessWave);
     }
     private static OpenFloors readFloors(FriendlyByteBuf buffer) {
         return new OpenFloors(buffer.readUUID(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer),
-                buffer.readNullable(FriendlyByteBuf::readBlockPos));
+                buffer.readNullable(FriendlyByteBuf::readBlockPos), buffer.readVarInt());
     }
     private static void writeJournal(OpenJournal message, FriendlyByteBuf buffer) {
         buffer.writeLong(message.resetRemainingMillis()); buffer.writeLong(message.poseSeed());
@@ -189,10 +194,11 @@ public final class AbyssNetwork {
     public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside,
                                   net.minecraft.core.BlockPos entryPortal) {
         var progress = AbyssParties.get(player.server).profile(player.getUUID()).progress;
-        int unlocked = 0;
+        int unlocked = 1 << 7;
         for (int floor = 1; floor <= 6; floor++) if (progress.unlocked(floor)) unlocked |= 1 << floor;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenFloors(token, claimed, unlocked, selectable, visible, inside,
-                AbyssParties.get(player.server).resetRemainingMillis(), previews(player), entryPortal));
+                AbyssParties.get(player.server).resetRemainingMillis(), previews(player), entryPortal,
+                AbyssParties.get(player.server).profile(player.getUUID()).endlessWave));
     }
     /** Preview uses the same persisted cycle lineups as spawning; the client never rolls mobs. */
     private static List<FloorPreview> previews(ServerPlayer player) {

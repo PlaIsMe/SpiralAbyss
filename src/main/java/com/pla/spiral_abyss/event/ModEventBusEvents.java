@@ -16,5 +16,6 @@ public class ModEventBusEvents {
         event.put(EntityInit.COPPER_CHEST.get(), KeyEntity.createAttributes().build());
         event.put(EntityInit.IRON_CHEST.get(), KeyEntity.createAttributes().build());
         event.put(EntityInit.GOLDEN_CHEST.get(), KeyEntity.createAttributes().build());
+        event.put(EntityInit.EXPERIENCE_CHEST.get(), KeyEntity.createAttributes().build());
     }
 }

@@ -55,8 +55,10 @@ public final class AbyssEncounterOverlay {
                 Component.translatable("hud.spiral_abyss.defeated", state.defeated(), state.total()),
                 left, top, 0xFFFFFFFF, true);
         int floorWaveY = state.preparing() ? top : top + font.lineHeight + 6;
-        graphics.drawString(font, Component.translatable("hud.spiral_abyss.floor_wave", state.floor(), state.wave()),
+        graphics.drawString(font, state.floor() == 7 ? Component.translatable("hud.spiral_abyss.endless_wave", state.wave())
+                : Component.translatable("hud.spiral_abyss.floor_wave", state.floor(), state.wave()),
                 left, floorWaveY, 0xFFFFFFFF, true);
+        if (state.floor() == 7) { graphics.pose().popPose(); return; }
         int challengeY = floorWaveY + font.lineHeight + 6;
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"),
                 left, challengeY, 0xFFFFFFFF, true);

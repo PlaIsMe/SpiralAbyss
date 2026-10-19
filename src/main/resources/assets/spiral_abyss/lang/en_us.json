@@ -163,5 +163,9 @@
   "subtitles.spiral_abyss.portal.entry": "Abyss portal swirls",
   "screen.spiral_abyss.entry_controls": "Space / Enter: Skip    Esc: Cancel",
   "ui.spiral_abyss.help.overview": "Build an Abyss Gate",
-  "ui.spiral_abyss.help.overview.description": "Build this 5 × 6 gate in the Overworld. Keep its opening empty and dry. Hover over any block or label to learn more."
+  "ui.spiral_abyss.help.overview.description": "Build this 5 × 6 gate in the Overworld. Keep its opening empty and dry. Hover over any block or label to learn more.",
+  "screen.spiral_abyss.endless": "Endless Mode",
+  "hud.spiral_abyss.endless_wave": "Endless Mode Wave %s",
+  "screen.spiral_abyss.endless_description": "Clear every enemy within five minutes to advance. No challenges or Abyssal Rejection. Open an XP chest every 10 waves.",
+  "entity.spiral_abyss.experience_chest": "Experience Chest"
 }

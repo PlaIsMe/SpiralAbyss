@@ -24,6 +24,12 @@ public final class WaveSpawner {
                            List<FloorDefinition.Enemy> composition, UUID runId,
                            WaveEquipment equipment, int floor, double partyScale,
                            MobCatalog.ScalingSnapshot scaling) {
+        return spawn(level, center, target, composition, runId, equipment, floor, partyScale, scaling, 0);
+    }
+    public List<Mob> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
+                           List<FloorDefinition.Enemy> composition, UUID runId,
+                           WaveEquipment equipment, int floor, double partyScale,
+                           MobCatalog.ScalingSnapshot scaling, int endlessWave) {
         List<Mob> created = new ArrayList<>();
         try {
             for (var entry : composition) {
@@ -56,7 +62,8 @@ public final class WaveSpawner {
                     mob.getPersistentData().putUUID(RUN_TAG, runId);
                     mob.getPersistentData().putBoolean(BOSS_TAG,
                             entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.BOSS);
-                    WaveScaling.apply(mob, floor, entry.category(), entry.id(), partyScale, scaling);
+                    if (endlessWave > 0) WaveScaling.applyEndless(mob, endlessWave, entry.category(), partyScale);
+                    else WaveScaling.apply(mob, floor, entry.category(), entry.id(), partyScale, scaling);
                     if (!place(level, mob, center)) throw new IllegalStateException("No safe spawn position for " + entry.id());
                     mob.setTarget(target);
                     if (!level.addFreshEntity(mob)) throw new IllegalStateException("Spawn rejected for " + entry.id());

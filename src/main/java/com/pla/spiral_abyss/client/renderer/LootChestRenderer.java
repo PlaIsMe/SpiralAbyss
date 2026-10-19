@@ -9,11 +9,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
-public final class LootChestRenderer extends MobRenderer<LootChestEntity, LootChestModel> {
+public class LootChestRenderer extends MobRenderer<LootChestEntity, LootChestModel> {
     private final ResourceLocation texture;
     private LootChestRenderer(EntityRendererProvider.Context context, LootChestModel model, String kind) {
+        this(context, model, ResourceLocation.fromNamespaceAndPath("spiral_abyss", "textures/entity/" + kind + "_chest.png"));
+    }
+    protected LootChestRenderer(EntityRendererProvider.Context context, LootChestModel model, ResourceLocation texture) {
         super(context, model, 0.6f);
-        texture = ResourceLocation.fromNamespaceAndPath("spiral_abyss", "textures/entity/" + kind + "_chest.png");
+        this.texture = texture;
     }
     public static LootChestRenderer copper(EntityRendererProvider.Context context) {
         return new LootChestRenderer(context, new CopperChestModel(context.bakeLayer(CopperChestModel.LAYER_LOCATION)), "copper");

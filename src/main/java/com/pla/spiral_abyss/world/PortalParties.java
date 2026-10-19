@@ -60,7 +60,7 @@ public final class PortalParties {
         selections.put(player.getUUID(), new Selection(token, portal.portalId(), player.getUUID(), player.level().dimension(),
                 frame.anchor(), frame.returnPosition(player), server.getTickCount() + MENU_TIMEOUT_TICKS));
         AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), floorChoices(player),
-                126, false, frame.anchor());
+                254, false, frame.anchor());
     }
 
     public boolean openArenaMenu(ServerPlayer player) {
@@ -74,7 +74,7 @@ public final class PortalParties {
         arenaMenus.put(player.getUUID(), new ArenaMenu(token, session.host(), session.controller().currentFloor(),
                 following, parties.profile(player.getUUID()).personalRun, available, server.getTickCount() + MENU_TIMEOUT_TICKS));
         AbyssNetwork.openFloors(player, token, parties.profile(player.getUUID()).progress.masteredMask(), available,
-                126, true);
+                254, true);
         return true;
     }
 
@@ -87,7 +87,7 @@ public final class PortalParties {
         for (int floor : FloorCatalog.snapshot().floors().keySet())
             if ((pendingFloor == 0 || floor == pendingFloor) && progress.canSelectFloor(floor, acknowledged))
                 available |= 1 << floor;
-        return available;
+        return available | (1 << 7);
     }
     /** Renew only a still-valid issued token; a heartbeat cannot reopen or authorize a menu. */
     public void keepOpen(ServerPlayer player, UUID token) {
@@ -116,7 +116,7 @@ public final class PortalParties {
             ArenaSession session = parties.sessionFor(player);
             if (!valid(menu, player)) { if (floor != 0) tell(player, "selection_expired"); return; }
             if (floor == -1) { parties.leave(player); return; }
-            if (floor <= 0 || (menu.selectable & (1 << floor)) == 0 || !session.canNavigate(player)) return;
+            if (floor <= 0 || floor > 7 || (menu.selectable & (1 << floor)) == 0 || !session.canNavigate(player)) return;
             if (session.isLeader(player)) parties.enterFloor(player, floor);
             else if (menu.followingHost != null) parties.followFloor(player, floor);
             return;
@@ -128,7 +128,7 @@ public final class PortalParties {
         }
         selections.remove(player.getUUID());
         player.setPortalCooldown();
-        if (floor <= 0) return;
+        if (floor <= 0 || floor > 7) return;
         if (!valid(selection, player)) { tell(player, "selection_expired"); return; }
         var portal = (AbyssPortalBlockEntity) player.level().getBlockEntity(selection.base);
         if (parties.hostedBy(player.getUUID()) != null) { tell(player, "already_hosting"); return; }

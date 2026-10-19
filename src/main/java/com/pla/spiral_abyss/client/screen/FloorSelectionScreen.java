@@ -61,6 +61,7 @@ public final class FloorSelectionScreen extends Screen {
     @Override protected void init() {
         rewardPanel = null;
         if (selectedFloor == 0) initOverview();
+        else if (selectedFloor == 7) initEndless();
         else if (selectedWave == 0) initFloor();
         else initWave();
     }
@@ -74,17 +75,24 @@ public final class FloorSelectionScreen extends Screen {
     }
     private void initOverview() {
         int gap = Math.max(2, Math.min(12, width / 80));
-        int count = Integer.bitCount(state.visible() & 126);
-        int cardWidth = Math.max(1, Math.min((width - 24 - 5 * gap) / 6, Math.max(1, height - 132) * 256 / 455));
+        int count = Integer.bitCount(state.visible() & 254);
+        int cardWidth = Math.max(1, Math.min((width - 24 - 6 * gap) / 7, Math.max(1, height - 132) * 256 / 455));
         int cardHeight = cardWidth * 455 / 256;
         int left = (width - count * cardWidth - Math.max(0, count - 1) * gap) / 2;
         int top = Math.max(48, (height - cardHeight) / 2 - 12), index = 0;
-        for (int floor = 1; floor <= 6; floor++) {
+        for (int floor = 1; floor <= 7; floor++) {
             if ((state.visible() & (1 << floor)) == 0) continue;
             final int number = floor;
-            var card = imageButton(left + index++ * (cardWidth + gap), top, cardWidth, cardHeight,
-                    Component.translatable("screen.spiral_abyss.floor", floor), floorTexture(floor), 256, 455, () -> navigate(number, 0));
-            card.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.view_floor", floor)));
+            int x = left + index++ * (cardWidth + gap);
+            var label = Component.translatable(floor == 7 ? "screen.spiral_abyss.endless" : "screen.spiral_abyss.floor", floor);
+            var card = floor == 7 ? addRenderableWidget(new Button(x, top, cardWidth, cardHeight, label,
+                    pressed -> navigate(7, 0), narration -> narration.get()) {
+                @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+                    EndlessArtwork.render(graphics, getX(), getY(), getWidth(), getHeight());
+                    if (isHoveredOrFocused()) graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFFF2D58C);
+                }
+            }) : imageButton(x, top, cardWidth, cardHeight, label, floorTexture(floor), 256, 455, () -> navigate(number, 0));
+            card.setTooltip(Tooltip.create(floor == 7 ? label : Component.translatable("screen.spiral_abyss.view_floor", floor)));
         }
         int buttonY = Math.min(height - 60, top + cardHeight + 15);
         resetRowY = buttonY + 37;
@@ -96,6 +104,31 @@ public final class FloorSelectionScreen extends Screen {
         panelWidth = Math.min(660, Math.max(120, width - 24));
         panelHeight = Math.min(360, Math.max(140, height - 24));
         panelX = (width - panelWidth) / 2; panelY = (height - panelHeight) / 2;
+    }
+    private void initEndless() {
+        layoutPanel();
+        int right = panelX + panelWidth / 3, rightWidth = panelWidth * 2 / 3 - 20;
+        artworkButton(right, panelY + panelHeight - 29, 30, 15,
+                Component.translatable("gui.back"), ButtonArtwork.BACK, false, () -> navigate(0, 0));
+        var start = artworkButton(panelX + panelWidth - 100, panelY + panelHeight - 29, 80, 15,
+                Component.translatable("screen.spiral_abyss.fight"), ButtonArtwork.FIGHT, false, () -> submit(7));
+        start.active = selectable(7);
+        if (!start.active) start.setTooltip(Tooltip.create(Component.translatable("screen.spiral_abyss.unavailable")));
+    }
+    private void renderEndless(GuiGraphics graphics) {
+        int cardHeight = Math.min(panelHeight - 32, (panelWidth / 3 - 24) * 228 / 128);
+        int cardWidth = cardHeight * 128 / 228;
+        EndlessArtwork.render(graphics, panelX + 12, panelY + 12, cardWidth, cardHeight);
+        int right = panelX + panelWidth / 3, textWidth = panelWidth * 2 / 3 - 20;
+        int y = panelY + 18;
+        graphics.drawString(font, Component.translatable("screen.spiral_abyss.endless"), right, y, 0xFFF3D7, false);
+        y += 22;
+        graphics.drawString(font, Component.translatable("hud.spiral_abyss.endless_wave", state.endlessWave()), right, y, 0xFFFFFFFF, false);
+        y += 22;
+        for (var line : font.split(Component.translatable("screen.spiral_abyss.endless_description"), textWidth)) {
+            if (y + font.lineHeight > panelY + panelHeight - 44) break;
+            graphics.drawString(font, line, right, y, 0xFFD8E9FA, false); y += font.lineHeight + 3;
+        }
     }
     private void initFloor() {
         layoutPanel();
@@ -216,7 +249,8 @@ public final class FloorSelectionScreen extends Screen {
         else {
             graphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0xEE25354D);
             graphics.renderOutline(panelX, panelY, panelWidth, panelHeight, 0xFF738297);
-            if (selectedWave == 0) renderFloor(graphics);
+            if (selectedFloor == 7) renderEndless(graphics);
+            else if (selectedWave == 0) renderFloor(graphics);
             else renderWave(graphics, mouseX, mouseY);
         }
         boolean overRewardTooltip = rewardPanel != null && rewardPanel.popupContains(mouseX, mouseY);

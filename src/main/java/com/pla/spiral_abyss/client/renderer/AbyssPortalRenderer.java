@@ -54,7 +54,8 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
     private void renderFloor(AbyssPortalBlockEntity entity, PoseStack pose, MultiBufferSource buffers, boolean xAxis) {
         if (entity.displayedFloor() == 0) return;
         // Vanilla enchantments use these translated Roman numeral labels (I through VI).
-        Component label = Component.translatable("enchantment.level." + entity.displayedFloor());
+        Component label = entity.displayedFloor() == 7 ? Component.literal("\u221e")
+                : Component.translatable("enchantment.level." + entity.displayedFloor());
         int color = entity.hostRunning() ? 0xFF555555 : 0xFFFFFFFF;
         for (int side : new int[] {0, 1}) {
             pose.pushPose();

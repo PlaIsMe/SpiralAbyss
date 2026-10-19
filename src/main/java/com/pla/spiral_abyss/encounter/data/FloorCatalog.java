@@ -18,12 +18,14 @@ public final class FloorCatalog extends SimplePreparableReloadListener<Map<Integ
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Pattern FILE = Pattern.compile("floor_([1-9][0-9]*)/(floor|wave_([1-9][0-9]*))\\.json");
     private static volatile Snapshot current = new Snapshot(0, Map.of());
+    private static volatile Map<ResourceLocation, FloorDefinition.WaveType> templates = Map.of();
 
     public record Snapshot(int revision, Map<Integer, FloorDefinition> floors) {
         public Snapshot { floors = Map.copyOf(floors); }
     }
 
     public static Snapshot snapshot() { return current; }
+    public static Map<ResourceLocation, FloorDefinition.WaveType> waveTypes() { return templates; }
 
     @Override
     protected Map<Integer, FloorDefinition> prepare(ResourceManager manager, ProfilerFiller profiler) {
@@ -34,6 +36,7 @@ public final class FloorCatalog extends SimplePreparableReloadListener<Map<Integ
                 waveTypes.put(name, FloorParser.waveType(name, JsonParser.parseReader(reader).getAsJsonObject()));
             } catch (Exception ex) { LOGGER.error("Invalid wave type {}: {}", id, ex.getMessage()); }
         });
+        templates = Map.copyOf(waveTypes);
         Map<Integer, JsonObject> settings = new HashMap<>();
         Map<Integer, SortedMap<Integer, JsonObject>> waves = new HashMap<>();
         Set<Integer> invalid = new HashSet<>();

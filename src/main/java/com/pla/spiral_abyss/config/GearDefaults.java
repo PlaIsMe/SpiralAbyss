@@ -8,6 +8,18 @@ import java.util.List;
 public final class GearDefaults {
     private GearDefaults() {}
 
+    /** Profiles are reusable by normal floors and by each position in an endless ten-wave block. */
+    public static JsonObject assignments() {
+        JsonObject floors = new JsonObject();
+        for (int floor = 1; floor <= 6; floor++) floors.addProperty(Integer.toString(floor), "floor_" + floor);
+        JsonArray endless = new JsonArray();
+        for (int floor : new int[]{1, 2, 2, 3, 3, 4, 4, 5, 6, 6}) endless.add("floor_" + floor);
+        JsonObject result = new JsonObject();
+        result.add("floors", floors);
+        result.add("endless", endless);
+        return result;
+    }
+
     public static JsonObject forFloor(int floor) {
         List<String> materials = switch (floor) {
             case 1 -> List.of();
