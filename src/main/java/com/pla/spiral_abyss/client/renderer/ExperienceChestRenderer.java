@@ -4,7 +4,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 
 public final class ExperienceChestRenderer extends LootChestRenderer {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("spiral_abyss", "textures/entity/exp_chest_entity_boxuv.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("spiral_abyss", "textures/entity/exp_chest.png");
     public ExperienceChestRenderer(EntityRendererProvider.Context context) {
         super(context, new ExperienceChestModel(context.bakeLayer(ExperienceChestModel.LAYER_LOCATION)), TEXTURE);
     }
