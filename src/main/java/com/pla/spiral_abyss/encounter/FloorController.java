@@ -82,7 +82,11 @@ public final class FloorController {
         if (active()) {
             var views = challengeProgress().stream().map(p -> new AbyssNetwork.ChallengeView(p.description(), p.progress(), p.target(), p.complete(), p.failed())).toList();
             return new AbyssNetwork.EncounterStatus(true, false, currentFloor(), currentWave(), stages.removed(), waveEnemies,
-                    clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views);
+                    clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views,
+                    stages.enemies().stream().filter(mob -> session.isCombatant(viewer) && mob.isAlive() && !mob.isRemoved()
+                                    && !(mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon dragon && DragonArena.defeated(dragon))
+                                    && AbyssRejection.applies(viewer, mob))
+                            .map(mob -> net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).distinct().toList());
         }
         if ((state != State.READY && state != State.FAILED) || showsChest()) return AbyssNetwork.EncounterStatus.HIDDEN;
         if (readyHud == null || readyHudFloor != currentFloor()) {

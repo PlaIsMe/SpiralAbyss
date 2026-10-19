@@ -12,7 +12,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "20";
+    private static final String VERSION = "21";
     private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
@@ -24,7 +24,9 @@ public final class AbyssNetwork {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, null);
         }
     }
-    public record EnemyPreview(ResourceLocation id, int count) {}
+    public record EnemyPreview(ResourceLocation id, int count, boolean rejected) {
+        public EnemyPreview(ResourceLocation id, int count) { this(id, count, false); }
+    }
     public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
         public WavePreview { enemies = List.copyOf(enemies); challenges = List.copyOf(challenges); }
     }
@@ -62,8 +64,12 @@ public final class AbyssNetwork {
         public RareReward { player = player.copy(); item = item.copy(); }
     }
     public record ChallengeView(net.minecraft.network.chat.Component description, int progress, int target, boolean satisfied, boolean failed) {}
-    public record EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges) {
-        public EncounterStatus { challenges = List.copyOf(challenges); }
+    public record EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges, List<ResourceLocation> rejectedBosses) {
+        public EncounterStatus { challenges = List.copyOf(challenges); rejectedBosses = List.copyOf(rejectedBosses); }
+        public EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total,
+                               int seconds, int countdownSeconds, List<ChallengeView> challenges) {
+            this(active, preparing, floor, wave, defeated, total, seconds, countdownSeconds, challenges, List.of());
+        }
         public static final EncounterStatus HIDDEN = new EncounterStatus(false, false, 0, 0, 0, 0, 0, 0, List.of());
     }
     private AbyssNetwork() {}
@@ -88,9 +94,10 @@ public final class AbyssNetwork {
                     buffer.writeVarInt(message.floor); buffer.writeVarInt(message.wave);
                     buffer.writeVarInt(message.defeated); buffer.writeVarInt(message.total); buffer.writeVarInt(message.seconds); buffer.writeVarInt(message.countdownSeconds);
                     writeChallenges(buffer, message.challenges);
+                    buffer.writeCollection(message.rejectedBosses, FriendlyByteBuf::writeResourceLocation);
                 })
                 .decoder(buffer -> new EncounterStatus(buffer.readBoolean(), buffer.readBoolean(), buffer.readVarInt(), buffer.readVarInt(),
-                        buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), readChallenges(buffer)))
+                        buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), readChallenges(buffer), readRejectedBosses(buffer)))
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                         () -> () -> com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay.update(message)))
                 .add();
@@ -214,7 +221,9 @@ public final class AbyssNetwork {
                         ? List.of(net.minecraft.network.chat.Component.translatable("message.spiral_abyss.challenges_unavailable"))
                         : challenges.stream().map(challenge -> challenge.description(wavePopulation)).toList();
                 waves.add(new WavePreview(index + 1, stars[index], counts.entrySet().stream()
-                        .map(entry -> new EnemyPreview(entry.getKey(), entry.getValue())).toList(), objectives));
+                        .map(entry -> new EnemyPreview(entry.getKey(), entry.getValue(),
+                                com.pla.spiral_abyss.encounter.AbyssRejection.isRejected(player, definition.number(), entry.getKey())))
+                        .toList(), objectives));
             }
             floors.add(new FloorPreview(definition.number(), waves, rewards.floor(definition.rewards(), floorEnemies)));
         }
@@ -228,7 +237,9 @@ public final class AbyssNetwork {
                 buffer.writeVarInt(wave.wave()); buffer.writeVarInt(wave.stars());
                 buffer.writeVarInt(wave.challenges().size()); wave.challenges().forEach(buffer::writeComponent);
                 buffer.writeVarInt(wave.enemies().size());
-                for (var enemy : wave.enemies()) { buffer.writeResourceLocation(enemy.id()); buffer.writeVarInt(enemy.count()); }
+                for (var enemy : wave.enemies()) {
+                    buffer.writeResourceLocation(enemy.id()); buffer.writeVarInt(enemy.count()); buffer.writeBoolean(enemy.rejected());
+                }
             }
             buffer.writeVarInt(floor.rewards().size());
             for (var reward : floor.rewards()) {
@@ -254,6 +265,11 @@ public final class AbyssNetwork {
                 bounded(buffer, 1_000_000), bounded(buffer, 1_000_000), buffer.readBoolean(), buffer.readBoolean()));
         return result;
     }
+    private static List<ResourceLocation> readRejectedBosses(FriendlyByteBuf buffer) {
+        List<ResourceLocation> result = new ArrayList<>();
+        for (int count = bounded(buffer, 128); count > 0; count--) result.add(buffer.readResourceLocation());
+        return result;
+    }
     private static int bounded(FriendlyByteBuf buffer, int max) {
         int number = buffer.readVarInt();
         if (number < 0 || number > max) throw new IllegalArgumentException("Invalid Abyss preview size");
@@ -270,7 +286,7 @@ public final class AbyssNetwork {
                 for (int c = bounded(buffer, 3); c > 0; c--) challenges.add(buffer.readComponent());
                 List<EnemyPreview> enemies = new ArrayList<>();
                 for (int e = bounded(buffer, 128); e > 0; e--)
-                    enemies.add(new EnemyPreview(buffer.readResourceLocation(), bounded(buffer, 128)));
+                    enemies.add(new EnemyPreview(buffer.readResourceLocation(), bounded(buffer, 128), buffer.readBoolean()));
                 waves.add(new WavePreview(wave, stars, enemies, challenges));
             }
             List<RewardPreview> rewards = new ArrayList<>();

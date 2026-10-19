@@ -2,6 +2,7 @@ package com.pla.spiral_abyss.client.screen;
 
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.client.overlay.AbyssClockRenderer;
+import com.pla.spiral_abyss.client.overlay.AbyssRejectionNotice;
 import com.pla.spiral_abyss.network.AbyssNetwork;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -263,6 +264,7 @@ public final class FloorSelectionScreen extends Screen {
         int rows = (enemies.size() + columns - 1) / columns;
         maxScroll = Math.max(0, rows * tileHeight - Math.max(1, gridBottom - gridTop)); scroll = Math.min(scroll, maxScroll);
         Component hovered = hoveredObjective;
+        boolean hoveredRejection = false;
         graphics.enableScissor(panelX + 10, gridTop, panelX + panelWidth - 10, Math.max(gridTop, gridBottom));
         for (int index = 0; index < enemies.size(); index++) {
             int x = panelX + 14 + index % columns * tileWidth, y = gridTop + index / columns * tileHeight - scroll;
@@ -272,6 +274,18 @@ public final class FloorSelectionScreen extends Screen {
             previews.render(graphics, enemy.id(), x + 4, y + 3, tileWidth - 12, tileHeight - 24);
             graphics.drawCenteredString(font, Component.translatable("screen.spiral_abyss.enemy_count", enemy.count()), x + (tileWidth - 4) / 2, y + tileHeight - 18, 0xFFFFFFFF);
             if (mouseX >= x && mouseX < x + tileWidth - 4 && mouseY >= Math.max(y, gridTop) && mouseY < Math.min(y + tileHeight - 5, gridBottom)) hovered = previews.name(enemy.id());
+            if (enemy.rejected()) {
+                int warningX = x + tileWidth - 19, warningY = y + 4;
+                graphics.pose().pushPose(); graphics.pose().translate(0, 0, 200);
+                graphics.fill(warningX - 2, warningY - 2, warningX + 13, warningY + 13, 0xE610101B);
+                AbyssRejectionNotice.icon(graphics, warningX, warningY);
+                graphics.pose().popPose();
+                if (mouseX >= warningX - 2 && mouseX < warningX + 13
+                        && mouseY >= Math.max(warningY - 2, gridTop) && mouseY < Math.min(warningY + 13, gridBottom)) {
+                    hovered = AbyssRejectionNotice.tooltip(previews.name(enemy.id()));
+                    hoveredRejection = true;
+                }
+            }
         }
         graphics.disableScissor();
         if (enemies.isEmpty()) graphics.drawCenteredString(font, Component.translatable("screen.spiral_abyss.preview_unavailable"), width / 2, gridTop + 12, 0xD8E9FA);
@@ -281,7 +295,10 @@ public final class FloorSelectionScreen extends Screen {
             graphics.fill(panelX + panelWidth - 7, gridTop, panelX + panelWidth - 4, gridBottom, 0xFF35455B);
             graphics.fill(panelX + panelWidth - 7, y, panelX + panelWidth - 4, y + thumb, 0xFFB2C1D3);
         }
-        if (hovered != null) graphics.renderTooltip(font, hovered, mouseX, mouseY);
+        if (hovered != null) {
+            if (hoveredRejection) graphics.renderTooltip(font, font.split(hovered, Math.max(40, Math.min(280, width - 24))), mouseX, mouseY);
+            else graphics.renderTooltip(font, hovered, mouseX, mouseY);
+        }
     }
     private void drawFitted(GuiGraphics graphics, Component text, int x, int y, int available, int color) {
         float scale = Math.min(1, (float) available / Math.max(1, font.width(text)));

@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "spiral_abyss.refmap.json",
   "mixins": [
+    "BossProgressMixin",
     "AbyssHealthAttributeMixin",
     "EntityDropMixin",
     "ChestLootMergeMixin",

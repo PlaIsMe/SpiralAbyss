@@ -91,6 +91,9 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     private static volatile Definitions current = new Definitions(Map.of(),
             new Equipment(Set.of(), Set.of(), Set.of(), Set.of(), Set.of()), Set.of(), Map.of());
     public static Equipment equipment() { return current.equipment(); }
+    public static boolean isBoss(ResourceLocation id) {
+        return id != null && current.pools().getOrDefault(MobCategory.BOSS, List.of()).contains(id);
+    }
     public static boolean isGhostMob(ResourceLocation id) { return current.ghostMobs().contains(id); }
     public static boolean suppressesSpawn(ResourceLocation id) { return id != null && current.suppressedSpawns().contains(id); }
     public static Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks() { return current.suppressedFallingBlocks(); }

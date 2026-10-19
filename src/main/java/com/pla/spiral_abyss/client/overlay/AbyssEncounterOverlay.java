@@ -17,29 +17,40 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public final class AbyssEncounterOverlay {
     private static final ItemStack STAR = new ItemStack(Items.NETHER_STAR);
+    private static final float HUD_SCALE = 0.882F;
     private static final float TIMER_SCALE = 1.5F;
     private static final float COUNTDOWN_SCALE = 4F;
     private static AbyssNetwork.EncounterStatus state = AbyssNetwork.EncounterStatus.HIDDEN;
+    private static boolean hidden;
     private AbyssEncounterOverlay() {}
+    public static void toggleVisibility() { hidden = !hidden; }
     public static void update(AbyssNetwork.EncounterStatus status) { state = status; }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) {
         state = AbyssNetwork.EncounterStatus.HIDDEN;
+        hidden = false;
     }
     public static final IGuiOverlay HUD = (gui, graphics, partialTick, width, height) -> {
         Minecraft client = Minecraft.getInstance();
-        if (!state.active() || client.options.hideGui || client.player == null || client.level == null
+        if (hidden || !state.active() || client.options.hideGui || client.player == null || client.level == null
                 || !client.level.dimension().equals(AbyssDimension.LEVEL)) return;
         var font = client.font;
-        if (!state.preparing()) {
-            if (state.countdownSeconds() > 0) {
-                graphics.pose().pushPose();
-                graphics.pose().translate(width / 2F, 12, 0);
-                graphics.pose().scale(COUNTDOWN_SCALE, COUNTDOWN_SCALE, 1);
-                graphics.drawCenteredString(font, Integer.toString(state.countdownSeconds()), 0, 0, 0xFFFFFFFF);
-                graphics.pose().popPose();
-            } else AbyssClockRenderer.combat(graphics, font, width / 2, 12, state.seconds(), TIMER_SCALE);
+        if (!state.preparing() && state.countdownSeconds() > 0) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(width / 2F, 12, 0);
+            graphics.pose().scale(COUNTDOWN_SCALE, COUNTDOWN_SCALE, 1);
+            graphics.drawCenteredString(font, Integer.toString(state.countdownSeconds()), 0, 0, 0xFFFFFFFF);
+            graphics.pose().popPose();
+        } else if (!state.preparing()) {
+            AbyssClockRenderer.combat(graphics, font, width / 2, 36, state.seconds(), TIMER_SCALE);
         }
-        int left = 12, top = Math.max(44, height / 4);
+        // Keep the encounter counters and objectives in one compact left column.
+        int anchorX = 12, anchorY = Math.max(44, height / 4);
+        graphics.pose().pushPose();
+        graphics.pose().translate(anchorX, anchorY, 0);
+        graphics.pose().scale(HUD_SCALE, HUD_SCALE, 1);
+        int availableWidth = (int) ((width - anchorX - 8) / HUD_SCALE);
+        int availableHeight = (int) ((height - anchorY - 8) / HUD_SCALE);
+        int left = 0, top = 0;
         if (!state.preparing()) graphics.drawString(font,
                 Component.translatable("hud.spiral_abyss.defeated", state.defeated(), state.total()),
                 left, top, 0xFFFFFFFF, true);
@@ -50,7 +61,7 @@ public final class AbyssEncounterOverlay {
         graphics.drawString(font, Component.translatable("screen.spiral_abyss.challenge"),
                 left, challengeY, 0xFFFFFFFF, true);
         challengeY += font.lineHeight + 4;
-        int objectiveWidth = Math.max(40, Math.min(340, width - left - 38));
+        int objectiveWidth = Math.max(40, Math.min(240, availableWidth - 21));
         for (var challenge : state.challenges()) {
             boolean highlighted = state.preparing() ? !challenge.failed() : challenge.satisfied() && !challenge.failed();
             int color = highlighted ? 0xFFFFFFFF : 0xFF888888;
@@ -67,5 +78,8 @@ public final class AbyssEncounterOverlay {
             }
             challengeY = Math.max(rowStart + 18, challengeY + 4);
         }
+        if (!state.preparing()) AbyssRejectionNotice.panel(graphics, font, left - 4, challengeY + 4,
+                availableWidth, availableHeight - challengeY - 4, state.rejectedBosses());
+        graphics.pose().popPose();
     };
 }

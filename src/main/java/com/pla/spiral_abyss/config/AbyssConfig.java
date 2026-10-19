@@ -9,8 +9,12 @@ public final class AbyssConfig {
     public static final ForgeConfigSpec.IntValue RESET_DAYS;
     public static final ForgeConfigSpec.BooleanValue BROADCAST_RARE_LOOT;
     public static final ForgeConfigSpec.DoubleValue RARE_REWARD_CHANCE;
+    public static final ForgeConfigSpec.BooleanValue ABYSSAL_REJECTION;
     static {
         var builder = new ForgeConfigSpec.Builder();
+        ABYSSAL_REJECTION = builder.comment("Reduce a player's damage to floor 5/6 bosses by 60% until they defeat that species outside the Abyss.",
+                "Preserves normal boss progression. Disable for packs that intentionally allow Abyss-first boss encounters.")
+                .define("abyssal_rejection", true);
         RESET_DAYS = builder.comment("Server-wide reset interval in real-world days, including server downtime.",
                 "0 disables automatic resets. Personal resets never change this schedule or the cycle's mob choices.")
                 .defineInRange("reset_days", 20, 0, 36500);
