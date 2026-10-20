@@ -3,6 +3,9 @@ package com.pla.spiral_abyss.encounter.challenge;
 import com.pla.spiral_abyss.encounter.FloorController;
 import com.pla.spiral_abyss.encounter.MobDeathLifecycle;
 import com.pla.spiral_abyss.encounter.WaveChallenges;
+import com.pla.spiral_abyss.encounter.WaveSpawner;
+import com.pla.spiral_abyss.entity.ArenaInteractable;
+import com.pla.spiral_abyss.world.ArenaBounds;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -32,7 +35,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
-/** One wave's party-wide objectives. Only admitted combatants and actual spawned enemies count. */
+/** One wave's party-wide objectives, including kill/effect credit for local summoned mobs. */
 public final class ChallengeTracker {
     public record Progress(Component description, int progress, int target, boolean complete, boolean failed) {}
     private record Shot(UUID player, ItemStack weapon, boolean airborne) {}
@@ -40,7 +43,7 @@ public final class ChallengeTracker {
     private record Hit(UUID player, ItemStack weapon, boolean projectile, boolean trickshot, boolean explosion,
                        boolean playerBurning, boolean mobBurning, Set<ResourceLocation> playerEffects,
                        Set<ResourceLocation> mobEffects, long attributedAt) {}
-    private record Damage(Mob mob, Hit hit, LivingDamageEvent event) {}
+    private record Damage(Mob mob, Hit hit, LivingDamageEvent event, boolean tracked) {}
     private record Death(Mob mob, Hit hit, LivingDeathEvent event, LivingDamageEvent damageEvent) {}
     private record Impact(Challenge.Type type, ProjectileImpactEvent event) {}
     private static final int DOT_ATTRIBUTION_TICKS = 300;
@@ -124,7 +127,7 @@ public final class ChallengeTracker {
                 Challenge challenge = challenges.get(index);
                 if (challenge.type() == Challenge.Type.MOB_EFFECT && hit.hit.mobEffects.containsAll(challenge.ids()))
                     counters.get(index).incrementDistinct(hit.mob.getUUID());
-                if (challenge.type() == Challenge.Type.TRICKSHOT && hit.hit.trickshot) counters.get(index).increment();
+                if (challenge.type() == Challenge.Type.TRICKSHOT && hit.tracked && hit.hit.trickshot) counters.get(index).increment();
             }
         }
         damage.clear();
@@ -169,7 +172,7 @@ public final class ChallengeTracker {
         long now = session.level().getGameTime();
         lastHits.values().removeIf(hit -> now - hit.hit.attributedAt > DOT_ATTRIBUTION_TICKS
                 || hit.event.isCanceled() || !(hit.event.getAmount() > 0));
-        delayedHits.values().removeIf(hit -> !tracked(hit.mob));
+        delayedHits.values().removeIf(hit -> hit.mob.isRemoved() || !challengeTarget(hit.mob));
     }
     private void updateNoArmor(int index, List<ServerPlayer> combatants) {
         Set<UUID> violations = armorViolations.get(index);
@@ -183,6 +186,21 @@ public final class ChallengeTracker {
     private boolean tracked(Mob mob) {
         return session.controller().state() == FloorController.State.RUNNING && session.controller().owns(mob)
                 && session.controller().enemies().contains(mob);
+    }
+    /** Summons contribute challenge credit without entering the counted wave lineup. */
+    private boolean challengeTarget(Mob mob) {
+        if (session.controller().state() != FloorController.State.RUNNING
+                || mob.level() != session.level() || mob instanceof ArenaInteractable) return false;
+        var center = session.bounds().center();
+        if (Math.abs(mob.getX() - center.x) > ArenaBounds.FLIGHT_RADIUS
+                || Math.abs(mob.getZ() - center.z) > ArenaBounds.FLIGHT_RADIUS
+                || mob.getBoundingBox().maxY > ArenaBounds.FLIGHT_CEILING_Y) return false;
+        // Untagged summons are routed by their arena position, even on their first tick.
+        // Existing ownership must agree; a stale wave marker cannot become summon credit.
+        var data = mob.getPersistentData();
+        if (data.hasUUID("spiral_abyss_host") && !session.host().equals(data.getUUID("spiral_abyss_host"))) return false;
+        return !data.hasUUID(WaveSpawner.RUN_TAG) || session.controller().owns(mob)
+                || session.controller().bossEnvironments().ownsPlacement(mob);
     }
     public void projectileLaunched(Projectile projectile) {
         if (session.controller().state() == FloorController.State.RUNNING
@@ -226,15 +244,15 @@ public final class ChallengeTracker {
         }
     }
     public void damaged(Mob mob, LivingDamageEvent event) {
-        if (!tracked(mob)) return;
+        if (!challengeTarget(mob)) return;
         Hit hit = capture(mob, event.getSource());
         // Mutant Zombie/Creeper retain this exact DamageSource until their final death.
         // Snapshot now, including an unattributed hit, rather than borrowing a later held item.
         if (MobDeathLifecycle.delayedMutant(mob))
-            delayedHits.put(mob.getUUID(), new Damage(mob, hit, event));
+            delayedHits.put(mob.getUUID(), new Damage(mob, hit, event, tracked(mob)));
         if (!(event.getAmount() > 0)) return;
         if (hit == null) return;
-        Damage evidence = new Damage(mob, hit, event);
+        Damage evidence = new Damage(mob, hit, event, tracked(mob));
         lastHits.put(mob.getUUID(), evidence);
         damage.add(evidence);
     }
@@ -247,7 +265,7 @@ public final class ChallengeTracker {
         if (attacker instanceof Mob mob && tracked(mob)) receivedDamage.add(event);
     }
     public void died(Mob mob, LivingDeathEvent event) {
-        if (!tracked(mob)) return;
+        if (!challengeTarget(mob)) return;
         Damage delayed = delayedHits.get(mob.getUUID());
         boolean sameHit = delayed != null && delayed.event.getSource() == event.getSource();
         Hit hit = sameHit ? delayed.hit : capture(mob, event.getSource());

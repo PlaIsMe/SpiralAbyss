@@ -37,7 +37,8 @@ final class BossWater {
             if (!before.isAir() || level.getBlockEntity(pos) != null) continue;
             placed.set(index);
             if (!before.is(Blocks.AIR)) unusualAir.put(index, before);
-            level.setBlock(pos, Blocks.WATER.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+                    level.setBlock(pos, Blocks.WATER.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE));
         }
     }
     void retract(int tick, int duration) {
@@ -46,8 +47,9 @@ final class BossWater {
     }
     void restore(BlockPos pos) { int index = index(pos); if (index >= 0) restore(index); }
     private void restore(int index) {
-        if (placed.get(index)) level.setBlock(position(index), unusualAir.getOrDefault(index, Blocks.AIR.defaultBlockState()),
-                Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        if (placed.get(index)) com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+                level.setBlock(position(index), unusualAir.getOrDefault(index, Blocks.AIR.defaultBlockState()),
+                        Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE));
     }
     void clear() {
         for (int index = placed.nextSetBit(0); index >= 0; index = placed.nextSetBit(index + 1)) restore(index);

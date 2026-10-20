@@ -2,6 +2,8 @@ package com.pla.spiral_abyss.network;
 
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.world.AbyssParties;
+import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -12,7 +14,7 @@ import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    private static final String VERSION = "22";
+    private static final String VERSION = "23";
     private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
@@ -28,7 +30,8 @@ public final class AbyssNetwork {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, null);
         }
     }
-    public record EnemyPreview(ResourceLocation id, int count, boolean rejected) {
+    public record EnemyPreview(ResourceLocation id, int count, boolean rejected, PreviewAnimation animation) {
+        public EnemyPreview(ResourceLocation id, int count, boolean rejected) { this(id, count, rejected, PreviewAnimation.DEFAULT); }
         public EnemyPreview(ResourceLocation id, int count) { this(id, count, false); }
     }
     public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
@@ -59,8 +62,11 @@ public final class AbyssNetwork {
     public record OpenJournal(long resetRemainingMillis, long poseSeed, List<BannerBoss> bosses) {
         public OpenJournal { bosses = List.copyOf(bosses); }
     }
-    public record BannerBoss(int floor, int wave, ResourceLocation id, List<RewardPreview> rewards) {
+    public record BannerBoss(int floor, int wave, ResourceLocation id, List<RewardPreview> rewards, PreviewAnimation animation) {
         public BannerBoss { rewards = List.copyOf(rewards); }
+        public BannerBoss(int floor, int wave, ResourceLocation id, List<RewardPreview> rewards) {
+            this(floor, wave, id, rewards, PreviewAnimation.DEFAULT);
+        }
     }
     public record SelectFloor(UUID token, int floor) {}
     public record KeepFloorsOpen(UUID token) {}
@@ -168,6 +174,7 @@ public final class AbyssNetwork {
         buffer.writeVarInt(message.bosses().size());
         for (var boss : message.bosses()) {
             buffer.writeVarInt(boss.floor()); buffer.writeVarInt(boss.wave()); buffer.writeResourceLocation(boss.id());
+            writeAnimation(buffer, boss.animation());
             buffer.writeVarInt(boss.rewards().size());
             for (var reward : boss.rewards()) {
                 buffer.writeResourceLocation(reward.id()); buffer.writeItem(reward.icon()); buffer.writeDouble(reward.displayChance());
@@ -180,11 +187,12 @@ public final class AbyssNetwork {
         for (int b = bounded(buffer, 4); b > 0; b--) {
             int floor = bounded(buffer, 6), wave = bounded(buffer, 3);
             ResourceLocation id = buffer.readResourceLocation();
+            PreviewAnimation animation = readAnimation(buffer);
             List<RewardPreview> rewards = new ArrayList<>();
             for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--)
                 rewards.add(new RewardPreview(buffer.readResourceLocation(), false, true, List.of(), false,
                         buffer.readItem(), buffer.readDouble()));
-            bosses.add(new BannerBoss(floor, wave, id, rewards));
+            bosses.add(new BannerBoss(floor, wave, id, rewards, animation));
         }
         return new OpenJournal(remaining, poseSeed, bosses);
     }
@@ -228,7 +236,8 @@ public final class AbyssNetwork {
                         : challenges.stream().map(challenge -> challenge.description(wavePopulation)).toList();
                 waves.add(new WavePreview(index + 1, stars[index], counts.entrySet().stream()
                         .map(entry -> new EnemyPreview(entry.getKey(), entry.getValue(),
-                                com.pla.spiral_abyss.encounter.AbyssRejection.isRejected(player, definition.number(), entry.getKey())))
+                                com.pla.spiral_abyss.encounter.AbyssRejection.isRejected(player, definition.number(), entry.getKey()),
+                                MobCatalog.bossOptions(entry.getKey()).previewAnimation()))
                         .toList(), objectives));
             }
             floors.add(new FloorPreview(definition.number(), waves, rewards.floor(definition.rewards(), floorEnemies)));
@@ -245,6 +254,7 @@ public final class AbyssNetwork {
                 buffer.writeVarInt(wave.enemies().size());
                 for (var enemy : wave.enemies()) {
                     buffer.writeResourceLocation(enemy.id()); buffer.writeVarInt(enemy.count()); buffer.writeBoolean(enemy.rejected());
+                    writeAnimation(buffer, enemy.animation());
                 }
             }
             buffer.writeVarInt(floor.rewards().size());
@@ -264,6 +274,12 @@ public final class AbyssNetwork {
             buffer.writeVarInt(challenge.progress()); buffer.writeVarInt(challenge.target());
             buffer.writeBoolean(challenge.satisfied()); buffer.writeBoolean(challenge.failed());
         }
+    }
+    private static void writeAnimation(FriendlyByteBuf buffer, PreviewAnimation animation) {
+        buffer.writeUtf(animation.name(), 128); buffer.writeDouble(animation.timeSeconds());
+    }
+    private static PreviewAnimation readAnimation(FriendlyByteBuf buffer) {
+        return new PreviewAnimation(buffer.readUtf(128), buffer.readDouble());
     }
     private static List<ChallengeView> readChallenges(FriendlyByteBuf buffer) {
         List<ChallengeView> result = new ArrayList<>();
@@ -292,7 +308,7 @@ public final class AbyssNetwork {
                 for (int c = bounded(buffer, 3); c > 0; c--) challenges.add(buffer.readComponent());
                 List<EnemyPreview> enemies = new ArrayList<>();
                 for (int e = bounded(buffer, 128); e > 0; e--)
-                    enemies.add(new EnemyPreview(buffer.readResourceLocation(), bounded(buffer, 128), buffer.readBoolean()));
+                    enemies.add(new EnemyPreview(buffer.readResourceLocation(), bounded(buffer, 128), buffer.readBoolean(), readAnimation(buffer)));
                 waves.add(new WavePreview(wave, stars, enemies, challenges));
             }
             List<RewardPreview> rewards = new ArrayList<>();

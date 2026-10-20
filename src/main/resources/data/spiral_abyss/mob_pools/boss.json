@@ -331,5 +331,70 @@
       "item": "block_factorys_bosses:kraken_trident",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:loyalty": 3}
     }
+  ],
+  [
+    "bosses_of_mass_destruction:lich",
+    {
+      "environment": ["minecraft:dirt"],
+      "decoration_environment": ["snow_dirt"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "bosses_of_mass_destruction:levitation_block"
+    }
+  ],
+  [
+    "bosses_of_mass_destruction:obsidilith",
+    {
+      "preview_animation": {"name": "summon", "time_seconds": 1.5},
+      "suppress_death_blocks": {
+        "blocks": ["minecraft:obsidian", "minecraft:shulker_box"],
+        "radius": 2,
+        "height": 16,
+        "ticks": 100
+      }
+    },
+    {
+      "environment": ["minecraft:obsidian"],
+      "decoration_environment": ["minecraft:end_stone"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.05
+    },
+    {
+      "item": "bosses_of_mass_destruction:monolith_block"
+    }
+  ],
+  [
+    "bosses_of_mass_destruction:gauntlet",
+    {
+      "spawn_y_offset": 1.0
+    },
+    {
+      "environment": ["minecraft:blackstone", "minecraft:polished_blackstone_bricks", "minecraft:cracked_polished_blackstone_bricks"],
+      "decoration_environment": ["minecraft:magma_block"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.04
+    },
+    {
+      "item": "bosses_of_mass_destruction:earthdive_spear",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping": 3, "minecraft:fire_aspect": 2}
+    }
+  ],
+  [
+    "bosses_of_mass_destruction:void_blossom",
+    {
+      "spawn_y_offset": 1.0,
+      "preview_animation": {"name": "spawn", "time_seconds": 0.67}
+    },
+    {
+      "environment": ["minecraft:moss_block", "minecraft:rooted_dirt", "minecraft:grass_block"],
+      "decoration_environment": ["minecraft:small_dripleaf"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.04
+    },
+    {
+      "item": "bosses_of_mass_destruction:charged_ender_pearl"
+    }
   ]
 ]

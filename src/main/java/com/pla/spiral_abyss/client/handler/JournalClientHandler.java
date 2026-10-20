@@ -10,7 +10,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
@@ -28,10 +27,6 @@ public final class JournalClientHandler {
         if (client.player != null && !client.player.level().dimension()
                 .equals(com.pla.spiral_abyss.world.AbyssDimension.LEVEL))
             client.setScreen(new AbyssJournalScreen(message));
-    }
-    @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static final class Keys {
-        @SubscribeEvent public static void register(RegisterKeyMappingsEvent event) { event.register(OPEN); }
     }
     @SubscribeEvent public static void inventory(ScreenEvent.Init.Post event) {
         if (!(event.getScreen() instanceof InventoryScreen) && !(event.getScreen() instanceof CreativeModeInventoryScreen)) return;

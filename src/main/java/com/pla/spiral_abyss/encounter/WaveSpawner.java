@@ -78,15 +78,16 @@ public final class WaveSpawner {
     }
 
     public boolean place(ServerLevel level, Mob mob, Vec3 center) {
+        double spawnY = center.y + MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).spawnYOffset();
         var environment = com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
         if (environment != null && environment.centered()) {
             level.getChunkAt(BlockPos.containing(center));
-            mob.moveTo(center.x, center.y, center.z, 0, 0);
+            mob.moveTo(center.x, spawnY, center.z, 0, 0);
             return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);
         }
         if (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
             level.getChunkAt(BlockPos.containing(center));
-            mob.moveTo(center.x, center.y + 20, center.z, level.random.nextFloat() * 360, 0);
+            mob.moveTo(center.x, spawnY + 20, center.z, level.random.nextFloat() * 360, 0);
             return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);
         }
         for (int attempt = 0; attempt < 80; attempt++) {
@@ -96,7 +97,9 @@ public final class WaveSpawner {
             double z = center.z + Math.sin(angle) * radius;
             BlockPos feet = BlockPos.containing(x, center.y, z);
             level.getChunkAt(feet);
-            mob.moveTo(x, center.y, z, level.random.nextFloat() * 360, 0);
+            // Keep the support check on the platform while allowing configured multipart
+            // bosses to start above it. Collision and liquid checks still use the full mob.
+            mob.moveTo(x, spawnY, z, level.random.nextFloat() * 360, 0);
             if (level.getWorldBorder().isWithinBounds(mob.getBoundingBox())
                     && level.getBlockState(feet.below()).isSolidRender(level, feet.below())
                     && level.noCollision(mob) && !level.containsAnyLiquid(mob.getBoundingBox())) return true;

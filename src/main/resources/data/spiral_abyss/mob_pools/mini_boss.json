@@ -4,27 +4,8 @@
     "3": {"health": 1, "damage": 1}, "4": {"health": 1, "damage": 1},
     "5": {"health": 2, "damage": 2}, "6": {"health": 2, "damage": 2}
   }},
-  [
-    "minecraft:evoker",
-    {
-      "loot_table": "minecraft:chests/pillager_outpost",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/woodland_mansion",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
-  [
-    "minecraft:warden",
-    {
-      "loot_table": "minecraft:chests/ancient_city",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
+  "minecraft:evoker",
+  "minecraft:warden",
   [
     "mutantmonsters:mutant_creeper",
     {

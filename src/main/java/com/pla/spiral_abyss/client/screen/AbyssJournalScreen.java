@@ -147,7 +147,7 @@ public final class AbyssJournalScreen extends Screen {
     private BossLabel renderBoss(GuiGraphics g, AbyssNetwork.BannerBoss boss, float bx, float by, float bw, float bh) {
         int left = x + Math.round(w * bx), top = y + Math.round(h * by);
         int modelWidth = Math.round(w * bw), modelHeight = Math.round(h * bh);
-        bosses.render(g, boss.id(), left, top, modelWidth, modelHeight);
+        bosses.render(g, boss.id(), boss.animation(), left, top, modelWidth, modelHeight);
         return new BossLabel(boss, bosses.contentBounds(boss.id(), left, top, modelWidth, modelHeight), modelWidth, bw < .3F ? 1.15F : 1.6F);
     }
     private void renderRewards(GuiGraphics g, int mx, int my, float unit, float rulesBottom) {

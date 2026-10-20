@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.encounter;
 import com.pla.spiral_abyss.encounter.data.FloorCatalog;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.data.MobCategory;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.network.AbyssNetwork.BannerBoss;
 import com.pla.spiral_abyss.network.AbyssNetwork.RewardPreview;
 import com.pla.spiral_abyss.world.AbyssParties;
@@ -32,7 +33,8 @@ public final class JournalPreviews {
                                 .filter(reward -> reward.rare() && !reward.table()).toList();
                         // Preserve separate final-wave slots even if a small installed pool repeats a species.
                         for (int count = 0; count < enemy.count() && result.size() < 4; count++)
-                            result.add(new BannerBoss(floor, wave, enemy.id(), linked));
+                            result.add(new BannerBoss(floor, wave, enemy.id(), linked,
+                                    MobCatalog.bossOptions(enemy.id()).previewAnimation()));
                     }
                 } catch (IllegalArgumentException ex) {
                     com.mojang.logging.LogUtils.getLogger().warn("Cannot preview Abyss journal floor {} wave {}: {}", floor, wave, ex.getMessage());

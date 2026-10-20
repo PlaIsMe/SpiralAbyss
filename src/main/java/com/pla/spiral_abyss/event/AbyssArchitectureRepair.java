@@ -50,7 +50,7 @@ public final class AbyssArchitectureRepair {
     public static void edit(ServerLevel level, Runnable action) {
         Pending pending = LEVELS.computeIfAbsent(level, ignored -> new Pending());
         pending.editDepth++;
-        try { action.run(); }
+        try { BossDeathBlocks.edit(action); }
         finally { pending.editDepth--; }
     }
 

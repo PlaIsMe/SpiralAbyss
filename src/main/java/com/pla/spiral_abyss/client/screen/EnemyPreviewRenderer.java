@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.client.screen;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -23,6 +24,9 @@ final class EnemyPreviewRenderer {
     }
     void clear() { entities.clear(); unavailable.clear(); geoPortraits.clear(); }
     void render(GuiGraphics graphics, ResourceLocation id, int x, int y, int width, int height) {
+        render(graphics, id, PreviewAnimation.DEFAULT, x, y, width, height);
+    }
+    void render(GuiGraphics graphics, ResourceLocation id, PreviewAnimation animation, int x, int y, int width, int height) {
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || unavailable.contains(id)) { fallback(graphics, x, y, width, height); return; }
         LivingEntity entity = entities.get(id);
@@ -40,8 +44,8 @@ final class EnemyPreviewRenderer {
         }
         // Animated mod models can extend far beyond their collision boxes. Capture their
         // initialized pose once and fit its visible silhouette into the wave card.
-        if (OptionalGeoPreview.supports(entity)) {
-            geoPortraits.render(graphics, id, x, y, width, height);
+        if (OptionalGeoPreview.supports(entity, animation)) {
+            geoPortraits.render(graphics, id, animation, x, y, width, height);
             return;
         }
         float modelWidth = Math.max(0.5F, entity.getBbWidth() * 1.35F), modelHeight = Math.max(0.5F, entity.getBbHeight() * 1.15F);

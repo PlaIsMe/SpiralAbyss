@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -39,6 +40,7 @@ import java.util.Set;
 final class BannerBossRenderer {
     private final Map<ResourceLocation, LivingEntity> entities = new HashMap<>();
     private final Map<ResourceLocation, TextureTarget> portraits = new HashMap<>();
+    private final Map<ResourceLocation, PreviewAnimation> animations = new HashMap<>();
     private final Map<Integer, Crop> crops = new HashMap<>();
     record Bounds(int x, int y, int width, int height) {}
     private final Set<ResourceLocation> unavailable = new HashSet<>();
@@ -65,11 +67,21 @@ final class BannerBossRenderer {
         portraits.clear();
         crops.clear();
         entities.clear();
+        animations.clear();
         unavailable.clear();
     }
 
     void render(GuiGraphics graphics, ResourceLocation id, int x, int y, int width, int height) {
+        render(graphics, id, PreviewAnimation.DEFAULT, x, y, width, height);
+    }
+
+    void render(GuiGraphics graphics, ResourceLocation id, PreviewAnimation animation, int x, int y, int width, int height) {
         if (width < 1 || height < 1) return;
+        if (!animation.equals(animations.put(id, animation))) {
+            TextureTarget oldPortrait = portraits.remove(id);
+            if (oldPortrait != null) destroyPortrait(oldPortrait);
+            unavailable.remove(id);
+        }
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || unavailable.contains(id)) {
             fallback(graphics, id, x, y, width, height);
@@ -109,7 +121,7 @@ final class BannerBossRenderer {
             if (portrait == null) {
                 graphics.flush();
                 for (int attempt = 0; attempt < 10; attempt++) {
-                    portrait = capture(graphics, entity, (float) Math.pow(.55, attempt));
+                    portrait = capture(graphics, entity, animation, (float) Math.pow(.55, attempt));
                     Crop crop = crops.get(portrait.getColorTextureId());
                     if (attempt == 9 || (crop.x() > 0 && crop.y() > 0
                             && crop.x() + crop.width() < portrait.width
@@ -127,7 +139,7 @@ final class BannerBossRenderer {
     }
 
     /** Capturing once freezes even renderers that read their own clock instead of entity age. */
-    private TextureTarget capture(GuiGraphics graphics, LivingEntity entity, float zoom) {
+    private TextureTarget capture(GuiGraphics graphics, LivingEntity entity, PreviewAnimation animation, float zoom) {
         Minecraft client = Minecraft.getInstance();
         var dispatcher = client.getEntityRenderDispatcher();
         Quaternionf previousCamera = new Quaternionf(dispatcher.cameraOrientation());
@@ -160,13 +172,13 @@ final class BannerBossRenderer {
                 float modelHeight = dragon ? 9F : Math.max(1F, entity.getBbHeight() * 1.22F);
                 float scale = zoom * .65F * Math.min((pixelWidth - 24F) / modelWidth, (pixelHeight - 24F) / modelHeight);
                 PoseStack modelPose = new PoseStack();
-                modelPose.translate(pixelWidth / 2F, pixelHeight * (dragon || OptionalGeoPreview.supports(entity) ? 0.54F : 0.82F), -11000);
+                modelPose.translate(pixelWidth / 2F, pixelHeight * (dragon || OptionalGeoPreview.supports(entity, animation) ? 0.54F : 0.82F), -11000);
                 modelPose.scale(scale, scale, -scale);
                 modelPose.mulPose(new Quaternionf().rotateZ((float) Math.PI)
                         .rotateY((float) Math.toRadians(dragon ? 150 : -16)));
                 // Direct registered renderer avoids world shadows and changes to shadow settings.
                 RenderSystem.runAsFancy(() -> {
-                    if (!OptionalGeoPreview.render(entity, entity.getUUID().getMostSignificantBits(),
+                    if (!OptionalGeoPreview.render(entity, entity.getUUID().getMostSignificantBits(), animation,
                             modelPose, graphics.bufferSource(), 15728880)) {
                         dispatcher.getRenderer(entity).render(entity, 0F, 1F,
                                 modelPose, graphics.bufferSource(), 15728880);

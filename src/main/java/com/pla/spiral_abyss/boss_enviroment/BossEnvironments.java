@@ -55,7 +55,8 @@ public final class BossEnvironments {
             // must not destroy its partner through neighbor updates and spill decoration loot.
             boolean plant = state.getBlock() instanceof DoublePlantBlock
                     || level.getBlockState(pos).getBlock() instanceof DoublePlantBlock;
-            level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL);
+            com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+                    level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL));
         });
     }
     public boolean protects(BlockPos pos) { return terrain.contains(pos) || effects.values().stream().anyMatch(effect -> effect.water != null && effect.water.contains(pos)); }

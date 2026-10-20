@@ -40,12 +40,18 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     public record Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
                        Set<ResourceLocation> suppressedSpawns, Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks,
                        Map<ResourceLocation, MobScaling.Plan> scaling,
-                       MobScaling.Plan defaultScaling) {
+                       MobScaling.Plan defaultScaling, Map<ResourceLocation, BossOptions> bossOptions) {
         public Pool {
             mobs = List.copyOf(mobs); rewards = immutableRewards(rewards);
             suppressedSpawns = Set.copyOf(suppressedSpawns);
             suppressedFallingBlocks = immutableSets(suppressedFallingBlocks);
             scaling = Map.copyOf(scaling);
+            bossOptions = Map.copyOf(bossOptions);
+        }
+        public Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
+                    Set<ResourceLocation> suppressedSpawns, Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks,
+                    Map<ResourceLocation, MobScaling.Plan> scaling, MobScaling.Plan defaultScaling) {
+            this(mobs, rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling, Map.of());
         }
         public Pool(List<ResourceLocation> mobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
             this(mobs, rewards, Set.of(), Map.of(), Map.of(), MobScaling.Plan.NORMAL_PLAN);
@@ -59,7 +65,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                               Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
                               Set<ResourceLocation> suppressedSpawns, Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks,
                               Map<MobCategory, Map<ResourceLocation, MobScaling.Plan>> scaling,
-                              Map<MobCategory, MobScaling.Plan> defaultScaling) {
+                              Map<MobCategory, MobScaling.Plan> defaultScaling, Map<ResourceLocation, BossOptions> bossOptions) {
         public Definitions {
             pools = new Pools(false, pools).entries(); ghostMobs = Set.copyOf(ghostMobs);
             rewards = immutableRewards(rewards); suppressedSpawns = Set.copyOf(suppressedSpawns);
@@ -68,6 +74,14 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             scaling.forEach((category, plans) -> copy.put(category, Map.copyOf(plans)));
             scaling = Collections.unmodifiableMap(copy);
             defaultScaling = Map.copyOf(defaultScaling);
+            bossOptions = Map.copyOf(bossOptions);
+        }
+        public Definitions(Map<MobCategory, List<ResourceLocation>> pools, Equipment equipment,
+                           Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards,
+                           Set<ResourceLocation> suppressedSpawns, Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks,
+                           Map<MobCategory, Map<ResourceLocation, MobScaling.Plan>> scaling,
+                           Map<MobCategory, MobScaling.Plan> defaultScaling) {
+            this(pools, equipment, ghostMobs, rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling, Map.of());
         }
         public Definitions(Map<MobCategory, List<ResourceLocation>> pools, Equipment equipment,
                            Set<ResourceLocation> ghostMobs, Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
@@ -91,6 +105,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     private static volatile Definitions current = new Definitions(Map.of(),
             new Equipment(Set.of(), Set.of(), Set.of(), Set.of(), Set.of()), Set.of(), Map.of());
     public static Equipment equipment() { return current.equipment(); }
+    public static BossOptions bossOptions(ResourceLocation id) { return current.bossOptions().getOrDefault(id, BossOptions.DEFAULT); }
     public static boolean isBoss(ResourceLocation id) {
         return id != null && current.pools().getOrDefault(MobCategory.BOSS, List.of()).contains(id);
     }
@@ -150,6 +165,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             hasDefaultScaling = true;
         }
         Map<ResourceLocation, MobScaling.Plan> scaling = new LinkedHashMap<>();
+        Map<ResourceLocation, BossOptions> bossOptions = new LinkedHashMap<>();
         for (JsonElement value : array) {
             if (value.isJsonObject()) continue;
             JsonArray spec = value.isJsonArray() ? value.getAsJsonArray() : null;
@@ -170,6 +186,12 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                     bonuses.add(item ? RewardPool.rare(entry) : entry);
                 } else {
                     JsonObject object = reward.getAsJsonObject();
+                    if (BossOptions.isMetadata(object)) {
+                        if (!bossPool) throw new JsonParseException("boss options are only supported in mob_pools/boss.json");
+                        if (bossOptions.putIfAbsent(mob, BossOptions.parse(object)) != null)
+                            throw new JsonParseException("duplicate boss options for " + mob);
+                        continue;
+                    }
                     if (object.has("scaling")) {
                         if (object.size() != 1 || scaling.containsKey(mob))
                             throw new JsonParseException("mob scaling must be a separate, unique metadata object for " + mob);
@@ -213,7 +235,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             scaling.putIfAbsent(mob, mobScale);
         }
         for (ResourceLocation mob : mobs) scaling.putIfAbsent(mob, defaultScaling);
-        return new Pool(List.copyOf(mobs), rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling);
+        return new Pool(List.copyOf(mobs), rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling, bossOptions);
     }
     private static JsonArray read(ResourceManager manager, String path) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath("spiral_abyss", path + ".json");
@@ -237,6 +259,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         Map<ResourceLocation, Set<ResourceLocation>> suppressedFallingBlocks = new LinkedHashMap<>();
         Map<MobCategory, Map<ResourceLocation, MobScaling.Plan>> scaling = new EnumMap<>(MobCategory.class);
         Map<MobCategory, MobScaling.Plan> defaultScaling = new EnumMap<>(MobCategory.class);
+        Map<ResourceLocation, BossOptions> bossOptions = new LinkedHashMap<>();
         for (MobCategory category : MobCategory.values()) {
             JsonArray poolEntries = read(manager, "mob_pools/" + category.key());
             Pool pool = category == MobCategory.BOSS
@@ -245,6 +268,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             pools.put(category, pool.mobs());
             scaling.put(category, pool.scaling());
             defaultScaling.put(category, pool.defaultScaling());
+            bossOptions.putAll(pool.bossOptions());
             suppressedSpawns.addAll(pool.suppressedSpawns());
             pool.suppressedFallingBlocks().forEach((id, blocks) ->
                     suppressedFallingBlocks.computeIfAbsent(id, unused -> new LinkedHashSet<>()).addAll(blocks));
@@ -252,7 +276,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         }
         return new Definitions(pools, new Equipment(mobType(manager, "armor_mobs"), mobType(manager, "melee_mobs"),
                 mobType(manager, "bow_users"), mobType(manager, "crossbow_users"), mobType(manager, "trident_users"), mobType(manager, "ranged_mobs")),
-                mobType(manager, "ghost_mobs"), rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling);
+                mobType(manager, "ghost_mobs"), rewards, suppressedSpawns, suppressedFallingBlocks, scaling, defaultScaling, bossOptions);
     }
     @Override protected void apply(Definitions definitions, ResourceManager manager, ProfilerFiller profiler) {
         current = definitions;

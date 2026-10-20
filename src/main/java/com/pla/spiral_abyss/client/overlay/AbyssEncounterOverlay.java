@@ -21,17 +21,14 @@ public final class AbyssEncounterOverlay {
     private static final float TIMER_SCALE = 1.5F;
     private static final float COUNTDOWN_SCALE = 4F;
     private static AbyssNetwork.EncounterStatus state = AbyssNetwork.EncounterStatus.HIDDEN;
-    private static boolean hidden;
     private AbyssEncounterOverlay() {}
-    public static void toggleVisibility() { hidden = !hidden; }
     public static void update(AbyssNetwork.EncounterStatus status) { state = status; }
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) {
         state = AbyssNetwork.EncounterStatus.HIDDEN;
-        hidden = false;
     }
     public static final IGuiOverlay HUD = (gui, graphics, partialTick, width, height) -> {
         Minecraft client = Minecraft.getInstance();
-        if (hidden || !state.active() || client.options.hideGui || client.player == null || client.level == null
+        if (!state.active() || client.options.hideGui || client.player == null || client.level == null
                 || !client.level.dimension().equals(AbyssDimension.LEVEL)) return;
         var font = client.font;
         if (!state.preparing() && state.countdownSeconds() > 0) {

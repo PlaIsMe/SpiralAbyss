@@ -12,7 +12,9 @@ public final class CommandInit {
         dispatcher.register(Commands.literal("spiral_abyss")
                 .then(Commands.literal("reset").requires(source -> source.hasPermission(2)).executes(c -> {
                     AbyssParties.get(c.getSource().getServer()).resetGlobal();
-                    c.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable("message.spiral_abyss.global_reset"), true);
+                    // Online players already receive the cycle service's announcement.
+                    if (!c.getSource().isPlayer())
+                        c.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable("message.spiral_abyss.global_reset"), false);
                     return 1;
                 }))
                 .executes(c -> AbyssParties.get(c.getSource().getServer()).portals().openArenaMenu(c.getSource().getPlayerOrException()) ? 1 : 0)

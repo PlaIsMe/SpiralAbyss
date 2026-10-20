@@ -305,7 +305,7 @@ public final class FloorSelectionScreen extends Screen {
             if (y + tileHeight < gridTop || y > gridBottom) continue;
             var enemy = enemies.get(index);
             graphics.fill(x, y, x + tileWidth - 4, y + tileHeight - 5, 0x6034455E);
-            previews.render(graphics, enemy.id(), x + 4, y + 3, tileWidth - 12, tileHeight - 24);
+            previews.render(graphics, enemy.id(), enemy.animation(), x + 4, y + 3, tileWidth - 12, tileHeight - 24);
             graphics.drawCenteredString(font, Component.translatable("screen.spiral_abyss.enemy_count", enemy.count()), x + (tileWidth - 4) / 2, y + tileHeight - 18, 0xFFFFFFFF);
             if (mouseX >= x && mouseX < x + tileWidth - 4 && mouseY >= Math.max(y, gridTop) && mouseY < Math.min(y + tileHeight - 5, gridBottom)) hovered = previews.name(enemy.id());
             if (enemy.rejected()) {

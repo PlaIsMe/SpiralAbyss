@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.client.screen;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -11,6 +12,7 @@ import net.minecraft.world.entity.LivingEntity;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.core.animatable.GeoAnimatable;
 import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.core.object.PlayState;
@@ -19,6 +21,7 @@ import software.bernie.geckolib.core.molang.MolangParser;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.model.data.EntityModelData;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.constant.DataTickets;
 
 import java.lang.reflect.Field;
@@ -28,7 +31,8 @@ import java.util.*;
 /** Loaded only behind the optional GeckoLib gate. Never ticks entities or executes clip events. */
 @SuppressWarnings({"rawtypes", "unchecked"})
 final class GeckoPreviewSampler {
-    private static final Set<Class<?>> failed = new HashSet<>();
+    private record Failure(Class<?> type, PreviewAnimation animation) {}
+    private static final Set<Failure> failed = new HashSet<>();
 
     static boolean supports(LivingEntity entity) {
         return entity instanceof GeoAnimatable
@@ -36,7 +40,12 @@ final class GeckoPreviewSampler {
     }
 
     static boolean render(LivingEntity entity, long seed, PoseStack pose, MultiBufferSource buffers, int light) {
-        if (failed.contains(entity.getClass())) return false;
+        return render(entity, seed, PreviewAnimation.DEFAULT, pose, buffers, light);
+    }
+
+    static boolean render(LivingEntity entity, long seed, PreviewAnimation preview, PoseStack pose, MultiBufferSource buffers, int light) {
+        Failure failure = new Failure(entity.getClass(), preview);
+        if (failed.contains(failure)) return false;
         GeoEntityRenderer renderer = (GeoEntityRenderer) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity);
         GeoAnimatable animated = (GeoAnimatable) entity;
         List<SavedField> rendererState = new ArrayList<>();
@@ -78,12 +87,15 @@ final class GeckoPreviewSampler {
                 }
                 reset(bone);
             }
-            List<String> choices = clips(model, animated);
+            List<String> choices = preview.configured() ? List.of(preview.name()) : clips(model, animated);
             if (choices.isEmpty()) return false;
             Random random = new Random(seed);
             String clip = choices.get(random.nextInt(choices.size()));
             Animation animation = model.getAnimation(animated, clip);
-            double sample = Math.max(1, Math.min(160, animation.length()) * (.2 + random.nextDouble() * .5));
+            if (animation == null) throw new IllegalArgumentException("Unknown preview animation: " + clip);
+            double sample = preview.configured()
+                    ? Math.min(preview.timeSeconds() * 20, Math.max(0, animation.length() - .001))
+                    : Math.max(1, Math.min(160, animation.length()) * (.2 + random.nextDouble() * .5));
             RawAnimation raw = RawAnimation.begin().thenLoop(clip);
             // A new manager is independent of both the entity cache and world controllers.
             AnimatableManager manager = new AnimatableManager(animated);
@@ -113,12 +125,15 @@ final class GeckoPreviewSampler {
             var texture = renderer.getTextureLocation(entity);
             var type = renderer.getRenderType(animated, texture, buffers, 0);
             if (type == null) return false;
-            renderer.reRender(baked, pose, buffers, animated, type, buffers.getBuffer(type), 0,
+            // Explicit frames render just the sampled mesh. A mod's renderer may require
+            // live combat lighting/effect helpers that are absent on an unspawned preview.
+            GeoRenderer mesh = preview.configured() ? new PreviewMesh(model, animated) : renderer;
+            mesh.reRender(baked, pose, buffers, animated, type, buffers.getBuffer(type), 0,
                     light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
             LogUtils.getLogger().debug("Abyss preview {} samples {} at {} ticks", entity.getType(), clip, sample);
             return true;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            failed.add(entity.getClass());
+            failed.add(failure);
             LogUtils.getLogger().warn("Optional Abyss animation preview unavailable for {}", entity.getType(), exception);
             return false;
         } finally {
@@ -132,6 +147,17 @@ final class GeckoPreviewSampler {
             if (processor != null) processor.reloadAnimations = reload;
             pose.popPose();
         }
+    }
+
+    private record PreviewMesh(GeoModel model, GeoAnimatable entity) implements GeoRenderer<GeoAnimatable> {
+        @Override public GeoModel getGeoModel() { return model; }
+        @Override public GeoAnimatable getAnimatable() { return entity; }
+        @Override public void fireCompileRenderLayersEvent() {}
+        @Override public boolean firePreRenderEvent(PoseStack pose, BakedGeoModel model,
+                                                    MultiBufferSource buffers, float tick, int light) { return true; }
+        @Override public void firePostRenderEvent(PoseStack pose, BakedGeoModel model,
+                                                 MultiBufferSource buffers, float tick, int light) {}
+        @Override public void updateAnimatedTextureFrame(GeoAnimatable entity) {}
     }
 
     private static List<String> clips(GeoModel model, GeoAnimatable entity) {

@@ -132,7 +132,6 @@
   "message.spiral_abyss.rare_reward": "%s has obtained %s at floor %s",
   "toast.spiral_abyss.rare_reward.title": "RARE ABYSS REWARD",
   "toast.spiral_abyss.rare_reward.description": "%s has obtained %s",
-  "key.spiral_abyss.toggle_hud": "Show / hide Abyss encounter HUD",
   "key.spiral_abyss.menu": "Open Spiral Abyss menu",
   "key.categories.spiral_abyss": "Spiral Abyss",
   "screen.spiral_abyss.journal.banner": "Featured rewards",

@@ -5,66 +5,11 @@
     "5": {"health": 2, "damage": 2}, "6": {"health": 2, "damage": 2}
   }},
   "minecraft:vindicator",
-  [
-    "minecraft:wither_skeleton",
-    {
-      "loot_table": "minecraft:chests/nether_bridge",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/bastion_bridge",
-      "weight": 1,
-      "chance": 0.5
-    }
-  ],
-  [
-    "minecraft:hoglin",
-    {
-      "loot_table": "minecraft:chests/bastion_hoglin_stable",
-      "weight": 1,
-      "chance": 0.5
-    },
-    {
-      "loot_table": "minecraft:chests/bastion_other",
-      "weight": 1,
-      "chance": 0.5
-    }
-  ],
-  [
-    "minecraft:ravager",
-    {
-      "loot_table": "minecraft:chests/pillager_outpost",
-      "weight": 1,
-      "chance": 0.65
-    },
-    {
-      "loot_table": "minecraft:chests/woodland_mansion",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
-  [
-    "minecraft:elder_guardian",
-    {
-      "loot_table": "minecraft:chests/shipwreck_treasure",
-      "weight": 1,
-      "chance": 0.5
-    },
-    {
-      "loot_table": "minecraft:chests/buried_treasure",
-      "weight": 1,
-      "chance": 0.4
-    }
-  ],
-  [
-    "minecraft:ghast",
-    {
-      "loot_table": "minecraft:chests/nether_bridge",
-      "weight": 1,
-      "chance": 0.65
-    }
-  ],
+  "minecraft:wither_skeleton",
+  "minecraft:hoglin",
+  "minecraft:ravager",
+  "minecraft:elder_guardian",
+  "minecraft:ghast",
   "minecraft:shulker",
   "mutantmonsters:mutant_snow_golem",
   "mowziesmobs:foliaath",

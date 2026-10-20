@@ -17,6 +17,8 @@
     "AbyssDrownedTridentMixin",
     "AbyssSlimeSplitMixin",
     "AbyssFallingBlockMixin",
+    "BossDeathBlocksMixin",
+    "BossDeathContainerMixin",
     "AbyssTeleportCommandMixin",
     "AbyssDragonMixin",
     "ServerBossEventMixin",
