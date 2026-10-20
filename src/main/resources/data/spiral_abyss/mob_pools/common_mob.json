@@ -24,5 +24,9 @@
   "block_factorys_bosses:dragon_guard_sword",
   "block_factorys_bosses:flaming_skeleton_guard_fireball",
   "block_factorys_bosses:crossbow_pirate",
-  "block_factorys_bosses:soul_skeleton"
+  "block_factorys_bosses:soul_skeleton",
+  "legendary_monsters:ambusher",
+  "legendary_monsters:fractured",
+  "legendary_monsters:wandering_eye",
+  "legendary_monsters:bomber"
 ]

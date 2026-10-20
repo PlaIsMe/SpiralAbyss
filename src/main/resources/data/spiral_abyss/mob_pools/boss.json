@@ -31,6 +31,12 @@
   [
     "mowziesmobs:ferrous_wroughtnaut",
     {
+      "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:mossy_stone_bricks"],
+      "decoration_environment": ["minecraft:cobweb", "minecraft:iron_bars"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
       "item": "mowziesmobs:wrought_axe",
       "enchantment": {"minecraft:sharpness": 5, "minecraft:smite": 3, "minecraft:looting": 3}
     }
@@ -49,6 +55,12 @@
   ],
   [
     "mowziesmobs:umvuthi",
+    {
+      "environment": ["minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt"],
+      "decoration_environment": ["minecraft:acacia_log", "minecraft:acacia_leaves", "minecraft:campfire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.04
+    },
     {
       "item": "mowziesmobs:grant_suns_blessing"
     }
@@ -208,6 +220,12 @@
   [
     "cataclysm:netherite_monstrosity",
     {
+      "environment": ["minecraft:blackstone", "minecraft:polished_blackstone_bricks", "cataclysm:blackstone_pillar"],
+      "decoration_environment": ["minecraft:magma_block", "minecraft:soul_fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
+    {
       "item": "cataclysm:infernal_forge",
       "enchantment": {"minecraft:unbreaking": 5, "minecraft:efficiency": 5, "minecraft:fortune": 5}
     }
@@ -215,12 +233,24 @@
   [
     "cataclysm:ignis",
     {
+      "environment": ["minecraft:polished_blackstone_bricks", "minecraft:cracked_polished_blackstone_bricks", "minecraft:nether_bricks", "cataclysm:blackstone_pillar"],
+      "decoration_environment": ["minecraft:magma_block", "minecraft:fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.04
+    },
+    {
       "item": "cataclysm:the_incinerator",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
     }
   ],
   [
     "cataclysm:ancient_remnant",
+    {
+      "environment": ["minecraft:sandstone", "minecraft:cut_sandstone", "minecraft:smooth_sandstone", "cataclysm:polished_sandstone"],
+      "decoration_environment": ["minecraft:chiseled_sandstone", "minecraft:dead_bush"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
     {
       "item": "cataclysm:wrath_of_the_desert",
       "enchantment": {"minecraft:power": 5}
@@ -233,11 +263,23 @@
   [
     "cataclysm:the_harbinger",
     {
+      "environment": ["minecraft:deepslate_tiles", "minecraft:polished_deepslate", "minecraft:deepslate_bricks", "cataclysm:black_steel_block"],
+      "decoration_environment": ["minecraft:iron_bars", "minecraft:redstone_lamp"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.025
+    },
+    {
       "item": "cataclysm:wither_assault_shoulder_weapon"
     }
   ],
   [
     "cataclysm:ender_guardian",
+    {
+      "environment": ["minecraft:end_stone_bricks", "cataclysm:polished_end_stone", "cataclysm:obsidian_bricks"],
+      "decoration_environment": ["cataclysm:void_infused_end_stone_bricks", "cataclysm:chiseled_end_stone_bricks"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
     {
       "item": "cataclysm:gauntlet_of_guard",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
@@ -257,12 +299,24 @@
   [
     "cataclysm:maledictus",
     {
+      "environment": ["cataclysm:frosted_stone_bricks", "minecraft:stone_bricks", "minecraft:packed_ice"],
+      "decoration_environment": ["minecraft:blue_ice", "minecraft:soul_lantern"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
+    {
       "item": "cataclysm:soul_render",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
     }
   ],
   [
     "cataclysm:scylla",
+    {
+      "environment": ["cataclysm:azure_seastone", "cataclysm:azure_seastone_bricks", "cataclysm:azure_seastone_tiles"],
+      "decoration_environment": ["minecraft:sea_lantern", "cataclysm:chiseled_azure_seastone"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
     {
       "item": "cataclysm:ceraunus",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
@@ -279,16 +333,28 @@
   [
     "block_factorys_bosses:infernal_dragon",
     {
+      "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:cobblestone"],
+      "decoration_environment": ["minecraft:iron_bars", "minecraft:campfire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.025
+    },
+    {
       "item": "block_factorys_bosses:dragon_bones_chestplate",
-      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 10, "minecraft:thorns": 10}
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5, "minecraft:thorns": 10}
     },
     {
       "item": "block_factorys_bosses:dragon_bones_leggings",
-      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 10, "minecraft:thorns": 10}
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5, "minecraft:thorns": 10}
     }
   ],
   [
     "block_factorys_bosses:underworld_knight",
+    {
+      "environment": ["minecraft:nether_bricks", "minecraft:cracked_nether_bricks", "minecraft:soul_soil", "minecraft:polished_blackstone_bricks"],
+      "decoration_environment": ["minecraft:soul_fire", "minecraft:soul_lantern"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
     {
       "item": "block_factorys_bosses:knight_sword",
       "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping": 3, "minecraft:fire_aspect": 2}
@@ -323,6 +389,12 @@
   ],
   [
     "block_factorys_bosses:kraken",
+    {
+      "environment": ["minecraft:gravel", "minecraft:clay", "minecraft:stone"],
+      "decoration_environment": ["half_water"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
     {
       "item": "block_factorys_bosses:undying_tentacle",
       "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
@@ -395,6 +467,200 @@
     },
     {
       "item": "bosses_of_mass_destruction:charged_ender_pearl"
+    }
+  ],
+  [
+    "legendary_monsters:skeletosaurus",
+    {
+      "environment": [
+        "minecraft:soul_sand", "minecraft:soul_soil", "minecraft:bone_block"],
+      "decoration_environment": ["minecraft:soul_fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "legendary_monsters:dinosaur_bone_club",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    }
+  ],
+  [
+    "legendary_monsters:overgrown_colossus",
+    {
+      "environment": ["minecraft:moss_block", "minecraft:mossy_cobblestone", "minecraft:stone_bricks"],
+      "decoration_environment": ["minecraft:moss_carpet", "minecraft:azalea"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
+    {
+      "item": "legendary_monsters:mossy_hammer",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:mossy_chestplate",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
+    }
+  ],
+  [
+    "legendary_monsters:endersent",
+    {
+      "environment": ["minecraft:end_stone", "minecraft:purpur_block", "minecraft:end_stone_bricks"],
+      "decoration_environment": ["minecraft:chorus_plant"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "legendary_monsters:chorus_blade",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5
+      }
+    },
+    {
+      "item": "legendary_monsters:chorus_mask",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
+    }
+  ],
+  [
+    "legendary_monsters:lava_eater",
+    {
+      "environment": ["minecraft:blackstone", "minecraft:basalt", "minecraft:magma_block"],
+      "decoration_environment": ["minecraft:magma_block"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "legendary_monsters:fiery_jaw",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:fiery_boots",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
+    }
+  ],
+  [
+    "legendary_monsters:frostbitten_golem",
+    {
+      "environment": ["minecraft:snow_block", "minecraft:packed_ice", "minecraft:blue_ice"],
+      "decoration_environment": ["minecraft:snow"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.03
+    },
+    {
+      "item": "legendary_monsters:the_great_frost",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:frostbitten_shield",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "legendary_monsters:shulker_mimic",
+    {
+      "environment": ["minecraft:purpur_block", "minecraft:purpur_pillar", "minecraft:end_stone_bricks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "legendary_monsters:shulker_shield",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    },
+    {
+      "item": "legendary_monsters:shulker_helmet",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
+    }
+  ],
+  [
+    "legendary_monsters:withered_abomination",
+    {
+      "environment": ["minecraft:soul_sand", "minecraft:soul_soil", "minecraft:blackstone"],
+      "decoration_environment": ["minecraft:soul_fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "legendary_monsters:withered_scythe",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:withered_ribcage",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
+    }
+  ],
+  [
+    "legendary_monsters:ancient_guardian",
+    {
+      "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:dripstone_block"],
+      "decoration_environment": ["minecraft:mossy_cobblestone"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "legendary_monsters:monstrous_anchor",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:spiky_shield",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "legendary_monsters:cloud_golem",
+    {
+      "environment": ["minecraft:calcite", "minecraft:quartz_block", "minecraft:smooth_quartz"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "legendary_monsters:axe_of_lightning",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    },
+    {
+      "item": "legendary_monsters:wand_of_clouds",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "legendary_monsters:posessed_paladin",
+    {
+      "environment": ["minecraft:deepslate_bricks", "minecraft:cracked_deepslate_bricks", "minecraft:polished_deepslate"],
+      "decoration_environment": ["minecraft:soul_fire"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.01
+    },
+    {
+      "item": "legendary_monsters:soul_great_sword",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    }
+  ],
+  [
+    "legendary_monsters:the_obliterator",
+    {
+      "environment": ["minecraft:end_stone_bricks", "minecraft:purpur_block", "minecraft:obsidian"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "legendary_monsters:atom_splitter",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5}
+    }
+  ],
+  [
+    "legendary_monsters:dune_sentinel",
+    {
+      "environment": ["minecraft:sandstone", "minecraft:sand", "minecraft:smooth_sandstone"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "legendary_monsters:sand_cannon",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:power": 5, "minecraft:flame": 1}
+    },
+    {
+      "item": "legendary_monsters:blastproof_helmet",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
     }
   ]
 ]

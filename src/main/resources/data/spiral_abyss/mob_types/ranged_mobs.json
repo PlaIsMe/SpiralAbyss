@@ -20,5 +20,12 @@
   "cataclysm:the_prowler",
   "cataclysm:wadjet",
   "block_factorys_bosses:flaming_skeleton_guard_fireball",
-  "block_factorys_bosses:crossbow_pirate"
+  "block_factorys_bosses:crossbow_pirate",
+  "legendary_monsters:fractured_apostle",
+  "legendary_monsters:resurrected_knight",
+  "legendary_monsters:hovering_hurricane",
+  "legendary_monsters:dune_sentinel",
+  "legendary_monsters:shulker_mimic",
+  "legendary_monsters:cloud_golem",
+  "legendary_monsters:the_obliterator"
 ]
