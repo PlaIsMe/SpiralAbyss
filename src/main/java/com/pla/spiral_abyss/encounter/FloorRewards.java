@@ -1,9 +1,13 @@
 package com.pla.spiral_abyss.encounter;
 
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
+import com.pla.spiral_abyss.encounter.data.FloorCatalog;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.entity.ChestLootEntity;
 import com.pla.spiral_abyss.event.RareRewardBroadcast;
 import net.minecraft.nbt.*;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.item.ItemStack;
@@ -11,10 +15,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootDataId;
 import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.ModList;
 import java.util.*;
 
 /** Roll once when claiming a chest for its currently eligible roster, then persist the payout. */
@@ -22,12 +28,21 @@ public final class FloorRewards {
     private static final Set<net.minecraft.resources.ResourceLocation> missingTables = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private FloorRewards() {}
     static void resetMissingTableLogs() { missingTables.clear(); }
-    private static boolean availableTable(ServerLevel level, FloorDefinition.RewardEntry entry) {
-        if (level.getServer().getLootData().getElement(new LootDataId<>(LootDataType.TABLE, entry.id())) != null) return true;
-        if (missingTables.add(entry.id())) com.mojang.logging.LogUtils.getLogger().error(
-                "Abyss reward loot table {} is unavailable (missing or failed to load); skipping it and rolling other available configured tables. Check data/{}/loot_tables/{}.json and the providing mod/datapack.",
-                entry.id(), entry.id().getNamespace(), entry.id().getPath());
-        return false;
+    static LootTable table(MinecraftServer server, ResourceLocation id) {
+        LootTable table = server.getLootData().getElement(new LootDataId<>(LootDataType.TABLE, id));
+        if (table == null && (id.getNamespace().equals("minecraft") || ModList.get().isLoaded(id.getNamespace()))
+                && missingTables.add(id)) com.mojang.logging.LogUtils.getLogger().warn(
+                "[Spiral Abyss] Ignoring unavailable reward loot table {} (missing or failed to load). Check the configured ID and data/{}/loot_tables/{}.json; other available rewards remain usable.",
+                id, id.getNamespace(), id.getPath());
+        return table;
+    }
+    static void validateTables(MinecraftServer server) {
+        // Run after loot loading finishes, so a failed table is treated like a missing one.
+        var entries = new ArrayList<FloorDefinition.RewardEntry>();
+        FloorCatalog.snapshot().floors().values().forEach(floor -> entries.addAll(floor.rewards().entries()));
+        MobCatalog.rewards().values().forEach(entries::addAll);
+        entries.stream().filter(entry -> !entry.item()).map(FloorDefinition.RewardEntry::id)
+                .distinct().forEach(id -> table(server, id));
     }
     public static double partyScale(int players) { return players <= 0 ? 0 : 1 + 0.5 * (players - 1); }
     public record Bundle(List<ItemStack> items, int experience, Set<Integer> rareItems) {
@@ -76,7 +91,7 @@ public final class FloorRewards {
                 .create(LootContextParamSets.CHEST);
         int rolls = ChallengeRewards.rollCount(tier, eligiblePlayers);
         var pool = new RewardPool(rewards.entries(), entry -> entry.item() ? availableItem(entry)
-                : availableTable(level, entry));
+                : table(level.getServer(), entry.id()) != null);
         var bonuses = rewards.entries().stream().filter(entry -> entry.item() && !entry.rare()).toList();
         var rareBonuses = rewards.entries().stream().filter(entry -> entry.item() && entry.rare()).toList();
         // Keep optional-item replacements within their own rarity group.

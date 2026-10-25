@@ -90,6 +90,9 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                 JsonArray entry = value.getAsJsonArray();
                 if (entry.isEmpty()) continue;
                 ResourceLocation entity = FloorParser.id(entry.get(0));
+                // MobCatalog reports unavailable installed-mod IDs. An absent boss
+                // cannot use an environment, including its optional mod's blocks.
+                if (!ForgeRegistries.ENTITY_TYPES.containsKey(entity)) continue;
                 for (int index = 1; index < entry.size(); index++) {
                     JsonElement metadata = entry.get(index);
                     if (!metadata.isJsonObject() || !isMetadata(metadata.getAsJsonObject())) continue;

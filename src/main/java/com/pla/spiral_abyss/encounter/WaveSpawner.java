@@ -62,6 +62,8 @@ public final class WaveSpawner {
                     mob.getPersistentData().putUUID(RUN_TAG, runId);
                     mob.getPersistentData().putBoolean(BOSS_TAG,
                             entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.BOSS);
+                    if (MobCatalog.bossOptions(entry.id()).hideBossBar())
+                        mob.getPersistentData().putBoolean(BossHealthBars.HIDE_BOSS_BAR_TAG, true);
                     if (endlessWave > 0) WaveScaling.applyEndless(mob, endlessWave, entry.category(), partyScale);
                     else WaveScaling.apply(mob, floor, entry.category(), entry.id(), partyScale, scaling);
                     if (!place(level, mob, center)) throw new IllegalStateException("No safe spawn position for " + entry.id());

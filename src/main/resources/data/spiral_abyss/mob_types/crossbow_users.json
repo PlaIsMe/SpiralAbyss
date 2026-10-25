@@ -1,4 +1,6 @@
 [
   "minecraft:pillager",
-  "block_factorys_bosses:crossbow_pirate"
+  "block_factorys_bosses:crossbow_pirate",
+  "goety:hostile_skeleton_pillager",
+  "goety:conquillager"
 ]

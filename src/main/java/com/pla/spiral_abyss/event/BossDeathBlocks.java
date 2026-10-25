@@ -51,7 +51,9 @@ public final class BossDeathBlocks {
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void died(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof Mob mob) || !(mob.level() instanceof ServerLevel level)
-                || !level.dimension().equals(AbyssDimension.LEVEL) || !mob.getPersistentData().getBoolean(TAG)) return;
+                || !level.dimension().equals(AbyssDimension.LEVEL)
+                || !(mob.getPersistentData().contains(TAG) ? mob.getPersistentData().getBoolean(TAG)
+                    : mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG))) return;
         var rule = MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).deathBlocks();
         if (!rule.configured()) return;
         // Some bosses schedule their reward before super.die posts this event, even if

@@ -9,6 +9,41 @@
     "experience": 400,
     "entries": [
       {
+        "loot_table": "goety:chests/graveyard_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/ruined_monastery_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/shrine_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/blacksmith_loot",
+        "weight": 1,
+        "chance": 0.35
+      },
+      {
+        "loot_table": "goety:chests/ruined_monastery_crypt",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/evoker_fort",
+        "weight": 1,
+        "chance": 0.4
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/catacombs/coffin_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "minecraft:chests/simple_dungeon",
         "weight": 2,
         "chance": 1.0

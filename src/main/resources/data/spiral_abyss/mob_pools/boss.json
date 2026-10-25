@@ -662,5 +662,70 @@
       "item": "legendary_monsters:blastproof_helmet",
       "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:protection": 5}
     }
+  ],
+  [
+    "irons_spellbooks:dead_king",
+    {
+      "hide_boss_bar": true
+    },
+    {
+      "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:deepslate_bricks"],
+      "decoration_environment": ["minecraft:soul_lantern", "minecraft:cobweb"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.025
+    },
+    {
+      "item": "irons_spellbooks:blood_staff"
+    },
+    {
+      "item": "irons_spellbooks:necronomicon_spell_book"
+    },
+
+    {
+      "loot_table": "irons_spellbooks:chests/catacombs/dead_king_vault",
+      "weight": 2,
+      "chance": 1.0
+    }
+  ],
+  [
+    "goety:vizier",
+    {
+      "environment": ["minecraft:birch_planks", "minecraft:cobblestone", "minecraft:dark_oak_planks"],
+      "decoration_environment": ["minecraft:bookshelf"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "goety:grand_robe"
+    },
+    {
+      "item": "goety:grand_turban"
+    }
+  ],
+  [
+    "goety:apostle",
+    {
+      "environment": ["minecraft:blackstone", "minecraft:polished_blackstone_bricks", "minecraft:obsidian"],
+      "decoration_environment": ["minecraft:crying_obsidian"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "goety:death_scythe",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5, "goety:soul_eater": 5}
+    }
+  ],
+  [
+    "goety:ender_keeper",
+    {
+      "environment": ["goety:end_stone_tiles", "minecraft:purpur_block", "minecraft:purpur_pillar"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "goety:blade_of_ender",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5, "goety:soul_eater": 5, "goety:velocity": 5, "goety:radius": 2}
+    }
   ]
 ]

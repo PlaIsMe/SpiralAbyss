@@ -9,6 +9,36 @@
     "experience": 300,
     "entries": [
       {
+        "loot_table": "goety:chests/ruined_monastery_clutter",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/shack_book",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "goety:chests/sorcerous_keep_treasure",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/sorcerous_keep_loot",
+        "weight": 1,
+        "chance": 0.35
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/pyromancer_tower/pyromancer_supplies",
+        "weight": 1,
+        "chance": 0.4
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/mountain_tower/mountain_tower",
+        "weight": 1,
+        "chance": 0.35
+      },
+      {
         "loot_table": "minecraft:chests/simple_dungeon",
         "weight": 2,
         "chance": 1.0

@@ -28,5 +28,15 @@
   "legendary_monsters:ambusher",
   "legendary_monsters:fractured",
   "legendary_monsters:wandering_eye",
-  "legendary_monsters:bomber"
+  "legendary_monsters:bomber",
+  "goety:web_spider",
+  "goety:icy_spider",
+  "goety:hostile_skeleton_pillager",
+  "goety:watchling",
+  "goety:snareling",
+  "goety:warlock",
+  "goety:heretic",
+  "goety:maverick",
+  "goety:reprobate",
+  "goety:conquillager"
 ]

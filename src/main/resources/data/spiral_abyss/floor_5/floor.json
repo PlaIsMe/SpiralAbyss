@@ -9,6 +9,36 @@
     "experience": 500,
     "entries": [
       {
+        "loot_table": "goety:chests/crypt_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/shack_basement",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/assembly_treasure",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/graveyard_treasure",
+        "weight": 1,
+        "chance": 0.3
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/catacombs/coffin_loot",
+        "weight": 1,
+        "chance": 0.4
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/generic_magic_treasure",
+        "weight": 1,
+        "chance": 0.3
+      },
+      {
         "loot_table": "minecraft:chests/simple_dungeon",
         "weight": 2,
         "chance": 1.0

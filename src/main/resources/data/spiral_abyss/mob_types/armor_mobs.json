@@ -8,5 +8,9 @@
   "minecraft:piglin",
   "minecraft:piglin_brute",
   "minecraft:wither_skeleton",
-  "cataclysm:drowned_host"
+  "cataclysm:drowned_host",
+  "goety:frayed",
+  "goety:rattled",
+  "goety:hostile_skeleton_pillager",
+  "goety:hostile_zombie_vindicator"
 ]

@@ -5,6 +5,7 @@ import com.pla.spiral_abyss.encounter.data.FloorCatalog;
 import com.pla.spiral_abyss.world.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -20,9 +21,13 @@ public final class AbyssEncounters {
     private AbyssEncounters() {}
     @SubscribeEvent public static void reload(AddReloadListenerEvent event) { FloorRewards.resetMissingTableLogs(); event.addListener(new com.pla.spiral_abyss.encounter.data.MobCatalog()); event.addListener(new FloorCatalog()); event.addListener(new com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog()); event.addListener(new com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog()); }
     @SubscribeEvent public static void started(ServerStartedEvent event) {
+        FloorRewards.validateTables(event.getServer());
         var level = event.getServer().getLevel(AbyssDimension.LEVEL);
         if (level != null) AbyssParties.configure(level);
         AbyssParties.get(event.getServer()).prepareCycle();
+    }
+    @SubscribeEvent public static void datapacksSynced(OnDatapackSyncEvent event) {
+        if (event.getPlayer() == null) FloorRewards.validateTables(event.getPlayerList().getServer());
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) AbyssParties.get(event.getServer()).tick();

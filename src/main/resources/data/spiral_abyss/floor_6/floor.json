@@ -9,6 +9,41 @@
     "experience": 600,
     "entries": [
       {
+        "loot_table": "goety:chests/spider_den_treasure",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "goety:chests/crypt_tomb",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "goety:chests/shrine_treasure",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "goety:chests/shack_treasure",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/blacksmith_treasure",
+        "weight": 1,
+        "chance": 0.3
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/generic_magic_treasure",
+        "weight": 1,
+        "chance": 0.5
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/impaled_icebreaker/captain_quarters",
+        "weight": 1,
+        "chance": 0.35
+      },
+      {
         "loot_table": "minecraft:chests/simple_dungeon",
         "weight": 2,
         "chance": 1.0

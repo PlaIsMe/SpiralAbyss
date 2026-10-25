@@ -9,6 +9,31 @@
     "experience": 200,
     "entries": [
       {
+        "loot_table": "goety:chests/spider_den_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "goety:chests/shack_potion",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "goety:chests/dark_manor_apothecary",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "goety:chests/dark_manor_clutter",
+        "weight": 1,
+        "chance": 0.3
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/mangrove_hut",
+        "weight": 1,
+        "chance": 0.35
+      },
+      {
         "loot_table": "minecraft:chests/simple_dungeon",
         "weight": 2,
         "chance": 1.0

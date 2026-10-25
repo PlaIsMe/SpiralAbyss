@@ -16,5 +16,7 @@
   "cataclysm:deepling_angler",
   "cataclysm:deepling_priest",
   "cataclysm:deepling_warlock",
-  "cataclysm:drowned_host"
+  "cataclysm:drowned_host",
+  "goety:frayed",
+  "goety:hostile_zombie_vindicator"
 ]

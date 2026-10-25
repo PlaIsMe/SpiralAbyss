@@ -35,6 +35,7 @@ final class EnemyPreviewRenderer {
                 var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
                 var created = type == null ? null : type.create(client.level);
                 if (!(created instanceof LivingEntity living)) { unavailable.add(id); fallback(graphics, x, y, width, height); return; }
+                BannerBossRenderer.initializeModel(living);
                 living.setYRot(180); living.yBodyRot = 180; living.yHeadRot = living.yHeadRotO = 180;
                 entity = living; entities.put(id, living);
             } catch (RuntimeException exception) {

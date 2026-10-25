@@ -9,6 +9,8 @@ import java.util.*;
 
 /** Shows a vanilla bar only for arena players who have no registered boss bar. */
 public final class BossHealthBars {
+    /** Only suppresses our fallback; custom/native boss bars remain owned by their mod. */
+    public static final String HIDE_BOSS_BAR_TAG = "spiral_abyss_hide_boss_bar";
     private static final Set<ServerBossEvent> REGISTERED = Collections.newSetFromMap(new WeakHashMap<>());
     private static final Set<ServerBossEvent> FALLBACKS = Collections.newSetFromMap(new WeakHashMap<>());
     private final Map<UUID, ServerBossEvent> bars = new HashMap<>();
@@ -20,7 +22,8 @@ public final class BossHealthBars {
     public void tick(List<Mob> enemies, List<ServerPlayer> players) {
         Set<UUID> active = new HashSet<>();
         for (Mob mob : enemies) {
-            if (!mob.getPersistentData().getBoolean(WaveSpawner.BOSS_TAG) || !mob.isAlive()) continue;
+            if (!mob.getPersistentData().getBoolean(WaveSpawner.BOSS_TAG) || !mob.isAlive()
+                    || mob.getPersistentData().getBoolean(HIDE_BOSS_BAR_TAG)) continue;
             UUID id = mob.getUUID();
             active.add(id);
             if (ages.merge(id, 1, Integer::sum) < 5) continue;

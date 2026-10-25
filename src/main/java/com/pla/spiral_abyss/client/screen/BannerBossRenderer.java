@@ -10,9 +10,12 @@ import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.AnimationState;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -38,6 +41,8 @@ import java.util.Set;
 
 /** Screen-owned, unspawned models sampled once; never run entity/AI ticks to obtain a pose. */
 final class BannerBossRenderer {
+    private static final TagKey<EntityType<?>> PREVIEW_UPRIGHT_NORMALS = TagKey.create(
+            Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("spiral_abyss", "preview_upright_normals"));
     private final Map<ResourceLocation, LivingEntity> entities = new HashMap<>();
     private final Map<ResourceLocation, TextureTarget> portraits = new HashMap<>();
     private final Map<ResourceLocation, PreviewAnimation> animations = new HashMap<>();
@@ -48,6 +53,20 @@ final class BannerBossRenderer {
     private final Random poses = new Random(0);
 
     BannerBossRenderer(long cycleSeed) { this.cycleSeed = cycleSeed; }
+
+    /** Initialize render-only state without spawning or ticking optional mobs. */
+    static void initializeModel(LivingEntity entity) {
+        if (!entity.getType().is(PREVIEW_UPRIGHT_NORMALS)) return;
+        // Tagged models expose these public Vec3 fields, normally initialized
+        // by ticking. Give unspawned previews a valid upright orientation.
+        try {
+            var up = new net.minecraft.world.phys.Vec3(0, 1, 0);
+            entity.getClass().getField("normal").set(entity, up);
+            entity.getClass().getField("lastNormal").set(entity, up);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Cannot initialize tagged preview surface normals", exception);
+        }
+    }
 
     Component name(ResourceLocation id) {
         var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
@@ -105,6 +124,7 @@ final class BannerBossRenderer {
                 poses.setSeed(seed);
                 living.getRandom().setSeed(seed);
                 living.setUUID(new java.util.UUID(seed, ~seed));
+                initializeModel(living);
                 samplePose(living);
                 entity = living;
                 entities.put(id, living);

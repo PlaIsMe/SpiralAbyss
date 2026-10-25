@@ -88,7 +88,10 @@ public final class FloorParser {
                         mobId = id(spec.get("id"));
                         amount = integer(spec, "count", 1, 1, 128);
                     }
-                    require(ForgeRegistries.ENTITY_TYPES.containsKey(mobId), "unknown mob id: " + mobId);
+                    if (!ForgeRegistries.ENTITY_TYPES.containsKey(mobId)) {
+                        MobCatalog.warnUnavailableMob(mobId, "data/spiral_abyss/floor_" + number + "/wave_" + entry.getKey() + ".json");
+                        continue;
+                    }
                     require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
                             "players cannot be wave enemies");
                     require(!mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "key_entity"))

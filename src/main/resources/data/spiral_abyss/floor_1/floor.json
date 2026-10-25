@@ -9,6 +9,26 @@
     "experience": 100,
     "entries": [
       {
+        "loot_table": "goety:chests/shack_attic",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "goety:chests/sorcerous_keep_barrel",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "goety:chests/shack_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "irons_spellbooks:chests/priest_house",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "minecraft:chests/stronghold_library",
         "weight": 1,
         "chance": 0.75

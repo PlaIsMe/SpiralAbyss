@@ -11,6 +11,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.*;
 import net.minecraftforge.registries.ForgeRegistries;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.*;
 
 /** Describes possible rewards without executing loot rolls or consuming the world's random stream. */
@@ -64,7 +66,7 @@ public final class RewardPreviews {
         return List.copyOf(result);
     }
     private LootTable table(ResourceLocation id) {
-        return server.getLootData().getElement(new LootDataId<>(LootDataType.TABLE, id));
+        return FloorRewards.table(server, id);
     }
     private static boolean available(ResourceLocation id) {
         return ForgeRegistries.ITEMS.containsKey(id) && ForgeRegistries.ITEMS.getValue(id) != Items.AIR;
@@ -80,8 +82,21 @@ public final class RewardPreviews {
         try {
             LootTable table = table(id);
             if (table == null) { scan.incomplete = true; return; }
+            // Use the datapack source when present. Re-serializing a loaded table can
+            // invoke optional mods' serializers, including ones linked against a
+            // different Gson version than Minecraft ships.
+            ResourceLocation source = ResourceLocation.fromNamespaceAndPath(id.getNamespace(),
+                    "loot_tables/" + id.getPath() + ".json");
+            var resource = server.getResourceManager().getResource(source);
+            if (resource.isPresent()) {
+                try (Reader reader = resource.get().openAsReader()) {
+                    scan(JsonParser.parseReader(reader), scan, depth + 1, transforms);
+                }
+                return;
+            }
+            // Some mods build tables in memory, without a datapack resource.
             scan(gson.toJsonTree(table, LootTable.class), scan, depth + 1, transforms);
-        } catch (RuntimeException ex) {
+        } catch (IOException | RuntimeException | LinkageError ex) {
             // Custom entries may not support serialization. A partial preview is honest about that.
             scan.incomplete = true;
         } finally { scan.visiting.remove(id); }

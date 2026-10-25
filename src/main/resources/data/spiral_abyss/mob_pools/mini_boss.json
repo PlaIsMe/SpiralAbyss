@@ -39,5 +39,23 @@
   "legendary_monsters:warped_fungussus",
   "legendary_monsters:beheaded_knight",
   "legendary_monsters:resurrected_knight",
-  "legendary_monsters:annihilation_pursuer"
+  "legendary_monsters:annihilation_pursuer",
+  "goety:brood_mother",
+  "goety:crone",
+  "goety:heresiarch",
+  "goety:minister",
+  "goety:endersent",
+  [
+    "goety:wither_necromancer",
+    {
+      "suppress_death_blocks": {
+        "blocks": ["goety:lofty_chest"],
+        "radius": 0,
+        "height": 0,
+        "ticks": 1
+      }
+    }
+  ],
+  "goety:hostile_redstone_golem",
+  "goety:hostile_redstone_monstrosity"
 ]

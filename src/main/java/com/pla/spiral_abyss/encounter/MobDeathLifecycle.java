@@ -8,17 +8,25 @@ import java.util.Set;
 
 /** Optional custom death sequences whose zero-health state is not the end of an encounter. */
 public final class MobDeathLifecycle {
-    private static final Set<ResourceLocation> DELAYED_MUTANTS = Set.of(
+    private static final Set<ResourceLocation> DELAYED_DEATH_EVENTS = Set.of(
             ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_zombie"),
             ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_creeper"),
-            ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_enderman"));
+            ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_enderman"),
+            ResourceLocation.fromNamespaceAndPath("goety", "apostle"));
+    // Goety 2.5.59.2 bosses remove themselves after their death animation.
+    // Apostle also defers die()/custom loot until that sequence finishes.
+    private static final Set<ResourceLocation> DELAYED_GOETY = Set.of(
+            ResourceLocation.fromNamespaceAndPath("goety", "vizier"),
+            ResourceLocation.fromNamespaceAndPath("goety", "ender_keeper"),
+            ResourceLocation.fromNamespaceAndPath("goety", "hostile_redstone_monstrosity"));
     private MobDeathLifecycle() {}
 
-    public static boolean delayedMutant(Mob mob) {
-        return DELAYED_MUTANTS.contains(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+    public static boolean delaysDeathEvent(Mob mob) {
+        return DELAYED_DEATH_EVENTS.contains(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
     }
 
     public static boolean waitsForRemoval(Mob mob) {
-        return mob instanceof EnderDragon || delayedMutant(mob);
+        return mob instanceof EnderDragon || delaysDeathEvent(mob)
+                || DELAYED_GOETY.contains(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
     }
 }

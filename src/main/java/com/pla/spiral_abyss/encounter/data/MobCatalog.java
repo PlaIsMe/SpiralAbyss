@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.fml.ModList;
 import java.io.Reader;
 import java.util.*;
 
@@ -187,7 +188,10 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                 } else {
                     JsonObject object = reward.getAsJsonObject();
                     if (BossOptions.isMetadata(object)) {
-                        if (!bossPool) throw new JsonParseException("boss options are only supported in mob_pools/boss.json");
+                        // Death rewards can place blocks for ordinary mobs/minibosses too.
+                        // Other options still belong exclusively to the boss pool.
+                        if (!bossPool && !object.keySet().equals(Set.of("suppress_death_blocks")))
+                            throw new JsonParseException("only suppress_death_blocks is supported outside mob_pools/boss.json");
                         if (bossOptions.putIfAbsent(mob, BossOptions.parse(object)) != null)
                             throw new JsonParseException("duplicate boss options for " + mob);
                         continue;
@@ -249,8 +253,16 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     }
     private static Set<ResourceLocation> mobType(ResourceManager manager, String key) {
         Set<ResourceLocation> ids = new LinkedHashSet<>();
-        for (JsonElement value : read(manager, "mob_types/" + key)) ids.add(FloorParser.id(value));
+        for (JsonElement value : read(manager, "mob_types/" + key)) {
+            ResourceLocation id = FloorParser.id(value);
+            if (availableMob(id)) ids.add(id);
+            else warnUnavailableMob(id, "data/spiral_abyss/mob_types/" + key + ".json");
+        }
         return ids;
+    }
+    static void warnUnavailableMob(ResourceLocation id, String source) {
+        if (id.getNamespace().equals("minecraft") || ModList.get().isLoaded(id.getNamespace()))
+            LogUtils.getLogger().warn("[Spiral Abyss] Ignoring unavailable or forbidden mob {} in {}; check the configured entity ID.", id, source);
     }
     @Override protected Definitions prepare(ResourceManager manager, ProfilerFiller profiler) {
         Map<MobCategory, List<ResourceLocation>> pools = new EnumMap<>(MobCategory.class);
@@ -281,6 +293,6 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     @Override protected void apply(Definitions definitions, ResourceManager manager, ProfilerFiller profiler) {
         current = definitions;
         definitions.pools().forEach((category, ids) -> ids.stream().filter(id -> !availableMob(id))
-                .forEach(id -> LogUtils.getLogger().warn("Ignoring unavailable or forbidden Abyss {} mob: {}", category.key(), id)));
+                .forEach(id -> warnUnavailableMob(id, "data/spiral_abyss/mob_pools/" + category.key() + ".json")));
     }
 }

@@ -246,9 +246,9 @@ public final class ChallengeTracker {
     public void damaged(Mob mob, LivingDamageEvent event) {
         if (!challengeTarget(mob)) return;
         Hit hit = capture(mob, event.getSource());
-        // Mutant Zombie/Creeper retain this exact DamageSource until their final death.
+        // Custom delayed deaths (including Goety's Apostle) retain the fatal DamageSource.
         // Snapshot now, including an unattributed hit, rather than borrowing a later held item.
-        if (MobDeathLifecycle.delayedMutant(mob))
+        if (MobDeathLifecycle.delaysDeathEvent(mob))
             delayedHits.put(mob.getUUID(), new Damage(mob, hit, event, tracked(mob)));
         if (!(event.getAmount() > 0)) return;
         if (hit == null) return;

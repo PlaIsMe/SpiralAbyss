@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/** A bounded, short-lived footprint for delayed block rewards from a dying boss. */
+/** A bounded, short-lived footprint for block rewards from a dying encounter mob. */
 public record DeathBlockRule(Set<ResourceLocation> blocks, int radius, int height, int ticks) {
     public static final DeathBlockRule NONE = new DeathBlockRule(Set.of(), 0, 0, 0);
 
