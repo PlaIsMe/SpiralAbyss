@@ -10,6 +10,8 @@
     "EntityDropMixin",
     "ChestLootMergeMixin",
     "LivingEntityDropMixin",
+    "AbyssMobTickMixin",
+    "AbyssPlayerInventoryMixin",
     "AbyssEnvironmentMixin",
     "AbyssArchitectureMixin",
     "AbyssWaterMixin",

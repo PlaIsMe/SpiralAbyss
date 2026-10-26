@@ -22,16 +22,19 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.fml.ModList;
 import java.util.*;
+import com.mojang.logging.LogUtils;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /** Roll once when claiming a chest for its currently eligible roster, then persist the payout. */
 public final class FloorRewards {
-    private static final Set<net.minecraft.resources.ResourceLocation> missingTables = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<ResourceLocation> missingTables = ConcurrentHashMap.newKeySet();
     private FloorRewards() {}
     static void resetMissingTableLogs() { missingTables.clear(); }
     static LootTable table(MinecraftServer server, ResourceLocation id) {
         LootTable table = server.getLootData().getElement(new LootDataId<>(LootDataType.TABLE, id));
         if (table == null && (id.getNamespace().equals("minecraft") || ModList.get().isLoaded(id.getNamespace()))
-                && missingTables.add(id)) com.mojang.logging.LogUtils.getLogger().warn(
+                && missingTables.add(id)) LogUtils.getLogger().warn(
                 "[Spiral Abyss] Ignoring unavailable reward loot table {} (missing or failed to load). Check the configured ID and data/{}/loot_tables/{}.json; other available rewards remain usable.",
                 id, id.getNamespace(), id.getPath());
         return table;
@@ -50,7 +53,7 @@ public final class FloorRewards {
             items = items.stream().map(ItemStack::copy).toList();
             int count = items.size();
             rareItems = rareItems.stream().filter(index -> index >= 0 && index < count)
-                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+                    .collect(Collectors.toUnmodifiableSet());
         }
         public Bundle(List<ItemStack> items, int experience) { this(items, experience, Set.of()); }
         public boolean rare(int index) { return rareItems.contains(index); }
@@ -73,8 +76,8 @@ public final class FloorRewards {
     }
     /** Each encountered type contributes once per floor, regardless of counts or repeated waves. */
     public static FloorDefinition.Rewards withMobRewards(FloorDefinition.Rewards base,
-            Set<net.minecraft.resources.ResourceLocation> encountered,
-            Map<net.minecraft.resources.ResourceLocation, List<FloorDefinition.RewardEntry>> linked) {
+            Set<ResourceLocation> encountered,
+            Map<ResourceLocation, List<FloorDefinition.RewardEntry>> linked) {
         var entries = new ArrayList<>(base.entries());
         var additions = new LinkedHashSet<FloorDefinition.RewardEntry>();
         encountered.forEach(id -> linked.getOrDefault(id, List.of()).forEach(entry -> additions.add(
@@ -101,7 +104,7 @@ public final class FloorRewards {
         // without an unbounded retry when optional mods are absent.
         for (int i = 0; i < rolls; i++) {
             // Floor-authored item entries retain their independent per-table-roll behavior.
-            Set<net.minecraft.resources.ResourceLocation> attempted = new HashSet<>();
+            Set<ResourceLocation> attempted = new HashSet<>();
             // Failed chances and valid empty tables try other actual rewards, at most once per ID.
             // The hard cap also bounds large pools assembled from optional mob-linked definitions.
             for (int attempt = 0; attempt < 64; attempt++) {

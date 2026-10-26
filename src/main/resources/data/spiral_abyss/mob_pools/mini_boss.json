@@ -57,5 +57,23 @@
     }
   ],
   "goety:hostile_redstone_golem",
-  "goety:hostile_redstone_monstrosity"
+  "goety:hostile_redstone_monstrosity",
+  "savage_and_ravage:trickster",
+  "born_in_chaos_v1:dire_hound_leader",
+  "born_in_chaos_v1:missioner",
+  "born_in_chaos_v1:pumpkin_bruiser",
+  [
+    "born_in_chaos_v1:mother_spider",
+    {
+      "suppress_death_blocks": {
+        "blocks": ["born_in_chaos_v1:cobweb_cover"],
+        "radius": 2,
+        "height": 2,
+        "ticks": 60
+      }
+    }
+  ],
+  "netherman:bell_guardian",
+  "soulsweapons:withered_demon",
+  "soulsweapons:soulmass"
 ]

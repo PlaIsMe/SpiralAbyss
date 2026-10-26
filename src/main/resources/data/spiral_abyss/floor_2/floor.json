@@ -9,6 +9,22 @@
     "experience": 200,
     "entries": [
       {
+        "loot_table": "netherman:chests/hospital_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "minecraft:chests/basic_chest",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "savage_and_ravage:chests/enclosure",
+        "weight": 1,
+        "chance": 0.3
+      },
+      {
         "loot_table": "goety:chests/spider_den_loot",
         "weight": 1,
         "chance": 0.25

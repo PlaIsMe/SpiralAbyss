@@ -16,16 +16,18 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.pla.spiral_abyss.world.AbyssDimension;
 
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public final class JournalClientHandler {
     public static final KeyMapping OPEN = new KeyMapping("key.spiral_abyss.menu", KeyConflictContext.IN_GAME,
-            com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_GRAVE_ACCENT, "key.categories.spiral_abyss");
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_GRAVE_ACCENT, "key.categories.spiral_abyss");
     private JournalClientHandler() {}
     public static void open(AbyssNetwork.OpenJournal message) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null && !client.player.level().dimension()
-                .equals(com.pla.spiral_abyss.world.AbyssDimension.LEVEL))
+                .equals(AbyssDimension.LEVEL))
             client.setScreen(new AbyssJournalScreen(message));
     }
     @SubscribeEvent public static void inventory(ScreenEvent.Init.Post event) {

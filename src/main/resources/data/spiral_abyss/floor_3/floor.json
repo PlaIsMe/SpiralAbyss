@@ -9,6 +9,22 @@
     "experience": 300,
     "entries": [
       {
+        "loot_table": "netherman:chests/believer_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "minecraft:chests/chest_level_1",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "soulsweapons:chests/cathedral_loot",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
         "loot_table": "goety:chests/ruined_monastery_clutter",
         "weight": 1,
         "chance": 0.25
@@ -70,6 +86,7 @@
       },
       {
         "loot_table": "minecraft:chests/chest_level_2",
+        "required_mod": "born_in_chaos_v1",
         "weight": 1,
         "chance": 0.5
       },

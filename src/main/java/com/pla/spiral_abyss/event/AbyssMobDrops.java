@@ -22,6 +22,10 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraft.world.InteractionResult;
 import java.util.Set;
+import com.pla.spiral_abyss.encounter.MobTickContext;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
 
 /** Shared policy for death loot, custom drops and live-mob item drops. Players are excluded. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
@@ -30,7 +34,7 @@ public final class AbyssMobDrops {
     private AbyssMobDrops() {}
 
     public static boolean suppress(Entity entity) {
-        return !entity.level().isClientSide && !(entity instanceof net.minecraft.world.entity.player.Player)
+        return !entity.level().isClientSide && !(entity instanceof Player)
                 && (entity.getPersistentData().hasUUID("spiral_abyss_environment_owner")
                 || entity instanceof Mob && (entity.level().dimension().equals(AbyssDimension.LEVEL)
                 || entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)));
@@ -102,10 +106,16 @@ public final class AbyssMobDrops {
     // The same safeguard covers modded direct item creation when its thrower is identified.
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public static void thrownItem(EntityJoinLevelEvent event) {
-        if (event.getLevel() instanceof ServerLevel && event.getEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow
+        var scriptedSource = MobTickContext.scriptedRewardSource();
+        if (scriptedSource != null && event.getLevel() == scriptedSource.level()
+                && (event.getEntity() instanceof ItemEntity || event.getEntity() instanceof ExperienceOrb)) {
+            event.setCanceled(true);
+            return;
+        }
+        if (event.getLevel() instanceof ServerLevel && event.getEntity() instanceof AbstractArrow arrow
                 && (arrow.getPersistentData().getBoolean(NO_PICKUP) || (arrow.getOwner() != null && suppress(arrow.getOwner())))) {
             // Persist both the vanilla pickup mode and our marker across chunk/server reloads.
-            arrow.pickup = net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED;
+            arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
             arrow.getPersistentData().putBoolean(NO_PICKUP, true);
         }
         if (event.getLevel() instanceof ServerLevel && event.getEntity() instanceof ItemEntity item) {

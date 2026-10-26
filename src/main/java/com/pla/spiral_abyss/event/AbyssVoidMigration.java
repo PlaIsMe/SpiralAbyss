@@ -7,13 +7,14 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraft.server.level.ServerLevel;
 
 /** Remove the retired flat generator's bedrock layer from existing Abyss chunks as they load. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssVoidMigration {
     private AbyssVoidMigration() {}
     @SubscribeEvent public static void load(ChunkEvent.Load event) {
-        if (!(event.getLevel() instanceof net.minecraft.server.level.ServerLevel level)
+        if (!(event.getLevel() instanceof ServerLevel level)
                 || !level.dimension().equals(AbyssDimension.LEVEL)) return;
         var chunk = event.getChunk();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();

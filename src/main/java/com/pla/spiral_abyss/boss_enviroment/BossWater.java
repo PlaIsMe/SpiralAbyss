@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import com.pla.spiral_abyss.event.BossDeathBlocks;
 
 /** Compact ownership for at most 65*65*120 water cells; preserves all existing architecture. */
 final class BossWater {
@@ -37,7 +38,7 @@ final class BossWater {
             if (!before.isAir() || level.getBlockEntity(pos) != null) continue;
             placed.set(index);
             if (!before.is(Blocks.AIR)) unusualAir.put(index, before);
-            com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+            BossDeathBlocks.edit(() ->
                     level.setBlock(pos, Blocks.WATER.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE));
         }
     }
@@ -47,7 +48,7 @@ final class BossWater {
     }
     void restore(BlockPos pos) { int index = index(pos); if (index >= 0) restore(index); }
     private void restore(int index) {
-        if (placed.get(index)) com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+        if (placed.get(index)) BossDeathBlocks.edit(() ->
                 level.setBlock(position(index), unusualAir.getOrDefault(index, Blocks.AIR.defaultBlockState()),
                         Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE));
     }

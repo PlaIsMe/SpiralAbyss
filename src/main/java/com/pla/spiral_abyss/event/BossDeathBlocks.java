@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import com.pla.spiral_abyss.encounter.MobTickContext;
 
 /** Suppresses configured delayed death structures without linking the boss's implementation. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
@@ -65,6 +66,9 @@ public final class BossDeathBlocks {
     public static boolean suppress(Level level, BlockPos pos, BlockState state) {
         if (!(level instanceof ServerLevel server) || !level.dimension().equals(AbyssDimension.LEVEL)
                 || EDIT_DEPTH.get() > 0) return false;
+        var scripted = scriptedGuard(level);
+        if (scripted != null && scripted.contains(pos)
+                && scripted.rule().blocks().contains(ForgeRegistries.BLOCKS.getKey(state.getBlock()))) return true;
         var guards = GUARDS.get(server);
         if (guards == null || guards.isEmpty()) return false;
         var id = ForgeRegistries.BLOCKS.getKey(state.getBlock());
@@ -77,9 +81,18 @@ public final class BossDeathBlocks {
     public static boolean suppressLoot(Level level, BlockPos pos) {
         if (!(level instanceof ServerLevel server) || !level.dimension().equals(AbyssDimension.LEVEL)
                 || EDIT_DEPTH.get() > 0) return false;
+        var scripted = scriptedGuard(level);
+        if (scripted != null && scripted.contains(pos)) return true;
         var guards = GUARDS.get(server);
         return guards != null && guards.values().stream()
                 .anyMatch(guard -> level.getGameTime() <= guard.until() && guard.contains(pos));
+    }
+
+    private static Guard scriptedGuard(Level level) {
+        Mob source = MobTickContext.scriptedRewardSource();
+        if (source == null || source.level() != level) return null;
+        var rule = MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(source.getType())).deathBlocks();
+        return rule.configured() ? new Guard(source.blockPosition(), rule, level.getGameTime()) : null;
     }
 
     /** Arena growth/restoration must remain authoritative even while a death reward is pending. */

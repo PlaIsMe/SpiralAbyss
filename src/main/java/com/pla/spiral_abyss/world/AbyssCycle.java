@@ -11,6 +11,13 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
 import java.util.*;
+import com.google.common.hash.Hashing;
+import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.encounter.BossWavePolicy;
+import com.pla.spiral_abyss.encounter.data.CombatRole;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /** World-wide wall clock and mob pool snapshot, saved atomically with player progress. */
 public final class AbyssCycle {
@@ -46,9 +53,9 @@ public final class AbyssCycle {
         return selected;
     }
     public List<FloorDefinition.Enemy> lineup(int floor, int waveNumber, FloorDefinition.Wave wave,
-                                            java.util.function.Predicate<ResourceLocation> available,
+                                            Predicate<ResourceLocation> available,
                                             MobCatalog.Pools fallback) {
-        com.pla.spiral_abyss.encounter.BossWavePolicy.validate(floor, waveNumber, wave);
+        BossWavePolicy.validate(floor, waveNumber, wave);
         selectBossPlan(available, fallback);
         // Intentional datapack composition edits get their own cache entry; attribute edits retain selections.
         String key = lineupKey(floor, waveNumber, wave);
@@ -64,7 +71,7 @@ public final class AbyssCycle {
                     var group = definition.groups().get(index); var enemy = prior.get(index);
                     compatible &= group.category() == enemy.category() && group.count() == enemy.count() && group.role() == enemy.role();
                 }
-                if (compatible) { lineups.put(key, com.pla.spiral_abyss.encounter.BossWavePolicy.sequential(prior)); selectedTypes.put(key, selected); }
+                if (compatible) { lineups.put(key, BossWavePolicy.sequential(prior)); selectedTypes.put(key, selected); }
             }
         }
         Set<ResourceLocation> used = new HashSet<>();
@@ -77,7 +84,7 @@ public final class AbyssCycle {
         List<FloorDefinition.Enemy> existing = lineups.get(key);
         // Reactivating an edited definition must not duplicate an unchanged sibling wave.
         if (existing != null && !key.equals(previousKey) && used.contains(selectedTypes.get(key))) {
-            com.mojang.logging.LogUtils.getLogger().warn("Reactivated floor {} wave {} template {} conflicts with another wave; selecting an unused configured candidate", floor, waveNumber, selectedTypes.get(key));
+            LogUtils.getLogger().warn("Reactivated floor {} wave {} template {} conflicts with another wave; selecting an unused configured candidate", floor, waveNumber, selectedTypes.get(key));
             lineups.remove(key);
             selectedTypes.remove(key);
             existing = null;
@@ -85,15 +92,15 @@ public final class AbyssCycle {
         if (existing == null) {
             var usable = usablePools(available, fallback);
             var selected = WaveComposition.select(wave, usable, MobCatalog.equipment(), RandomSource.create(waveSeed(floor, waveNumber)), used);
-            com.mojang.logging.LogUtils.getLogger().debug("Abyss floor {} wave {} selected {} (cycle-stable)", floor, waveNumber, selected.type());
+            LogUtils.getLogger().debug("Abyss floor {} wave {} selected {} (cycle-stable)", floor, waveNumber, selected.type());
             lineups.put(key, selected.enemies());
             if (selected.type() != null) selectedTypes.put(key, selected.type());
         }
         repair(available, fallback);
-        lineups.put(key, com.pla.spiral_abyss.encounter.BossWavePolicy.sequential(lineups.get(key)));
+        lineups.put(key, BossWavePolicy.sequential(lineups.get(key)));
         return lineups.get(key);
     }
-    private ResourceLocation savedBoss(String slot, int index, java.util.function.Predicate<ResourceLocation> available) {
+    private ResourceLocation savedBoss(String slot, int index, Predicate<ResourceLocation> available) {
         String key = activeLineups.get(slot);
         if (key == null) return null;
         // Expand old count-two entries before assigning the two final-wave reservations.
@@ -101,7 +108,7 @@ public final class AbyssCycle {
                 .flatMap(enemy -> Collections.nCopies(enemy.count(), enemy.id()).stream()).toList();
         return index < bosses.size() && available.test(bosses.get(index)) ? bosses.get(index) : null;
     }
-    private void selectBossPlan(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
+    private void selectBossPlan(Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         List<ResourceLocation> choices = new ArrayList<>(new LinkedHashSet<>(usablePools(available, fallback).entries().getOrDefault(MobCategory.BOSS, List.of())));
         if (choices.size() < 4) for (var id : fallback.entries().getOrDefault(MobCategory.BOSS, List.of())) if (available.test(id) && !choices.contains(id)) choices.add(id);
         ResourceLocation[] selected = {floorFiveBoss, floorSixBoss, floorSixFinalBoss, floorSixFinalSecondBoss};
@@ -143,9 +150,9 @@ public final class AbyssCycle {
     private void migrateLegacyTemplate(int floor, int waveNumber, FloorDefinition.Wave wave, String key) {
         if (lineups.containsKey(key) || wave.waveTypes().isEmpty()) return;
         // Unedited legacy top-level groups retain their exact species; only stage metadata changes.
-        if (wave.waveTypes().stream().anyMatch(type -> type.tier() != 1 || type.sequence().stream().anyMatch(stage -> stage.groups().size() != 1 || stage.groups().get(0).role() != com.pla.spiral_abyss.encounter.data.CombatRole.ANY))) return;
-        String types = wave.waveTypes().stream().map(type -> "WaveType[id=" + type.id() + ", groups=" + type.groups().stream().map(group -> "WaveGroup[category=" + group.category() + ", count=" + group.count() + "]").collect(java.util.stream.Collectors.joining(", ", "[", "]")) + "]").collect(java.util.stream.Collectors.joining(", ", "[", "]"));
-        String legacy = floor + ":" + waveNumber + ":[]:0:0:0:0:0:types:" + com.google.common.hash.Hashing.sha256().hashString(types, java.nio.charset.StandardCharsets.UTF_8);
+        if (wave.waveTypes().stream().anyMatch(type -> type.tier() != 1 || type.sequence().stream().anyMatch(stage -> stage.groups().size() != 1 || stage.groups().get(0).role() != CombatRole.ANY))) return;
+        String types = wave.waveTypes().stream().map(type -> "WaveType[id=" + type.id() + ", groups=" + type.groups().stream().map(group -> "WaveGroup[category=" + group.category() + ", count=" + group.count() + "]").collect(Collectors.joining(", ", "[", "]")) + "]").collect(Collectors.joining(", ", "[", "]"));
+        String legacy = floor + ":" + waveNumber + ":[]:0:0:0:0:0:types:" + Hashing.sha256().hashString(types, StandardCharsets.UTF_8);
         var previous = lineups.get(legacy);
         ResourceLocation selected = selectedTypes.get(legacy);
         if (previous == null || selected == null) return;
@@ -163,13 +170,13 @@ public final class AbyssCycle {
     }
     private static String lineupKey(int floor, int waveNumber, FloorDefinition.Wave wave) {
         // Preserve legacy cache keys exactly, avoiding a migration reroll of existing fixed waves.
-        String bosses = wave.bosses().stream().map(enemy -> "Enemy[id=" + enemy.id() + ", count=" + enemy.count() + ", category=" + enemy.category() + "]").collect(java.util.stream.Collectors.joining(", ", "[", "]"));
+        String bosses = wave.bosses().stream().map(enemy -> "Enemy[id=" + enemy.id() + ", count=" + enemy.count() + ", category=" + enemy.category() + "]").collect(Collectors.joining(", ", "[", "]"));
         String key = floor + ":" + waveNumber + ":" + bosses;
         for (MobCategory category : MobCategory.values()) key += ":" + wave.categories().getOrDefault(category, 0);
-        return wave.waveTypes().isEmpty() ? key : key + ":types:" + com.google.common.hash.Hashing.sha256()
-                .hashString(wave.waveTypes().toString(), java.nio.charset.StandardCharsets.UTF_8);
+        return wave.waveTypes().isEmpty() ? key : key + ":types:" + Hashing.sha256()
+                .hashString(wave.waveTypes().toString(), StandardCharsets.UTF_8);
     }
-    private MobCatalog.Pools usablePools(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
+    private MobCatalog.Pools usablePools(Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         var valid = pools.available(available);
         Map<MobCategory, List<ResourceLocation>> entries = new EnumMap<>(MobCategory.class);
         for (MobCategory category : MobCategory.values()) {
@@ -180,7 +187,7 @@ public final class AbyssCycle {
         return new MobCatalog.Pools(pools.mixMobs(), entries);
     }
     /** Repairs only missing category entries, retaining counts and every still-available selection. */
-    public boolean repair(java.util.function.Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
+    public boolean repair(Predicate<ResourceLocation> available, MobCatalog.Pools fallback) {
         var usable = usablePools(available, fallback);
         ResourceLocation previousFive = floorFiveBoss, previousSix = floorSixBoss, previousFinal = floorSixFinalBoss, previousSecond = floorSixFinalSecondBoss;
         selectBossPlan(available, fallback);
@@ -216,7 +223,7 @@ public final class AbyssCycle {
             var before = lineups.get(key);
             List<FloorDefinition.Enemy> after = new ArrayList<>();
             int bossIndex = 0;
-            for (var enemy : com.pla.spiral_abyss.encounter.BossWavePolicy.sequential(before)) {
+            for (var enemy : BossWavePolicy.sequential(before)) {
                 ResourceLocation boss = slot.equals("5:3") ? floorFiveBoss : slot.equals("6:2") ? floorSixBoss : bossIndex == 0 ? floorSixFinalBoss : floorSixFinalSecondBoss;
                 if (enemy.category() == MobCategory.BOSS) {
                     bossIndex++;
@@ -299,8 +306,8 @@ public final class AbyssCycle {
                 ResourceLocation id = ResourceLocation.tryParse(mob.getString("Id"));
                 if (id == null || mob.getInt("Count") <= 0) continue;
                 MobCategory category = mob.contains("Category") ? MobCategory.valueOf(mob.getString("Category")) : null;
-                com.pla.spiral_abyss.encounter.data.CombatRole role = com.pla.spiral_abyss.encounter.data.CombatRole.ANY;
-                try { if (mob.contains("Role")) role = com.pla.spiral_abyss.encounter.data.CombatRole.valueOf(mob.getString("Role")); }
+                CombatRole role = CombatRole.ANY;
+                try { if (mob.contains("Role")) role = CombatRole.valueOf(mob.getString("Role")); }
                 catch (IllegalArgumentException ignored) { }
                 enemies.add(new FloorDefinition.Enemy(id, mob.getInt("Count"), category, Math.max(0, mob.getInt("Stage")), role));
             }

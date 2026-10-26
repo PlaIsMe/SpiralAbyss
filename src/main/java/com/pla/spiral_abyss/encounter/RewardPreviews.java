@@ -14,6 +14,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
+import net.minecraft.world.item.ItemStack;
 
 /** Describes possible rewards without executing loot rolls or consuming the world's random stream. */
 public final class RewardPreviews {
@@ -60,7 +61,7 @@ public final class RewardPreviews {
                 });
                 double chance = tableWeight > 0 ? tableChances.getOrDefault(entry.id(), 0.0) / tableWeight : 0;
                 result.add(new RewardPreview(entry.id(), true, false, contents.items(), contents.incomplete(),
-                        net.minecraft.world.item.ItemStack.EMPTY, Math.min(1, chance)));
+                        ItemStack.EMPTY, Math.min(1, chance)));
             }
         }
         return List.copyOf(result);

@@ -10,6 +10,7 @@ public final class WaveStages<T> {
     private final List<T> enemies = new ArrayList<>();
     private int index = -1;
     private int removed;
+    private int additional;
     private boolean spawning;
 
     public void prepare(List<FloorDefinition.Enemy> lineup) {
@@ -20,6 +21,7 @@ public final class WaveStages<T> {
         sequence = batches.values().stream().map(List::copyOf).toList();
         index = -1;
         removed = 0;
+        additional = 0;
     }
     public boolean advance(Function<List<FloorDefinition.Enemy>, List<T>> spawn) {
         if (spawning || !enemies.isEmpty() || index + 1 >= sequence.size()) return false;
@@ -38,11 +40,17 @@ public final class WaveStages<T> {
         enemies.removeIf(invalid);
         removed += before - enemies.size();
     }
+    public boolean add(T enemy) {
+        if (index < 0 || enemies.contains(enemy)) return false;
+        enemies.add(enemy);
+        additional++;
+        return true;
+    }
     public List<T> enemies() { return List.copyOf(enemies); }
     public int index() { return index; }
     public int size() { return sequence.size(); }
     public int removed() { return removed; }
-    public int total() { return sequence.stream().flatMap(List::stream).mapToInt(FloorDefinition.Enemy::count).sum(); }
+    public int total() { return additional + sequence.stream().flatMap(List::stream).mapToInt(FloorDefinition.Enemy::count).sum(); }
     public boolean complete() { return !spawning && index >= 0 && index + 1 == sequence.size() && enemies.isEmpty(); }
     public void clear(Consumer<T> discard) {
         var previous = List.copyOf(enemies);
@@ -50,6 +58,7 @@ public final class WaveStages<T> {
         sequence = List.of();
         index = -1;
         removed = 0;
+        additional = 0;
         spawning = false;
         previous.forEach(discard);
     }

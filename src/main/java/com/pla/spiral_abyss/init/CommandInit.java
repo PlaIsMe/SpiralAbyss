@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.pla.spiral_abyss.encounter.data.FloorParser;
 import com.pla.spiral_abyss.world.AbyssParties;
 import net.minecraft.commands.*;
+import net.minecraft.network.chat.Component;
 
 public final class CommandInit {
     private CommandInit() {}
@@ -14,7 +15,7 @@ public final class CommandInit {
                     AbyssParties.get(c.getSource().getServer()).resetGlobal();
                     // Online players already receive the cycle service's announcement.
                     if (!c.getSource().isPlayer())
-                        c.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable("message.spiral_abyss.global_reset"), false);
+                        c.getSource().sendSuccess(() -> Component.translatable("message.spiral_abyss.global_reset"), false);
                     return 1;
                 }))
                 .executes(c -> AbyssParties.get(c.getSource().getServer()).portals().openArenaMenu(c.getSource().getPlayerOrException()) ? 1 : 0)

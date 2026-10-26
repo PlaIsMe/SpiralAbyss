@@ -9,6 +9,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.function.Predicate;
+import com.mojang.logging.LogUtils;
 
 /** Check effect/fire susceptibility against the actual cycle roster, without spawning test mobs. */
 public final class ChallengeEligibility implements Predicate<Challenge> {
@@ -41,7 +42,7 @@ public final class ChallengeEligibility implements Predicate<Challenge> {
                 var entity = type.create(level);
                 return entity instanceof LivingEntity living ? Optional.of(living) : Optional.empty();
             } catch (RuntimeException exception) {
-                com.mojang.logging.LogUtils.getLogger().warn("Cannot check Abyss effect susceptibility for {}", id, exception);
+                LogUtils.getLogger().warn("Cannot check Abyss effect susceptibility for {}", id, exception);
                 return Optional.empty();
             }
         });

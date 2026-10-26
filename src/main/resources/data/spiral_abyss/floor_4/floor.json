@@ -9,6 +9,22 @@
     "experience": 400,
     "entries": [
       {
+        "loot_table": "netherman:chests/blacksmith_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "minecraft:chests/firewell_d",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "soulsweapons:chests/cathedral_good_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "goety:chests/graveyard_loot",
         "weight": 1,
         "chance": 0.25

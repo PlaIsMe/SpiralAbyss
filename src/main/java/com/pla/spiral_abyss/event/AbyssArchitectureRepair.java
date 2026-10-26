@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 /** Repairs actual architecture removals, including mods that bypass Forge's griefing events. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
@@ -57,7 +58,7 @@ public final class AbyssArchitectureRepair {
     public static void forget(ServerLevel level, BlockPos from, BlockPos to) {
         Pending pending = LEVELS.get(level);
         if (pending == null) return;
-        var area = net.minecraft.world.level.levelgen.structure.BoundingBox.fromCorners(from, to);
+        var area = BoundingBox.fromCorners(from, to);
         pending.blocks.keySet().removeIf(area::isInside);
         pending.creativeBreaks.removeIf(area::isInside);
     }

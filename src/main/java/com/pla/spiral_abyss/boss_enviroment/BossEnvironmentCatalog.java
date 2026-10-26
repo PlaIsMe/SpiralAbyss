@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.io.Reader;
 import java.util.*;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.FallingBlock;
 
 /** Extensible entity-ID profiles; no boss class switches in terrain generation. */
 public final class BossEnvironmentCatalog extends SimplePreparableReloadListener<Map<ResourceLocation, BossEnvironmentCatalog.Profile>> {
@@ -211,9 +213,9 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         if (!ForgeRegistries.BLOCKS.containsKey(id) || ForgeRegistries.BLOCKS.getValue(id).defaultBlockState().isAir()) throw new JsonParseException("unavailable block " + id);
         BlockState state = ForgeRegistries.BLOCKS.getValue(id).defaultBlockState();
         if (state.hasBlockEntity()) throw new JsonParseException("block entities are not supported: " + id);
-        if (state.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || !state.getFluidState().isEmpty()
-                || state.is(net.minecraft.world.level.block.Blocks.TNT)
-                || !decoration && state.getBlock() instanceof net.minecraft.world.level.block.BushBlock)
+        if (state.getBlock() instanceof FallingBlock || !state.getFluidState().isEmpty()
+                || state.is(Blocks.TNT)
+                || !decoration && state.getBlock() instanceof BushBlock)
             throw new JsonParseException("unsupported terrain/decoration block: " + id);
         return state;
     }

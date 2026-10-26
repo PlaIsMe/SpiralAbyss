@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.entity.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import com.mojang.math.Axis;
 
 public class LootChestRenderer extends MobRenderer<LootChestEntity, LootChestModel> {
     private final ResourceLocation texture;
@@ -40,7 +41,7 @@ public class LootChestRenderer extends MobRenderer<LootChestEntity, LootChestMod
         // Match the chest's body orientation, including after it stops tracking the player.
         float rotation = 180 - Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
         pose.pushPose();
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(rotation));
+        pose.mulPose(Axis.YP.rotationDegrees(rotation));
         camera = camera.yRot((float) Math.toRadians(-rotation));
         int seed = entity.getUUID().hashCode() & 1023;
         ChestInteriorGlow.render(pose, vertices, time, seed, color, fade);

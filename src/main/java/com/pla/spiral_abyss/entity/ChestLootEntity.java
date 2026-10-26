@@ -13,6 +13,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkHooks;
 import java.util.ArrayDeque;
 import java.util.List;
+import net.minecraft.world.phys.AABB;
 
 /** Ordinary collectible loot with entity-only rarity metadata (never modifies inventory stacks). */
 public final class ChestLootEntity extends ItemEntity {
@@ -27,7 +28,7 @@ public final class ChestLootEntity extends ItemEntity {
     @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(RARE, false); }
     public boolean rare() { return entityData.get(RARE); }
     public List<Vec3> trail() { return List.copyOf(trail); }
-    @Override public net.minecraft.world.phys.AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(4); }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(4); }
     @Override public void tick() {
         if (level().isClientSide) {
             if (!onGround()) {

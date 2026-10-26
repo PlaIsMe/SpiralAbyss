@@ -1,0 +1,176 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "born_in_chaos_v1:lord_pumpkinhead", "required": false},
+    {"id": "born_in_chaos_v1:lords_felsteed", "required": false},
+    {"id": "born_in_chaos_v1:lord_pumpkinhead_withouta_horse", "required": false},
+    {"id": "born_in_chaos_v1:lord_the_headless", "required": false},
+    {"id": "born_in_chaos_v1:lord_pumpkinhead_head", "required": false},
+    {"id": "netherman:azazel", "required": false},
+    {"id": "netherman:azazel_human", "required": false},
+    {
+      "id": "soulsweapons:returning_knight",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:moonknight",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:chaos_monarch",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:night_shade",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:withered_demon",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:frost_giant",
+      "required": false
+    },
+    {
+      "id": "soulsweapons:rime_spectre",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:mother_spider",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:bonescaller",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:spirit_guide",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:dark_vortex",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:fallen_chaos_knight",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:skeleton_thrasher",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:seared_spirit",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:scarlet_persecutor",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:swarmer",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:zombie_bruiser",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:zombie_clown",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:zombie_lumberjack",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:senor_pumpkin",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:mrs_pumpkin",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:door_knight",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:bone_imp",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:dread_hound",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:diamond_termite",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:firelight",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:skeleton_demoman",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:restless_spirit",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:mr_pumpkin",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:pumpkin_dunce",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:barrel_zombie",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:bloody_gadfly",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:zombie_fisherman",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:decrepit_skeleton",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:baby_skeleton",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:maggot",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:corpse_fly",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:baby_spider",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:dire_hound_leader",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:missioner",
+      "required": false
+    },
+    {
+      "id": "born_in_chaos_v1:pumpkin_bruiser",
+      "required": false
+    }
+  ]
+}

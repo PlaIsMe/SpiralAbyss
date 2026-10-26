@@ -5,11 +5,12 @@ import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.core.BlockPos;
 
 @Mixin(ServerLevel.class)
 public abstract class AbyssEnvironmentMixin {
     @Inject(method = "globalLevelEvent", at = @At("HEAD"), cancellable = true)
-    private void spiralAbyss$localBossSound(int event, net.minecraft.core.BlockPos position, int data, CallbackInfo callback) {
+    private void spiralAbyss$localBossSound(int event, BlockPos position, int data, CallbackInfo callback) {
         ServerLevel level = (ServerLevel) (Object) this;
         if (!level.dimension().equals(AbyssDimension.LEVEL)) return;
         // Vanilla dragon/wither events otherwise broadcast to every player in every dimension.

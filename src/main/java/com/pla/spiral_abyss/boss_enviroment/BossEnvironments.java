@@ -21,6 +21,14 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.event.BossDeathBlocks;
+import java.util.function.Predicate;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 
 /** Profile-driven terrain with bounded growth/retraction and independent ownership. */
 public final class BossEnvironments {
@@ -55,7 +63,7 @@ public final class BossEnvironments {
             // must not destroy its partner through neighbor updates and spill decoration loot.
             boolean plant = state.getBlock() instanceof DoublePlantBlock
                     || level.getBlockState(pos).getBlock() instanceof DoublePlantBlock;
-            com.pla.spiral_abyss.event.BossDeathBlocks.edit(() ->
+            BossDeathBlocks.edit(() ->
                     level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL));
         });
     }
@@ -150,10 +158,11 @@ public final class BossEnvironments {
         }
         return true;
     }
-    public void tick() {
+    public void tick(Predicate<Mob> retain) {
         for (Effect effect : List.copyOf(effects.values())) {
             Mob boss = effect.boss;
-            if (effect.cleanupTicks < 0 && (DragonArena.defeated(boss) || boss.level() != level || level.getEntity(boss.getUUID()) != boss)) retract(effect);
+            if (effect.cleanupTicks < 0 && !retain.test(boss)
+                    && (DragonArena.defeated(boss) || boss.level() != level || level.getEntity(boss.getUUID()) != boss)) retract(effect);
             if (effect.cleanupTicks >= 0) {
                 effect.cleanupTicks++;
                 int target = (int) Math.ceil(effect.retract.size() * Math.min(effect.cleanupTicks, CLEANUP_TICKS) / (double) CLEANUP_TICKS);
@@ -187,20 +196,20 @@ public final class BossEnvironments {
             var moved = boss.getBoundingBox().move(destination.subtract(boss.position()));
             if (!level.noCollision(boss, moved)) throw new IllegalStateException("Boss environment center is obstructed");
             boss.teleportTo(destination.x, destination.y, destination.z);
-            boss.getNavigation().stop(); boss.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO); boss.fallDistance = 0;
+            boss.getNavigation().stop(); boss.setDeltaMovement(Vec3.ZERO); boss.fallDistance = 0;
         }
         if (halfWater) {
             for (var player : level.players()) {
                 if (Math.abs(player.getX() - bounds.center().x) > ArenaBounds.HALF_SIZE
                         || Math.abs(player.getZ() - bounds.center().z) > ArenaBounds.HALF_SIZE
                         || player.getY() >= ArenaBounds.FLOOR_Y + 15) continue;
-                var destination = new net.minecraft.world.phys.Vec3(player.getX(), ArenaBounds.FLOOR_Y + 15, player.getZ());
+                var destination = new Vec3(player.getX(), ArenaBounds.FLOOR_Y + 15, player.getZ());
                 if (!level.noCollision(player, player.getBoundingBox().move(destination.subtract(player.position()))))
                     destination = BossPlacedEntities.surface(level, bounds.entrance(), true);
                 if (!level.noCollision(player, player.getBoundingBox().move(destination.subtract(player.position())))) continue;
                 player.stopRiding();
                 player.connection.teleport(destination.x, destination.y, destination.z, player.getYRot(), player.getXRot());
-                player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO); player.fallDistance = 0;
+                player.setDeltaMovement(Vec3.ZERO); player.fallDistance = 0;
             }
         }
         effect.entities.spawn(level, bounds, host, effect.boss, effect.profile);
@@ -209,9 +218,9 @@ public final class BossEnvironments {
         Set<BlockPos> used = new HashSet<>();
         for (var entry : effect.profile.blocks()) {
             BlockState state;
-            try { state = BossEnvironmentCatalog.block(new com.google.gson.JsonPrimitive(entry.id().toString())); }
-            catch (com.google.gson.JsonParseException ex) {
-                com.mojang.logging.LogUtils.getLogger().warn("Skipping environment block {}: {}", entry.id(), ex.getMessage()); continue;
+            try { state = BossEnvironmentCatalog.block(new JsonPrimitive(entry.id().toString())); }
+            catch (JsonParseException ex) {
+                LogUtils.getLogger().warn("Skipping environment block {}: {}", entry.id(), ex.getMessage()); continue;
             }
             var anchor = entry.position().resolve(bounds.center(), 0.5);
             int placed = 0;
@@ -229,7 +238,7 @@ public final class BossEnvironments {
                 terrain.put(effect.boss.getUUID(), pos, state, 3);
                 effect.placed.add(pos); used.add(pos); placed++;
             }
-            if (placed != entry.count()) com.mojang.logging.LogUtils.getLogger().warn("Placed {}/{} environment blocks for {}", placed, entry.count(), entry.id());
+            if (placed != entry.count()) LogUtils.getLogger().warn("Placed {}/{} environment blocks for {}", placed, entry.count(), entry.id());
         }
     }
     private void place(Effect effect, BossTerrainPlan.Placement placement) {
@@ -280,7 +289,7 @@ public final class BossEnvironments {
         if (placement.priority() != 0) return false;
         var shape = placement.state().getCollisionShape(level, pos);
         if (shape.isEmpty()) return true;
-        double top = pos.getY() + shape.max(net.minecraft.core.Direction.Axis.Y);
+        double top = pos.getY() + shape.max(Direction.Axis.Y);
         Map<LivingEntity, Double> lifts = new LinkedHashMap<>();
         for (LivingEntity actor : actors) {
             double lift = top - actor.getBoundingBox().minY;
@@ -288,12 +297,12 @@ public final class BossEnvironments {
             if (lift > 1.1251 || actor.isPassenger() || actor.isVehicle()) return false;
             AABB moved = actor.getBoundingBox().move(0, lift, 0);
             if (moved.maxY > ArenaBounds.CEILING_Y || !level.noCollision(actor, moved)) return false;
-            if (actor instanceof net.minecraft.server.level.ServerPlayer && (moved.minX < bounds.center().x - ArenaBounds.HALF_SIZE || moved.maxX > bounds.center().x + ArenaBounds.HALF_SIZE || moved.minZ < bounds.center().z - ArenaBounds.HALF_SIZE || moved.maxZ > bounds.center().z + ArenaBounds.HALF_SIZE)) return false;
+            if (actor instanceof ServerPlayer && (moved.minX < bounds.center().x - ArenaBounds.HALF_SIZE || moved.maxX > bounds.center().x + ArenaBounds.HALF_SIZE || moved.minZ < bounds.center().z - ArenaBounds.HALF_SIZE || moved.maxZ > bounds.center().z + ArenaBounds.HALF_SIZE)) return false;
             lifts.put(actor, lift);
         }
         // Validate every actor before moving any of them, so a failed placement is atomic.
         lifts.forEach((actor, lift) -> {
-            if (actor instanceof net.minecraft.server.level.ServerPlayer player) player.connection.teleport(player.getX(), player.getY() + lift, player.getZ(), player.getYRot(), player.getXRot());
+            if (actor instanceof ServerPlayer player) player.connection.teleport(player.getX(), player.getY() + lift, player.getZ(), player.getYRot(), player.getXRot());
             else actor.setPos(actor.getX(), actor.getY() + lift, actor.getZ());
             actor.fallDistance = 0;
         });

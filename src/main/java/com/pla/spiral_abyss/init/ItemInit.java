@@ -5,6 +5,7 @@ import net.minecraft.world.item.*;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.level.block.Block;
 
 public class ItemInit {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SpiralAbyss.MOD_ID);
@@ -26,7 +27,7 @@ public class ItemInit {
     public static final RegistryObject<BlockItem> ABYSS_GATE_CURVE_ITEM = blockItem("abyss_gate_curve", BlockInit.ABYSS_GATE_CURVE);
     public static final RegistryObject<BlockItem> ABYSS_GATE_ACTIVATE_BLOCK_ITEM = blockItem("abyss_gate_activate_block", BlockInit.ABYSS_GATE_ACTIVATE_BLOCK);
 
-    private static RegistryObject<BlockItem> blockItem(String name, RegistryObject<? extends net.minecraft.world.level.block.Block> block) {
+    private static RegistryObject<BlockItem> blockItem(String name, RegistryObject<? extends Block> block) {
         return ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties().rarity(Rarity.UNCOMMON)));
     }
 }

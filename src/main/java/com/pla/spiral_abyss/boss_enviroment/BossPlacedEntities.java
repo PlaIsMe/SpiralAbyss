@@ -14,6 +14,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
+import com.pla.spiral_abyss.world.ArenaFlight;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Zombie;
 
 /** Auxiliary entities belong to a boss, but are never added to its stage's enemy list. */
 final class BossPlacedEntities {
@@ -39,12 +44,12 @@ final class BossPlacedEntities {
                         || Math.abs(entity.getZ() - bounds.center().z) > ArenaBounds.FLIGHT_RADIUS
                         || entity.getY() < 0 || entity.getY() > 240;
                 if (entity instanceof Mob mob) {
-                    com.pla.spiral_abyss.world.ArenaFlight.steer(mob, bounds);
-                    boolean ghost = com.pla.spiral_abyss.encounter.data.MobCatalog.isGhostMob(EntityType.getKey(mob.getType()));
+                    ArenaFlight.steer(mob, bounds);
+                    boolean ghost = MobCatalog.isGhostMob(EntityType.getKey(mob.getType()));
                     if (bounds.rescueMob(mob, ghost)) {
                         Vec3 point = surface(level, bounds.center(), halfWater);
                         mob.teleportTo(point.x, point.y, point.z);
-                        com.pla.spiral_abyss.world.ArenaFlight.stop(mob);
+                        ArenaFlight.stop(mob);
                     }
                 } else if (outside) entity.discard();
             }
@@ -62,7 +67,7 @@ final class BossPlacedEntities {
         for (int y = (int) ArenaBounds.CEILING_Y - 1; y >= (int) ArenaBounds.FLOOR_Y - 1; y--) {
             BlockPos pos = BlockPos.containing(point.x, y, point.z);
             var shape = level.getBlockState(pos).getCollisionShape(level, pos);
-            if (!shape.isEmpty()) return new Vec3(point.x, Math.max(halfWater ? ArenaBounds.FLOOR_Y + 15 : ArenaBounds.FLOOR_Y, y + shape.max(net.minecraft.core.Direction.Axis.Y)), point.z);
+            if (!shape.isEmpty()) return new Vec3(point.x, Math.max(halfWater ? ArenaBounds.FLOOR_Y + 15 : ArenaBounds.FLOOR_Y, y + shape.max(Direction.Axis.Y)), point.z);
         }
         return new Vec3(point.x, ArenaBounds.FLOOR_Y + (halfWater ? 15 : 0), point.z);
     }
@@ -94,7 +99,7 @@ final class BossPlacedEntities {
                 Entity entity = type.create(level);
                 if (entity == null) { LogUtils.getLogger().warn("Cannot create environment entity {}", entry.id()); break; }
                 entities.add(entity); // Register before any hook can throw; emergency cleanup owns it now.
-                if (entity instanceof Player || entity instanceof ArenaInteractable || entity instanceof net.minecraft.world.entity.item.ItemEntity) {
+                if (entity instanceof Player || entity instanceof ArenaInteractable || entity instanceof ItemEntity) {
                     entity.discard(); LogUtils.getLogger().warn("Unsupported environment entity {}", entry.id()); break;
                 }
                 entity.getPersistentData().putUUID(OWNER, boss.getUUID());
@@ -103,8 +108,8 @@ final class BossPlacedEntities {
                 Vec3 anchor = entry.position().resolve(bounds.center(), entity.getBbWidth() / 2);
                 entity.setPos(anchor);
                 if (entity instanceof Mob mob) {
-                    SpawnGroupData group = mob instanceof net.minecraft.world.entity.monster.Zombie
-                            ? new net.minecraft.world.entity.monster.Zombie.ZombieGroupData(false, false) : null;
+                    SpawnGroupData group = mob instanceof Zombie
+                            ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(anchor)), MobSpawnType.COMMAND, group, null);
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard); mob.stopRiding();
                     mob.setPersistenceRequired(); mob.setTarget(boss.getTarget());

@@ -9,6 +9,17 @@
     "experience": 100,
     "entries": [
       {
+        "loot_table": "netherman:chests/mansion_ordinary_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "minecraft:chests/farm_drop",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
         "loot_table": "goety:chests/shack_attic",
         "weight": 1,
         "chance": 0.2

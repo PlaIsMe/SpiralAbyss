@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.PostChain;
 import net.minecraft.resources.ResourceLocation;
 import java.io.IOException;
+import org.lwjgl.opengl.GL11;
 
 /** Screen-owned blur of the current game frame, applied before either journal panel is drawn. */
 final class JournalWorldBackdrop implements AutoCloseable {
@@ -44,7 +45,7 @@ final class JournalWorldBackdrop implements AutoCloseable {
                 main.bindWrite(false);
                 RenderSystem.depthMask(true);
                 RenderSystem.clearDepth(1.0);
-                RenderSystem.clear(org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+                RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
             } catch (IOException | RuntimeException exception) {
                 close();
                 unavailable = true;

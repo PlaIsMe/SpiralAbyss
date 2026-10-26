@@ -5,6 +5,7 @@ import com.pla.spiral_abyss.encounter.data.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import java.util.*;
+import com.mojang.logging.LogUtils;
 
 /** Resolves counts to entity IDs before spawning anything. */
 public final class WaveComposition {
@@ -24,11 +25,11 @@ public final class WaveComposition {
             if (usable.isEmpty()) throw new IllegalArgumentException("No usable wave type: empty category pool in " + wave.waveTypes().stream().map(FloorDefinition.WaveType::id).toList());
             var candidates = usable.stream().filter(type -> !usedTypes.contains(type.id())).toList();
             if (candidates.isEmpty()) {
-                com.mojang.logging.LogUtils.getLogger().warn("All usable configured wave types already used this floor: {}; reusing a configured difficulty-compatible candidate", usedTypes);
+                LogUtils.getLogger().warn("All usable configured wave types already used this floor: {}; reusing a configured difficulty-compatible candidate", usedTypes);
                 candidates = usable;
             }
             var selected = candidates.get(random.nextInt(candidates.size()));
-            com.mojang.logging.LogUtils.getLogger().debug("Wave candidates {}, excluded {}, selected {}", wave.waveTypes().stream().map(FloorDefinition.WaveType::id).toList(), usedTypes, selected.id());
+            LogUtils.getLogger().debug("Wave candidates {}, excluded {}, selected {}", wave.waveTypes().stream().map(FloorDefinition.WaveType::id).toList(), usedTypes, selected.id());
             List<FloorDefinition.Enemy> groups = new ArrayList<>();
             for (int stage = 0; stage < selected.sequence().size(); stage++) {
                 Map<MobCategory, Set<ResourceLocation>> chosen = new EnumMap<>(MobCategory.class);
@@ -66,7 +67,7 @@ public final class WaveComposition {
         if (role == CombatRole.ANY) return distinct;
         var matching = distinct.stream().filter(id -> equipment.role(id) == role).toList();
         if (!matching.isEmpty() || distinct.isEmpty()) return matching;
-        com.mojang.logging.LogUtils.getLogger().warn("No {} candidates found for {}; falling back to unfiltered category pool", role.key(), context);
+        LogUtils.getLogger().warn("No {} candidates found for {}; falling back to unfiltered category pool", role.key(), context);
         return distinct;
     }
     private static boolean usable(FloorDefinition.WaveType type, MobCatalog.Pools config) {

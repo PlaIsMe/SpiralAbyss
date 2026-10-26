@@ -11,6 +11,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.fml.ModList;
 import java.io.Reader;
 import java.util.*;
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog;
+import java.util.function.Predicate;
 
 /** Normal datapack priority replaces each pool/eligibility file as a JSON array. */
 public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.Definitions> {
@@ -32,7 +34,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
             entries.forEach((category, ids) -> copy.put(category, List.copyOf(ids)));
             entries = Collections.unmodifiableMap(copy);
         }
-        public Pools available(java.util.function.Predicate<ResourceLocation> installed) {
+        public Pools available(Predicate<ResourceLocation> installed) {
             Map<MobCategory, List<ResourceLocation>> valid = new EnumMap<>(MobCategory.class);
             entries.forEach((category, ids) -> valid.put(category, ids.stream().filter(installed).toList()));
             return new Pools(mixMobs, valid);
@@ -143,13 +145,13 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     public static Pool parsePool(JsonArray array) {
         return parsePool(array, ForgeRegistries.ITEMS::containsKey);
     }
-    public static Pool parsePool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem) {
+    public static Pool parsePool(JsonArray array, Predicate<ResourceLocation> isItem) {
         return parsePool(array, isItem, false);
     }
-    public static Pool parseBossPool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem) {
+    public static Pool parseBossPool(JsonArray array, Predicate<ResourceLocation> isItem) {
         return parsePool(array, isItem, true);
     }
-    private static Pool parsePool(JsonArray array, java.util.function.Predicate<ResourceLocation> isItem,
+    private static Pool parsePool(JsonArray array, Predicate<ResourceLocation> isItem,
                                   boolean bossPool) {
         Set<ResourceLocation> mobs = new LinkedHashSet<>();
         Set<ResourceLocation> configuredEnvironments = new HashSet<>();
@@ -224,7 +226,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                     }
                     // Boss terrain metadata shares an entry with reward links, but is parsed
                     // by BossEnvironmentCatalog rather than counted as a reward.
-                    if (com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.isMetadata(object)) {
+                    if (BossEnvironmentCatalog.isMetadata(object)) {
                         if (!bossPool) throw new JsonParseException("environment metadata is only supported in mob_pools/boss.json");
                         if (!configuredEnvironments.add(mob)) throw new JsonParseException("duplicate environment for " + mob);
                         for (String key : object.keySet()) if (!Set.of("environment", "decoration_environment",

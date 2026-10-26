@@ -8,6 +8,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.Direction;
 
 /** Arena-relative dragon geometry and death policy; no EndDragonFight is created. */
 public final class DragonArena {
@@ -22,7 +23,7 @@ public final class DragonArena {
         for (int dy = 0; dy <= 8; dy++) {
             BlockPos pos = origin.above(dy);
             var shape = dragon.level().getBlockState(pos).getCollisionShape(dragon.level(), pos);
-            if (!shape.isEmpty()) y = pos.getY() + shape.max(net.minecraft.core.Direction.Axis.Y);
+            if (!shape.isEmpty()) y = pos.getY() + shape.max(Direction.Axis.Y);
         }
         return new Vec3(origin.getX() + 0.5, y, origin.getZ() + 0.5);
     }

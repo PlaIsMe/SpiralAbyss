@@ -6,6 +6,10 @@ import com.pla.spiral_abyss.world.AbyssDimension;
 import com.pla.spiral_abyss.world.AbyssParties;
 import com.pla.spiral_abyss.world.ArenaBounds;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -20,15 +24,28 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.InteractionResult;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
+import net.minecraftforge.event.entity.EntityMobGriefingEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraftforge.event.entity.living.LivingDestroyBlockEvent;
 
 /** Protects architecture while allowing temporary fire and TNT during a player's attempt. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssBlockProtection {
+    private static final TagKey<EntityType<?>> NO_ARENA_GRIEFING = TagKey.create(Registries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath("spiral_abyss", "no_arena_griefing"));
     private AbyssBlockProtection() {}
+
+    /** Opt-in for mobs whose Forge griefing check precedes direct destroyBlock calls. */
+    @SubscribeEvent
+    public static void preventDirectMobGriefing(EntityMobGriefingEvent event) {
+        if (event.getEntity().level().dimension().equals(AbyssDimension.LEVEL)
+                && event.getEntity().getType().is(NO_ARENA_GRIEFING)) event.setResult(Event.Result.DENY);
+    }
 
     @SubscribeEvent
     public static void preventBreaking(BlockEvent.BreakEvent event) {
@@ -36,11 +53,11 @@ public final class AbyssBlockProtection {
                 && (BlockInit.isAbyssArchitecture(event.getState().getBlock()) || managedTerrain(event.getLevel(), event.getPos()))) event.setCanceled(true);
     }
 
-    private static boolean managedTerrain(net.minecraft.world.level.LevelAccessor level, BlockPos pos) {
+    private static boolean managedTerrain(LevelAccessor level, BlockPos pos) {
         return level instanceof ServerLevel server && server.dimension().equals(AbyssDimension.LEVEL) && AbyssParties.get(server.getServer()).sessions().stream().anyMatch(session -> session.controller().bossEnvironments().protects(pos));
     }
     @SubscribeEvent
-    public static void protectBossTerrain(net.minecraftforge.event.entity.living.LivingDestroyBlockEvent event) {
+    public static void protectBossTerrain(LivingDestroyBlockEvent event) {
         if (BlockInit.isAbyssArchitecture(event.getState().getBlock())
                 || managedTerrain(event.getEntity().level(), event.getPos())) event.setCanceled(true);
     }

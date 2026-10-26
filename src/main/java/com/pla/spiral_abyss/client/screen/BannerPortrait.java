@@ -15,6 +15,9 @@ import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL30;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.renderer.ShaderInstance;
+import org.lwjgl.opengl.GL13;
 
 
 /** Shared bounded, outlined portraits for banner entities and item models. */
@@ -53,10 +56,10 @@ final class BannerPortrait {
 
     /** Remove transparent margins once so large/small species occupy the same intended artwork area. */
     static Crop finish(TextureTarget target) {
-        int active = GL11.glGetInteger(org.lwjgl.opengl.GL13.GL_ACTIVE_TEXTURE);
-        RenderSystem.activeTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+        int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+        RenderSystem.activeTexture(GL13.GL_TEXTURE0);
         int bound = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-        try (var pixels = new com.mojang.blaze3d.platform.NativeImage(target.width, target.height, false)) {
+        try (var pixels = new NativeImage(target.width, target.height, false)) {
             RenderSystem.bindTexture(target.getColorTextureId());
             pixels.downloadTexture(0, false);
             pixels.flipY();
@@ -113,7 +116,7 @@ final class BannerPortrait {
         private final Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
         private final Matrix4f textureMatrix = new Matrix4f(RenderSystem.getTextureMatrix());
         private final VertexSorting sorting = RenderSystem.getVertexSorting();
-        private final net.minecraft.client.renderer.ShaderInstance shader = RenderSystem.getShader();
+        private final ShaderInstance shader = RenderSystem.getShader();
         private final float[] color = RenderSystem.getShaderColor().clone();
         private final float[] clearColor = new float[4];
         private final double clearDepth = GL11.glGetDouble(GL11.GL_DEPTH_CLEAR_VALUE);

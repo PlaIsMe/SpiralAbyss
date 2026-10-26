@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import com.mojang.logging.LogUtils;
 
 /** Read-only journal data from the same persisted selections and linked rewards used by combat. */
 public final class JournalPreviews {
@@ -37,7 +38,7 @@ public final class JournalPreviews {
                                     MobCatalog.bossOptions(enemy.id()).previewAnimation()));
                     }
                 } catch (IllegalArgumentException ex) {
-                    com.mojang.logging.LogUtils.getLogger().warn("Cannot preview Abyss journal floor {} wave {}: {}", floor, wave, ex.getMessage());
+                    LogUtils.getLogger().warn("Cannot preview Abyss journal floor {} wave {}: {}", floor, wave, ex.getMessage());
                 }
             }
         }

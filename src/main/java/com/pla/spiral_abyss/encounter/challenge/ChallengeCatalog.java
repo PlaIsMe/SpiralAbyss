@@ -10,6 +10,7 @@ import net.minecraft.world.item.*;
 import net.minecraftforge.registries.ForgeRegistries;
 import java.io.Reader;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /** Optional per-type datapack files; empty files deliberately disable a type. */
 public final class ChallengeCatalog extends SimplePreparableReloadListener<ChallengeCatalog.Snapshot> {
@@ -63,7 +64,7 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
     }
     public static boolean available(Challenge challenge) { return challenge.ids().stream().allMatch(id -> installed(challenge.type(), id)); }
     private static Challenge create(Type type, Difficulty difficulty, Tier tier, Random random, List<ResourceLocation> retained) {
-        List<ResourceLocation> pool = tier.pool().stream().filter(id -> installed(type, id)).distinct().collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        List<ResourceLocation> pool = tier.pool().stream().filter(id -> installed(type, id)).distinct().collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(pool, random);
         if (type == Type.PROJECTILE) return new Challenge(type, difficulty, tier.target(), tier.percentage(), pool, List.of());
         List<ResourceLocation> ids = new ArrayList<>(retained);

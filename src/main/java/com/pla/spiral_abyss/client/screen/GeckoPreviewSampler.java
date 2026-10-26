@@ -27,6 +27,9 @@ import software.bernie.geckolib.constant.DataTickets;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.io.IOException;
+import java.util.function.DoubleSupplier;
+import software.bernie.geckolib.core.object.DataTicket;
 
 /** Loaded only behind the optional GeckoLib gate. Never ticks entities or executes clip events. */
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -113,7 +116,7 @@ final class GeckoPreviewSampler {
             state.setData(DataTickets.ENTITY_MODEL_DATA, new EntityModelData(false, false, 0, 0));
             state.setData(DataTickets.TICK, sample);
             model.addAdditionalStateData(animated, renderer.getInstanceId(entity),
-                    (key, value) -> state.setData((software.bernie.geckolib.core.object.DataTicket) key, value));
+                    (key, value) -> state.setData((DataTicket) key, value));
             processor.reloadAnimations = false;
             // Prime clip/transition at zero before seeking into the chosen animation.
             for (double time : new double[] {0, 0, sample}) {
@@ -142,7 +145,7 @@ final class GeckoPreviewSampler {
             for (SavedField field : queryState) field.restore();
             if (querySupplier != null) for (var entry : MolangParser.VARIABLES.entrySet()) {
                 if (!originalQueries.contains(entry.getKey()))
-                    new SavedField(entry.getValue(), querySupplier, (java.util.function.DoubleSupplier) () -> 0).restore();
+                    new SavedField(entry.getValue(), querySupplier, (DoubleSupplier) () -> 0).restore();
             }
             if (processor != null) processor.reloadAnimations = reload;
             pose.popPose();
@@ -181,7 +184,7 @@ final class GeckoPreviewSampler {
             }
             Collections.sort(names);
             return names;
-        } catch (java.io.IOException exception) {
+        } catch (IOException exception) {
             return List.of();
         }
     }

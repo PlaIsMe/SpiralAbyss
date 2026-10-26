@@ -9,6 +9,17 @@
     "experience": 500,
     "entries": [
       {
+        "loot_table": "netherman:chests/maze_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "minecraft:chests/shater",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
         "loot_table": "goety:chests/crypt_loot",
         "weight": 1,
         "chance": 0.25

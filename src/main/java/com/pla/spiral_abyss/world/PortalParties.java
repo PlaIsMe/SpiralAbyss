@@ -54,8 +54,8 @@ public final class PortalParties {
         ArenaSession own = parties.hostedBy(player.getUUID());
         if (own != null && !own.players().isEmpty()) { tell(player, "already_hosting"); return; }
         if (own != null) { tell(player, "portal_busy"); return; }
-        // Reentry is a new visit. Even a saved payout requires an explicit floor choice;
-        // floorChoices and enterFloor enforce its originating floor on the server.
+        // Reentry is a new visit. Opened payouts stay on their original floors;
+        // floorChoices and enterFloor share the saved-claim admission policy.
         UUID token = UUID.randomUUID();
         selections.put(player.getUUID(), new Selection(token, portal.portalId(), player.getUUID(), player.level().dimension(),
                 frame.anchor(), frame.returnPosition(player), server.getTickCount() + MENU_TIMEOUT_TICKS));
@@ -83,9 +83,8 @@ public final class PortalParties {
         var progress = parties.profile(player.getUUID()).progress;
         ArenaSession session = parties.sessionFor(player);
         boolean acknowledged = session != null && session.canNavigate(player);
-        int pendingFloor = session == null ? progress.pendingFloor() : 0;
         for (int floor : FloorCatalog.snapshot().floors().keySet())
-            if ((pendingFloor == 0 || floor == pendingFloor) && progress.canSelectFloor(floor, acknowledged))
+            if (session == null ? progress.canEnterFloor(floor) : progress.canSelectFloor(floor, acknowledged))
                 available |= 1 << floor;
         return available | (1 << 7);
     }

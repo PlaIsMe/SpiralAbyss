@@ -9,6 +9,7 @@ import net.minecraft.world.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 /** Shared furniture state; the session owns claims and the saved dispensing cursor. */
 public abstract class LootChestEntity extends ArenaInteractable {
@@ -23,7 +24,7 @@ public abstract class LootChestEntity extends ArenaInteractable {
         super(type, level); this.tier = tier;
     }
     public int tier() { return tier; }
-    @Override public net.minecraft.world.phys.AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(1, 2, 1); }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(1, 2, 1); }
     @Override public void tick() {
         super.tick();
         if (phase() != IDLE) return;

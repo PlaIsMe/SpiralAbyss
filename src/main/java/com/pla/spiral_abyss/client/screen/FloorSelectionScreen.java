@@ -14,6 +14,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import java.util.List;
+import com.pla.spiral_abyss.client.portal.PortalEntryAnimation;
+import net.minecraft.Util;
 
 /** One menu and authorization token; detail navigation never submits or cancels a selection. */
 public final class FloorSelectionScreen extends Screen {
@@ -23,7 +25,7 @@ public final class FloorSelectionScreen extends Screen {
     private static final float WAVE_BUTTON_SCALE = 0.8F;
     private final AbyssNetwork.OpenFloors state;
     private final EnemyPreviewRenderer previews = new EnemyPreviewRenderer();
-    private final long openedAt = net.minecraft.Util.getMillis();
+    private final long openedAt = Util.getMillis();
     private boolean replied;
     private int keepOpenTicks;
     private int selectedFloor, selectedWave, resetRowY;
@@ -31,7 +33,7 @@ public final class FloorSelectionScreen extends Screen {
     private RewardPreviewPanel rewardPanel;
 
     public static void closeForReset() {
-        com.pla.spiral_abyss.client.portal.PortalEntryAnimation.closeForReset();
+        PortalEntryAnimation.closeForReset();
         if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen) {
             screen.replied = true; screen.minecraft.setScreen(null);
         }
@@ -259,7 +261,7 @@ public final class FloorSelectionScreen extends Screen {
     }
     private void renderOverview(GuiGraphics graphics) {
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFF3D7);
-        long remaining = state.resetRemainingMillis() < 0 ? -1 : Math.max(0, state.resetRemainingMillis() - (net.minecraft.Util.getMillis() - openedAt));
+        long remaining = state.resetRemainingMillis() < 0 ? -1 : Math.max(0, state.resetRemainingMillis() - (Util.getMillis() - openedAt));
         AbyssClockRenderer.reset(graphics, font, width / 2, resetRowY, width - 24, remaining);
     }
     private void renderFloor(GuiGraphics graphics) {

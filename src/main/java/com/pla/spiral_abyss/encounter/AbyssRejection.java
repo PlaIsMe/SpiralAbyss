@@ -29,7 +29,11 @@ public final class AbyssRejection {
         var session = AbyssParties.get(player.server).hostedBy(victim.getPersistentData().getUUID("spiral_abyss_host"));
         // Resolve the victim's attempt: lingering owned damage retains the penalty after defeat or departure.
         return session != null && session.controller().owns(victim)
-                && isRejected(player, session.controller().currentFloor(), ForgeRegistries.ENTITY_TYPES.getKey(victim.getType()));
+                && isRejected(player, session.controller().currentFloor(), bossId(victim));
+    }
+    public static ResourceLocation bossId(LivingEntity victim) {
+        var root = ResourceLocation.tryParse(victim.getPersistentData().getString(EncounterReinforcements.PHASE_BOSS));
+        return root != null && MobCatalog.isBoss(root) ? root : ForgeRegistries.ENTITY_TYPES.getKey(victim.getType());
     }
     public static ServerPlayer attacker(DamageSource source) {
         ServerPlayer player = playerOwner(source.getEntity());

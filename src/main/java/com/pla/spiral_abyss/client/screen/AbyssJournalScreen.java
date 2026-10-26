@@ -10,6 +10,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import java.util.*;
+import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
+import net.minecraft.util.FormattedCharSequence;
+import org.lwjgl.glfw.GLFW;
 
 /** Read-only cycle showcase. Travel is requested separately and always authorized by the server. */
 public final class AbyssJournalScreen extends Screen {
@@ -17,14 +21,14 @@ public final class AbyssJournalScreen extends Screen {
     private final AbyssNetwork.OpenJournal state;
     private final BannerBossRenderer bosses;
     private final AbyssHelpPanel help = new AbyssHelpPanel();
-    private final long openedAt = net.minecraft.Util.getMillis();
+    private final long openedAt = Util.getMillis();
     private boolean helpPage;
     private int rewardPage, x, y, w, h;
     private static final int REWARDS_PER_VIEW = 3;
     private final BannerRewardRenderer rewardModels = new BannerRewardRenderer();
     private Button previous, next;
     private final List<RewardGroup> rewardGroups = new ArrayList<>();
-    private List<net.minecraft.util.FormattedCharSequence> hoveredTooltip;
+    private List<FormattedCharSequence> hoveredTooltip;
     private record RewardSource(AbyssNetwork.BannerBoss boss, ItemStack stack) {}
     private record RewardGroup(ItemStack icon, List<RewardSource> sources) {}
 
@@ -100,7 +104,7 @@ public final class AbyssJournalScreen extends Screen {
         BannerArtwork.render(g, x, y, w, h);
         int tx = x + Math.round(w * .035F), tw = Math.round(w * .33F);
         long remaining = state == null || state.resetRemainingMillis() < 0 ? -1
-                : Math.max(0, state.resetRemainingMillis() - (net.minecraft.Util.getMillis() - openedAt));
+                : Math.max(0, state.resetRemainingMillis() - (Util.getMillis() - openedAt));
         Component countdown = remaining < 0 ? tr("reset_disabled") : remaining < 86400000L
                 ? tr("journal.reset_today") : tr("journal.reset_days", (remaining + 86399999L) / 86400000L);
         text(g, tr("journal.cycle"), tx, y + h * .06F, tw, 0xFF425577, 1.0F * unit);
@@ -124,7 +128,7 @@ public final class AbyssJournalScreen extends Screen {
         // Names follow each fitted silhouette; the reading layer was already flushed below the models.
         for (var label : labels) {
             var bounds = label.bounds();
-            Component name = bosses.name(label.boss().id()).copy().withStyle(net.minecraft.ChatFormatting.BOLD);
+            Component name = bosses.name(label.boss().id()).copy().withStyle(ChatFormatting.BOLD);
             float scale = Math.min(Math.max(.55F, label.nameScale() * unit), label.nameWidth() / Math.max(1, font.width(name)));
             float labelWidth = font.width(name) * scale;
             float labelX = bounds.x() + (bounds.width() - labelWidth) / 2;
@@ -184,7 +188,7 @@ public final class AbyssJournalScreen extends Screen {
                 for (var source : reward.sources()) {
                     String key = source.boss().id() + ":" + source.stack().getTag();
                     if (!seen.add(key)) continue;
-                    lines.add(bosses.name(source.boss().id()).copy().withStyle(net.minecraft.ChatFormatting.GOLD));
+                    lines.add(bosses.name(source.boss().id()).copy().withStyle(ChatFormatting.GOLD));
                     var details = source.stack().getTooltipLines(minecraft.player, TooltipFlag.Default.NORMAL);
                     for (int j = 1; j < details.size(); j++) lines.add(details.get(j));
                 }
@@ -193,7 +197,7 @@ public final class AbyssJournalScreen extends Screen {
             }
         }
         int left = Math.round(areaLeft), available = Math.round(areaWidth);
-        wrapped(g, tr(count == 0 ? "no_rewards" : "journal.rare").copy().withStyle(net.minecraft.ChatFormatting.BOLD),
+        wrapped(g, tr(count == 0 ? "no_rewards" : "journal.rare").copy().withStyle(ChatFormatting.BOLD),
                 x + w * .035F, y + h * .90F, available, 1.0F * unit, 0xFF344C6C);
         if (pages > 1) text(g, tr("journal.scroll_rewards", rewardPage + 1, pages), left,
                 y + h * .855F, available, 0xFF425577, .65F * unit);
@@ -222,7 +226,7 @@ public final class AbyssJournalScreen extends Screen {
         return super.mouseScrolled(mx, my, amount);
     }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
-        if ((key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT || key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT)) {
+        if ((key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT)) {
             changeTab(!helpPage); return true;
         }
         return super.keyPressed(key, scan, modifiers);

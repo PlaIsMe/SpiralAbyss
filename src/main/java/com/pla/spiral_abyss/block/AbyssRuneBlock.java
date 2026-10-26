@@ -10,12 +10,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.material.PushReaction;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
 
 /** A horizontal pillar whose rune face points toward the player when placed. */
 public final class AbyssRuneBlock extends HorizontalDirectionalBlock {
     public AbyssRuneBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
     @Nullable
@@ -35,7 +37,7 @@ public final class AbyssRuneBlock extends HorizontalDirectionalBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
 

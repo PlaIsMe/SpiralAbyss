@@ -11,6 +11,14 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog;
+import com.pla.spiral_abyss.encounter.data.MobCategory;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 
 import static com.pla.spiral_abyss.encounter.data.MobCategory.COMMON_MOB;
 import static com.pla.spiral_abyss.encounter.data.MobCategory.FODDER_MOB;
@@ -46,13 +54,24 @@ public final class WaveSpawner {
                     SpawnGroupData group = mob instanceof Zombie ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
                             MobSpawnType.COMMAND, group, null);
-                    if (mob instanceof net.minecraft.world.entity.monster.Slime slime && entry.category() != null) {
+                    var initialState = MobCatalog.bossOptions(entry.id()).spawnIntegers();
+                    if (!initialState.isEmpty()) {
+                        var saved = new CompoundTag();
+                        mob.addAdditionalSaveData(saved);
+                        initialState.forEach((key, value) -> {
+                            if (!saved.contains(key, Tag.TAG_INT))
+                                throw new IllegalArgumentException(entry.id() + " has no saved integer " + key);
+                            saved.putInt(key, value);
+                        });
+                        mob.readAdditionalSaveData(saved);
+                    }
+                    if (mob instanceof Slime slime && entry.category() != null) {
                         if (entry.category() == FODDER_MOB)
                             slime.setSize(1 + level.random.nextInt(2), true);
                         else if (entry.category() == COMMON_MOB) slime.setSize(4, true);
                     }
-                    if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) piglin.setImmuneToZombification(true);
-                    if (mob instanceof net.minecraft.world.entity.monster.piglin.Piglin piglin) piglin.setBaby(false);
+                    if (mob instanceof AbstractPiglin piglin) piglin.setImmuneToZombification(true);
+                    if (mob instanceof Piglin piglin) piglin.setBaby(false);
                     equipment.apply(mob);
                     DragonArena.prepare(mob, center);
                     // Spawn initialization may add riders (for example a spider jockey).
@@ -61,7 +80,7 @@ public final class WaveSpawner {
                     mob.setPersistenceRequired();
                     mob.getPersistentData().putUUID(RUN_TAG, runId);
                     mob.getPersistentData().putBoolean(BOSS_TAG,
-                            entry.category() == com.pla.spiral_abyss.encounter.data.MobCategory.BOSS);
+                            entry.category() == MobCategory.BOSS);
                     if (MobCatalog.bossOptions(entry.id()).hideBossBar())
                         mob.getPersistentData().putBoolean(BossHealthBars.HIDE_BOSS_BAR_TAG, true);
                     if (endlessWave > 0) WaveScaling.applyEndless(mob, endlessWave, entry.category(), partyScale);
@@ -81,13 +100,13 @@ public final class WaveSpawner {
 
     public boolean place(ServerLevel level, Mob mob, Vec3 center) {
         double spawnY = center.y + MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).spawnYOffset();
-        var environment = com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+        var environment = BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
         if (environment != null && environment.centered()) {
             level.getChunkAt(BlockPos.containing(center));
             mob.moveTo(center.x, spawnY, center.z, 0, 0);
             return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);
         }
-        if (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
+        if (mob instanceof EnderDragon) {
             level.getChunkAt(BlockPos.containing(center));
             mob.moveTo(center.x, spawnY + 20, center.z, level.random.nextFloat() * 360, 0);
             return level.getWorldBorder().isWithinBounds(mob.getBoundingBox()) && level.noCollision(mob);

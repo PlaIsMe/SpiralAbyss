@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.phys.Vec3;
+import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.event.AbyssArchitectureRepair;
 
 /** Places one saved base at each private party's spawn; floors reuse that same base. */
 public final class AbyssDimension {
@@ -36,7 +38,7 @@ public final class AbyssDimension {
 
     public static void restoreArena(ServerLevel level, AbyssPlayers.Profile profile) {
         if (!level.dimension().equals(LEVEL)) throw new IllegalArgumentException("Not the Abyss");
-        com.pla.spiral_abyss.event.AbyssArchitectureRepair.edit(level, () -> restoreArenaBlocks(level, profile));
+        AbyssArchitectureRepair.edit(level, () -> restoreArenaBlocks(level, profile));
     }
 
     private static void restoreArenaBlocks(ServerLevel level, AbyssPlayers.Profile profile) {
@@ -50,7 +52,7 @@ public final class AbyssDimension {
         BlockPos top = new BlockPos(origin.getX() + size.getX() - 1, (int) ArenaBounds.FLOOR_Y + 120,
                 origin.getZ() + size.getZ() - 1);
         // Include the old template's extra east column. Already-empty cells may still have queued repairs.
-        com.pla.spiral_abyss.event.AbyssArchitectureRepair.forget(level, origin, top.east());
+        AbyssArchitectureRepair.forget(level, origin, top.east());
         if (profile.needsLegacyCleanup()) clearLegacyArena(level, BlockPos.containing(center));
         for (BlockPos pos : BlockPos.betweenClosed(origin, top)) {
             if (!level.isEmptyBlock(pos)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
@@ -58,7 +60,7 @@ public final class AbyssDimension {
         if (!template.placeInWorld(level, origin, origin, new StructurePlaceSettings().setIgnoreEntities(true), level.random, 2))
             throw new IllegalStateException("Arena placement failed");
         profile.markPlaced();
-        com.mojang.logging.LogUtils.getLogger().info("Restored Abyss arena for host {} in slot {} at {}",
+        LogUtils.getLogger().info("Restored Abyss arena for host {} in slot {} at {}",
                 profile.owner, profile.slot, origin);
     }
 

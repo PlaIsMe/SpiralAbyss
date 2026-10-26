@@ -38,6 +38,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.UUID;
+import net.minecraft.world.phys.Vec3;
 
 /** Screen-owned, unspawned models sampled once; never run entity/AI ticks to obtain a pose. */
 final class BannerBossRenderer {
@@ -60,7 +64,7 @@ final class BannerBossRenderer {
         // Tagged models expose these public Vec3 fields, normally initialized
         // by ticking. Give unspawned previews a valid upright orientation.
         try {
-            var up = new net.minecraft.world.phys.Vec3(0, 1, 0);
+            var up = new Vec3(0, 1, 0);
             entity.getClass().getField("normal").set(entity, up);
             entity.getClass().getField("lastNormal").set(entity, up);
         } catch (ReflectiveOperationException exception) {
@@ -123,7 +127,7 @@ final class BannerBossRenderer {
                 for (char c : id.toString().toCharArray()) seed = (seed ^ c) * 0x100000001b3L;
                 poses.setSeed(seed);
                 living.getRandom().setSeed(seed);
-                living.setUUID(new java.util.UUID(seed, ~seed));
+                living.setUUID(new UUID(seed, ~seed));
                 initializeModel(living);
                 samplePose(living);
                 entity = living;
@@ -313,7 +317,7 @@ final class BannerBossRenderer {
     private void sampleExposedAnimation(LivingEntity entity) {
         List<AnimationState> candidates = new ArrayList<>();
         Field[] fields = entity.getClass().getFields();
-        java.util.Arrays.sort(fields, java.util.Comparator.comparing(field -> field.getDeclaringClass().getName() + ":" + field.getName()));
+        Arrays.sort(fields, Comparator.comparing(field -> field.getDeclaringClass().getName() + ":" + field.getName()));
         for (Field field : fields) {
             if (Modifier.isStatic(field.getModifiers()) || field.getType() != AnimationState.class) continue;
             String name = field.getName().toLowerCase(Locale.ROOT);

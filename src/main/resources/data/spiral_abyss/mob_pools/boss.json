@@ -727,5 +727,137 @@
       "item": "goety:blade_of_ender",
       "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:sharpness": 5, "goety:soul_eater": 5, "goety:velocity": 5, "goety:radius": 2}
     }
+  ],
+  [
+    "born_in_chaos_v1:lord_pumpkinhead",
+    {
+      "phase_mobs": ["born_in_chaos_v1:lords_felsteed", "born_in_chaos_v1:lord_pumpkinhead_withouta_horse", "born_in_chaos_v1:lord_the_headless", "born_in_chaos_v1:lord_pumpkinhead_head"]
+    },
+    {
+      "environment": ["minecraft:coarse_dirt", "minecraft:grass_block", "minecraft:blackstone"],
+      "decoration_environment": ["minecraft:carved_pumpkin"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "born_in_chaos_v1:soulbane",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "born_in_chaos_v1:pumpkinhandgun",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "born_in_chaos_v1:lord_pumpkinheads_hat_helmet",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "born_in_chaos_v1:lord_pumpkinheads_lamp"
+    },
+    {
+      "loot_table": "minecraft:chests/shater",
+      "weight": 1,
+      "chance": 0.25
+    }
+  ],
+  [
+    "netherman:azazel",
+    {
+      "suppress_death_blocks": {"blocks": ["minecraft:barrel"], "radius": 0, "height": 0, "ticks": 240}
+    },
+    {
+      "environment": ["minecraft:polished_blackstone_bricks", "minecraft:blackstone", "minecraft:deepslate_tiles"],
+      "decoration_environment": ["minecraft:gilded_blackstone"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "netherman:manipulator_stick",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "loot_table": "netherman:chests/mansion_rare_loot",
+      "weight": 1,
+      "chance": 0.25
+    }
+  ],
+  [
+    "netherman:azazel_human",
+    {
+      "spawn_integers": {"BossState": 5},
+      "preview_animation": {"name": "idle", "time_seconds": 1.0},
+      "suppress_death_blocks": {"blocks": ["minecraft:barrel"], "radius": 0, "height": 0, "ticks": 240}
+    },
+    {
+      "environment": ["minecraft:obsidian", "minecraft:blackstone", "minecraft:polished_blackstone_bricks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "netherman:azazel_helmet",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "netherman:azazel_spear",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "loot_table": "netherman:chests/maze_loot",
+      "weight": 1,
+      "chance": 0.25
+    }
+  ],
+  [
+    "soulsweapons:returning_knight",
+    {
+      "environment": ["minecraft:deepslate_tiles", "minecraft:deepslate_bricks", "minecraft:stone_bricks"],
+      "decoration_environment": ["minecraft:red_carpet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "soulsweapons:nightfall",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1, "soulsweapons:stagger": 3}
+    }
+  ],
+  [
+    "soulsweapons:moonknight",
+    {
+      "environment": ["minecraft:smooth_quartz", "minecraft:calcite", "minecraft:cracked_polished_blackstone_bricks"],
+      "decoration_environment": ["minecraft:white_candle"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "soulsweapons:pure_moonlight_greatsword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1, "soulsweapons:stagger": 3}
+    }
+  ],
+  [
+    "soulsweapons:chaos_monarch",
+    {
+      "environment": ["minecraft:blackstone", "minecraft:polished_blackstone_bricks", "minecraft:cracked_polished_blackstone_bricks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "soulsweapons:withered_wabbajack",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1, "soulsweapons:stagger": 3}
+    }
+  ],
+  [
+    "soulsweapons:night_shade",
+    {
+      "environment": ["minecraft:grass_block", "minecraft:coarse_dirt", "minecraft:deepslate_tiles"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "soulsweapons:darkmoon_longbow",
+      "enchantment": {"minecraft:power": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
   ]
 ]

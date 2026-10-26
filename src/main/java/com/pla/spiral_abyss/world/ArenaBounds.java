@@ -3,6 +3,9 @@ package com.pla.spiral_abyss.world;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.block.Blocks;
 
 /** Player feet stay above the arena floor; the top of the player stays below world Y=120. */
 public record ArenaBounds(Vec3 center) {
@@ -26,7 +29,7 @@ public record ArenaBounds(Vec3 center) {
         // Above the floor, flight/jump logic can use the larger, bounded flight area.
         if (Math.abs(entity.getX() - center.x) > FLIGHT_RADIUS
                 || Math.abs(entity.getZ() - center.z) > FLIGHT_RADIUS
-                || entity.getBoundingBox().maxY > (entity instanceof net.minecraft.world.entity.Mob mob
+                || entity.getBoundingBox().maxY > (entity instanceof Mob mob
                 && ArenaFlight.combatFlyer(mob) ? CEILING_Y : FLIGHT_CEILING_Y)) return true;
         // Ghost types may pursue targets below the arena floor without being returned to center.
         if (ghost && entity.getY() < FLOOR_Y) return false;
@@ -36,7 +39,7 @@ public record ArenaBounds(Vec3 center) {
                 || Math.abs(entity.getZ() - center.z) > HALF_SIZE - entity.getBbWidth() / 2);
     }
     private double feetFloor(Entity entity) {
-        var surface = net.minecraft.core.BlockPos.containing(entity.getX(), FLOOR_Y - 1, entity.getZ());
-        return entity.level().getBlockState(surface).is(net.minecraft.world.level.block.Blocks.SOUL_SAND) ? FLOOR_Y - 0.125 : FLOOR_Y;
+        var surface = BlockPos.containing(entity.getX(), FLOOR_Y - 1, entity.getZ());
+        return entity.level().getBlockState(surface).is(Blocks.SOUL_SAND) ? FLOOR_Y - 0.125 : FLOOR_Y;
     }
 }

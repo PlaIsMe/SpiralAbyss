@@ -74,6 +74,17 @@ public final class FloorProgress {
             for (ChestPayout payout : payouts[number]) if (payout.active()) return number;
         return 0;
     }
+    /** Defer opened payouts only when every originating floor has a committed personal claim. */
+    public int requiredPayoutFloor() {
+        for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
+            if (hasPayouts(number) && !claimed(number)) return pendingFloor();
+        return 0;
+    }
+    /** A new visit has no live reward roster; saved claims still authorize deferred payouts. */
+    public boolean canEnterFloor(int number) {
+        int required = requiredPayoutFloor();
+        return (required == 0 || number == required) && canSelectFloor(number, true);
+    }
     /** Only the selected floor's opened bundle can animate or authorize its chest. */
     public FloorRewards.Bundle pending() {
         for (ChestPayout payout : payouts[floor]) if (payout.pending() != null) return payout.pending();

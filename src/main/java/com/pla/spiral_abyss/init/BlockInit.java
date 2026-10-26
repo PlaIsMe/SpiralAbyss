@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.level.material.PushReaction;
 
 public class BlockInit {
     public static final DeferredRegister<Block> BLOCKS =
@@ -60,7 +61,7 @@ public class BlockInit {
 
     private static BlockBehaviour.Properties gateProperties() {
         return BlockBehaviour.Properties.copy(Blocks.COBBLESTONE).noOcclusion()
-                .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK)
+                .pushReaction(PushReaction.BLOCK)
                 .lightLevel(state -> 15);
     }
 

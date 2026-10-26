@@ -15,11 +15,17 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.*;
 import net.minecraftforge.eventbus.api.*;
 import net.minecraftforge.fml.common.Mod;
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog;
+import com.pla.spiral_abyss.encounter.data.MobCatalog;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Mob;
 
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssEncounters {
     private AbyssEncounters() {}
-    @SubscribeEvent public static void reload(AddReloadListenerEvent event) { FloorRewards.resetMissingTableLogs(); event.addListener(new com.pla.spiral_abyss.encounter.data.MobCatalog()); event.addListener(new FloorCatalog()); event.addListener(new com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog()); event.addListener(new com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog()); }
+    @SubscribeEvent public static void reload(AddReloadListenerEvent event) { FloorRewards.resetMissingTableLogs(); event.addListener(new MobCatalog()); event.addListener(new FloorCatalog()); event.addListener(new BossEnvironmentCatalog()); event.addListener(new ChallengeCatalog()); }
     @SubscribeEvent public static void started(ServerStartedEvent event) {
         FloorRewards.validateTables(event.getServer());
         var level = event.getServer().getLevel(AbyssDimension.LEVEL);
@@ -35,7 +41,7 @@ public final class AbyssEncounters {
     @SubscribeEvent public static void stop(ServerStoppingEvent event) { AbyssParties.stop(event.getServer()); }
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void preventPlayerDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)
+        if (!(event.getEntity() instanceof ServerPlayer player)
                 || !player.level().dimension().equals(AbyssDimension.LEVEL)) return;
         event.setCanceled(true);
         var parties = AbyssParties.get(player.server);
@@ -49,7 +55,7 @@ public final class AbyssEncounters {
         else { ArenaSession.restoreSurvival(player); parties.leave(player); }
     }
     @SubscribeEvent public static void isolateDamage(LivingAttackEvent event) {
-        if (!(event.getEntity().level() instanceof net.minecraft.server.level.ServerLevel level)
+        if (!(event.getEntity().level() instanceof ServerLevel level)
                 || !level.dimension().equals(AbyssDimension.LEVEL)) return;
         Entity attacker = event.getSource().getEntity();
         if (attacker == null) return;
@@ -67,14 +73,14 @@ public final class AbyssEncounters {
     }
     // Compatibility for existing saved encounters; new spawns use actual above-cap HP.
     @SubscribeEvent(priority = EventPriority.LOWEST) public static void scaleEffectiveHealth(LivingDamageEvent event) {
-        if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)
+        if (!(event.getEntity() instanceof Mob mob)
                 || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
         double ratio = mob.getPersistentData().getDouble(WaveScaling.HEALTH_DAMAGE_RATIO_TAG);
         if (Double.isFinite(ratio) && ratio > 0 && ratio != 1)
             event.setAmount((float) (event.getAmount() * ratio));
     }
     @SubscribeEvent(priority = EventPriority.LOWEST) public static void scaleEffectiveHealing(LivingHealEvent event) {
-        if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)
+        if (!(event.getEntity() instanceof Mob mob)
                 || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
         double ratio = mob.getPersistentData().getDouble(WaveScaling.HEALTH_DAMAGE_RATIO_TAG);
         if (Double.isFinite(ratio) && ratio > 0 && ratio != 1)

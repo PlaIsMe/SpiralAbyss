@@ -6,6 +6,7 @@ import com.pla.spiral_abyss.encounter.WaveChallenges;
 import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
@@ -39,6 +40,18 @@ public final class FloorParser {
             }
         }
         require(entries.size() <= 64, "at most 64 reward entries are allowed");
+        // Some optional mods publish tables in minecraft's namespace. Validate every
+        // entry before filtering so malformed datapacks do not depend on installed mods.
+        if (loot.has("entries")) {
+            int index = loot.has("loot_tables") ? loot.getAsJsonArray("loot_tables").size() : 0;
+            List<FloorDefinition.RewardEntry> enabled = new ArrayList<>(entries.subList(0, index));
+            for (JsonElement entry : loot.getAsJsonArray("entries")) {
+                JsonObject spec = entry.getAsJsonObject();
+                if (rewardProviderLoaded(spec)) enabled.add(entries.get(index));
+                index++;
+            }
+            entries = enabled;
+        }
         int rolls = integer(loot, "rolls", entries.isEmpty() ? 0 : 1, 0, 100);
         int experience = integer(loot, "experience", 0, 0, 100000);
         List<FloorDefinition.Wave> parsed = new ArrayList<>();
@@ -192,6 +205,14 @@ public final class FloorParser {
     private static ResourceLocation waveTypeId(JsonElement name) {
         ResourceLocation parsed = id(name);
         return name.getAsString().contains(":") ? parsed : ResourceLocation.fromNamespaceAndPath("spiral_abyss", parsed.getPath());
+    }
+
+    private static boolean rewardProviderLoaded(JsonObject spec) {
+        if (!spec.has("required_mod")) return true;
+        JsonElement value = spec.get("required_mod");
+        require(value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+                && value.getAsString().matches("[a-z][a-z0-9_]{1,63}"), "required_mod must be a mod id");
+        return ModList.get().isLoaded(value.getAsString());
     }
 
     public static FloorDefinition.RewardEntry rewardEntry(JsonObject spec, double defaultChance) {

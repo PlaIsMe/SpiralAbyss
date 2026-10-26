@@ -4,13 +4,14 @@ import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.Map;
+import java.util.EnumMap;
 
 /** Validated, immutable datapack definitions. Durations are converted to ticks when loaded. */
 public record FloorDefinition(int number, int timeTicks, int waveDelayTicks, Rewards rewards, List<Wave> waves,
                               Map<Challenge.Difficulty, List<Challenge.Type>> challenge) {
     public FloorDefinition {
         waves = List.copyOf(waves);
-        var choices = new java.util.EnumMap<Challenge.Difficulty, List<Challenge.Type>>(Challenge.Difficulty.class);
+        var choices = new EnumMap<Challenge.Difficulty, List<Challenge.Type>>(Challenge.Difficulty.class);
         for (var difficulty : Challenge.Difficulty.values()) {
             var types = challenge.get(difficulty);
             if (types == null || types.isEmpty()) throw new IllegalArgumentException("Missing challenge." + difficulty.key());

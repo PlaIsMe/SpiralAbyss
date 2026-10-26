@@ -187,7 +187,7 @@ public final class ChallengeTracker {
         return session.controller().state() == FloorController.State.RUNNING && session.controller().owns(mob)
                 && session.controller().enemies().contains(mob);
     }
-    /** Summons contribute challenge credit without entering the counted wave lineup. */
+    /** Includes a reinforcement's first-tick credit before the controller adopts it. Count goals retain their starting population. */
     private boolean challengeTarget(Mob mob) {
         if (session.controller().state() != FloorController.State.RUNNING
                 || mob.level() != session.level() || mob instanceof ArenaInteractable) return false;

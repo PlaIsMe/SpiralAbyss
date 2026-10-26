@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "netherman:azazel", "required": false},
+    {"id": "netherman:azazel_human", "required": false}
+  ]
+}

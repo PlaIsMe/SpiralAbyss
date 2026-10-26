@@ -20,6 +20,21 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
+import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.boss_enviroment.BossEnvironments;
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeEligibility;
+import com.pla.spiral_abyss.encounter.challenge.ChallengePlan;
+import com.pla.spiral_abyss.encounter.data.FloorCatalog;
+import com.pla.spiral_abyss.encounter.data.FloorDefinition;
+import com.pla.spiral_abyss.encounter.data.FloorParser;
+import com.pla.spiral_abyss.event.AbyssMobDrops;
+import java.util.concurrent.ThreadLocalRandom;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.projectile.ThrownTrident;
 
 /** Server-thread portal party management. Floor changes reuse a slot; empty parties release it. */
 public final class AbyssParties {
@@ -38,7 +53,7 @@ public final class AbyssParties {
     public PortalParties portals() { return portals; }
     public AbyssCycle cycle() {
         if (!data.cycle().initialized()) {
-            data.cycle().start(System.currentTimeMillis(), java.util.concurrent.ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
+            data.cycle().start(System.currentTimeMillis(), ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
             data.setDirty();
         }
         return data.cycle();
@@ -48,40 +63,40 @@ public final class AbyssParties {
         var cycle = cycle();
         var fallback = MobCatalog.snapshot();
         cycle.repair(MobCatalog::availableMob, fallback);
-        for (var floor : com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().values()) {
+        for (var floor : FloorCatalog.snapshot().floors().values()) {
             try { challenges(floor.number()); }
-            catch (IllegalArgumentException ex) { com.mojang.logging.LogUtils.getLogger().warn("Abyss floor {} challenges unavailable: {}", floor.number(), ex.getMessage()); }
+            catch (IllegalArgumentException ex) { LogUtils.getLogger().warn("Abyss floor {} challenges unavailable: {}", floor.number(), ex.getMessage()); }
             for (int wave = 0; wave < floor.waves().size(); wave++) {
                 try {
                     var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), MobCatalog::availableMob, fallback);
                     if (lineup.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
                         throw new IllegalArgumentException("No available replacement for a saved mob; update its category pool");
                 }
-                catch (IllegalArgumentException ex) { com.mojang.logging.LogUtils.getLogger().warn("Abyss cycle floor {} wave {} unavailable: {}", floor.number(), wave + 1, ex.getMessage()); }
+                catch (IllegalArgumentException ex) { LogUtils.getLogger().warn("Abyss cycle floor {} wave {} unavailable: {}", floor.number(), wave + 1, ex.getMessage()); }
             }
         }
         data.setDirty();
     }
-    public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
-            com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) {
+    public List<FloorDefinition.Enemy> cycleLineup(int floor, int wave,
+            FloorDefinition.Wave definition) {
         var result = cycle().lineup(floor, wave, definition, MobCatalog::availableMob, MobCatalog.snapshot());
         data.setDirty();
         if (result.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
             throw new IllegalArgumentException("No available replacement for a saved cycle mob; install a mob or update its category pool");
         return result;
     }
-    public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) {
+    public List<Challenge> challenges(int floor) {
         var level = server.getLevel(AbyssDimension.LEVEL);
         if (level == null) throw new IllegalArgumentException("Missing Abyss level");
-        var definition = com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().get(floor);
+        var definition = FloorCatalog.snapshot().floors().get(floor);
         if (definition == null) throw new IllegalArgumentException("Missing challenge floor " + floor);
-        List<List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy>> rosters = new ArrayList<>();
+        List<List<FloorDefinition.Enemy>> rosters = new ArrayList<>();
         for (int wave = 0; wave < definition.waves().size(); wave++)
             rosters.add(cycleLineup(floor, wave + 1, definition.waves().get(wave)));
-        var context = new com.pla.spiral_abyss.encounter.challenge.ChallengePlan.Context(
-                rosters.stream().map(roster -> roster.stream().mapToInt(com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy::count).sum()).toList(),
-                new com.pla.spiral_abyss.encounter.challenge.ChallengeEligibility(level, rosters));
-        var result = cycle().challenges(definition, context, com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog.snapshot());
+        var context = new ChallengePlan.Context(
+                rosters.stream().map(roster -> roster.stream().mapToInt(FloorDefinition.Enemy::count).sum()).toList(),
+                new ChallengeEligibility(level, rosters));
+        var result = cycle().challenges(definition, context, ChallengeCatalog.snapshot());
         data.setDirty();
         return result;
     }
@@ -92,7 +107,7 @@ public final class AbyssParties {
         for (ArenaSession session : List.copyOf(sessions.values())) retire(session);
         portals.invalidateAll();
         data.resetAllProgress();
-        cycle().start(cycleStart, java.util.concurrent.ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
+        cycle().start(cycleStart, ThreadLocalRandom.current().nextLong(), MobCatalog.snapshot());
         prepareCycle();
         data.setDirty();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -184,7 +199,7 @@ public final class AbyssParties {
     public boolean enterOwn(ServerPlayer player) {
         if (profile(player.getUUID()).endlessMode) return enterFloor(player, ENDLESS_FLOOR);
         var progress = data.profile(player.getUUID()).progress;
-        int floor = progress.pendingFloor() != 0 ? progress.pendingFloor() : progress.floor();
+        int floor = progress.requiredPayoutFloor() != 0 ? progress.requiredPayoutFloor() : progress.floor();
         if (!progress.unlocked(floor)) floor = 1;
         return enterFloor(player, floor);
     }
@@ -230,18 +245,17 @@ public final class AbyssParties {
         return true;
     }
     private boolean enterOwnFloor(ServerPlayer player, int number) {
-        if (number != ENDLESS_FLOOR && !com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
+        if (number != ENDLESS_FLOOR && !FloorCatalog.snapshot().floors().containsKey(number)) return tell(player, "floor_unavailable");
         if (!checkUnlocked(player, player, number)) return false;
         ArenaSession current = sessionFor(player);
         var progress = data.profile(player.getUUID()).progress;
-        if (number != ENDLESS_FLOOR && current == null && progress.pendingFloor() != 0 && number != progress.pendingFloor())
-            return tell(player, "claim_first");
         if (current != null && !current.canNavigate(player)) return tell(player, "claim_first");
         ArenaSession own = sessions.get(player.getUUID());
         if (own != null && !own.isLeader(player)) return tell(player, "host_only");
         if ((current != null && current.controller().active()) || (own != null && own.controller().active())) return tell(player, "already_running");
-        boolean acknowledged = current != null && current.canNavigate(player);
-        if (number != ENDLESS_FLOOR && !progress.canSelectFloor(number, acknowledged)) return tell(player, "claim_first");
+        boolean acknowledged = current == null || current.canNavigate(player);
+        if (number != ENDLESS_FLOOR && !(current == null ? progress.canEnterFloor(number)
+                : progress.canSelectFloor(number, acknowledged))) return tell(player, "claim_first");
         if (own != null && own.controller().currentFloor() != number && !separateGuests(player, own)) return false;
         // Travel/admission must succeed before changing saved progression.
         if (!enter(player, player.getUUID())) return false;
@@ -365,7 +379,8 @@ public final class AbyssParties {
         if (player.getUUID().equals(host)) return false;
         var progress = profile(player.getUUID()).progress;
         ArenaSession current = sessionFor(player);
-        if (number != ENDLESS_FLOOR && !progress.canSelectFloor(number, !portalEntry && current != null && current.canNavigate(player)))
+        if (number != ENDLESS_FLOOR && !(current == null ? progress.canEnterFloor(number)
+                : progress.canSelectFloor(number, !portalEntry && current.canNavigate(player))))
             return tell(player, "claim_first");
         ArenaSession destination = hostedBy(host);
         boolean join = destination != null && (destination.endless() && number == ENDLESS_FLOOR
@@ -431,7 +446,7 @@ public final class AbyssParties {
         return session == null ? tell(player, "wrong_dimension") : session.controller().nextFloor(player);
     }
     public boolean skipFloors(ServerPlayer player, int number) {
-        if (number < 1 || number > com.pla.spiral_abyss.encounter.data.FloorParser.MAX_FLOORS) return false;
+        if (number < 1 || number > FloorParser.MAX_FLOORS) return false;
         ArenaSession owned = hostedBy(player.getUUID());
         if (owned != null && owned.looting() && !owned.players().isEmpty()
                 && (sessionFor(player) == null || owned.players().size() > 1))
@@ -543,8 +558,8 @@ public final class AbyssParties {
                 continue;
             }
             if (entity instanceof Projectile projectile) {
-                if (projectile instanceof net.minecraft.world.entity.projectile.ThrownTrident trident && trident.isNoPhysics()
-                        && trident.getPersistentData().getBoolean(com.pla.spiral_abyss.event.AbyssMobDrops.NO_PICKUP)
+                if (projectile instanceof ThrownTrident trident && trident.isNoPhysics()
+                        && trident.getPersistentData().getBoolean(AbyssMobDrops.NO_PICKUP)
                         && trident.getOwner() instanceof Mob owner && trident.distanceToSqr(owner.getEyePosition()) < 2.25) {
                     // Mob inventories already keep their weapon. A returned Loyalty projectile is finished.
                     stale.add(trident); continue;
@@ -556,7 +571,7 @@ public final class AbyssParties {
                 else entity.getPersistentData().putUUID("spiral_abyss_host", owner.host());
                 continue;
             }
-            if (entity instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal && entity.getPersistentData().hasUUID(com.pla.spiral_abyss.boss_enviroment.BossEnvironments.CRYSTAL_OWNER)) {
+            if (entity instanceof EndCrystal && entity.getPersistentData().hasUUID(BossEnvironments.CRYSTAL_OWNER)) {
                 ArenaSession owner = sessions.get(hostOf(entity));
                 if (owner == null || !owner.controller().bossEnvironments().ownsCrystal(entity)) stale.add(entity);
                 continue;
@@ -600,8 +615,8 @@ public final class AbyssParties {
         // Collision checks skip unloaded chunks. Load the saved return area before checking
         // its floor, especially after a server restart when the portal is far from spawn.
         AABB collisionArea = body.inflate(1.0);
-        for (int x = net.minecraft.util.Mth.floor(collisionArea.minX) >> 4; x <= net.minecraft.util.Mth.floor(collisionArea.maxX) >> 4; x++)
-            for (int z = net.minecraft.util.Mth.floor(collisionArea.minZ) >> 4; z <= net.minecraft.util.Mth.floor(collisionArea.maxZ) >> 4; z++)
+        for (int x = Mth.floor(collisionArea.minX) >> 4; x <= Mth.floor(collisionArea.maxX) >> 4; x++)
+            for (int z = Mth.floor(collisionArea.minZ) >> 4; z <= Mth.floor(collisionArea.maxZ) >> 4; z++)
                 level.getChunk(x, z);
         return !level.noCollision(player, body.move(0, -0.05, 0))
                 && level.getFluidState(feet).isEmpty() && !level.containsAnyLiquid(body)
@@ -622,7 +637,7 @@ public final class AbyssParties {
                     if (floor.getY() < level.getMinBuildHeight() || floor.getY() >= level.getMaxBuildHeight()) continue;
                     var shape = level.getBlockState(floor).getCollisionShape(level, floor);
                     if (shape.isEmpty()) continue;
-                    Vec3 candidate = new Vec3(column.getX() + 0.5, floor.getY() + shape.max(net.minecraft.core.Direction.Axis.Y), column.getZ() + 0.5);
+                    Vec3 candidate = new Vec3(column.getX() + 0.5, floor.getY() + shape.max(Direction.Axis.Y), column.getZ() + 0.5);
                     if (isSafe(level, player, candidate)) return candidate;
                 }
             }

@@ -28,6 +28,8 @@ import net.minecraftforge.client.event.RenderHighlightEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
+import com.pla.spiral_abyss.init.BlockInit;
+import java.util.UUID;
 
 /** A local presentation of an already-issued floor token; never moves or admits a player. */
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
@@ -87,7 +89,7 @@ public final class PortalEntryAnimation {
     @SubscribeEvent public static void outline(RenderHighlightEvent.Block event) {
         Minecraft client = Minecraft.getInstance();
         if (active() || client.level != null && client.level.getBlockState(event.getTarget().getBlockPos())
-                .is(com.pla.spiral_abyss.init.BlockInit.ABYSS_PORTAL.get())) event.setCanceled(true);
+                .is(BlockInit.ABYSS_PORTAL.get())) event.setCanceled(true);
     }
 
     private static float smooth(float value) {
@@ -99,7 +101,7 @@ public final class PortalEntryAnimation {
         private final AbyssNetwork.OpenFloors state;
         private final ClientLevel level;
         private final LocalPlayer player;
-        private final java.util.UUID portalId;
+        private final UUID portalId;
         private final long started = Util.getMillis();
         private final Vec3 initialCamera, eye, target, outward;
         private final float initialYaw, initialPitch;

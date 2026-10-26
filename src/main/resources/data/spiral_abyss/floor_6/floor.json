@@ -9,6 +9,17 @@
     "experience": 600,
     "entries": [
       {
+        "loot_table": "netherman:chests/mansion_rare_loot",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "minecraft:chests/chest_level_3",
+        "required_mod": "born_in_chaos_v1",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "goety:chests/spider_den_treasure",
         "weight": 1,
         "chance": 0.15

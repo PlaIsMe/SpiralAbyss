@@ -29,4 +29,11 @@ public abstract class BossDeathContainerMixin {
                                                       ResourceLocation table, CallbackInfo callback) {
         if (reader instanceof Level level && BossDeathBlocks.suppressLoot(level, pos)) callback.cancel();
     }
+
+    @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceLocation;J)V",
+            at = @At("HEAD"), cancellable = true)
+    private void spiral_abyss$suppressAssignedDeathLoot(ResourceLocation table, long seed, CallbackInfo callback) {
+        var container = (RandomizableContainerBlockEntity) (Object) this;
+        if (BossDeathBlocks.suppressLoot(container.getLevel(), container.getBlockPos())) callback.cancel();
+    }
 }

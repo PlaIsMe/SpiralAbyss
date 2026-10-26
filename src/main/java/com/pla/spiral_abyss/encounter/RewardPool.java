@@ -1,9 +1,11 @@
 package com.pla.spiral_abyss.encounter;
 
 import com.pla.spiral_abyss.encounter.data.FloorDefinition.RewardEntry;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import java.util.*;
 import java.util.function.Predicate;
+import com.pla.spiral_abyss.config.AbyssConfig;
 
 /** Optional mods may disappear between datapack authoring and use. Resolve a finite pool first. */
 public final class RewardPool {
@@ -11,7 +13,7 @@ public final class RewardPool {
     public static final double RARE_CHANCE = 0.05;
     public static final int RARE_COUNT = 1;
     public static double rareChance() {
-        return com.pla.spiral_abyss.config.AbyssConfig.RARE_REWARD_CHANCE.get();
+        return AbyssConfig.RARE_REWARD_CHANCE.get();
     }
 
     /** Mob-linked items share one policy; legacy per-entry chance/count fields cannot override it. */
@@ -37,7 +39,7 @@ public final class RewardPool {
         throw new IllegalStateException("Invalid reward weights");
     }
     /** Weighted selection without revisiting a failed table ID during the same chest roll. */
-    public RewardEntry table(RandomSource random, Set<net.minecraft.resources.ResourceLocation> attempted) {
+    public RewardEntry table(RandomSource random, Set<ResourceLocation> attempted) {
         int remainingWeight = tables.stream().filter(entry -> !attempted.contains(entry.id())).mapToInt(RewardEntry::weight).sum();
         if (remainingWeight == 0) return null;
         int choice = random.nextInt(remainingWeight);

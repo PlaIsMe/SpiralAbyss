@@ -9,16 +9,18 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 
 @Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class ModEventBusClientEvents {
     @SubscribeEvent
-    public static void registerOverlays(net.minecraftforge.client.event.RegisterGuiOverlaysEvent event) {
+    public static void registerOverlays(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("encounter", AbyssEncounterOverlay.HUD);
         event.registerAboveAll("rare_reward", RareRewardOverlay.HUD);
     }
     @SubscribeEvent
-    public static void registerDimensionEffects(net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent event) {
+    public static void registerDimensionEffects(RegisterDimensionSpecialEffectsEvent event) {
         event.register(AbyssSkyEffects.ID,
                 new AbyssSkyEffects());
     }

@@ -9,6 +9,7 @@ import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import com.pla.spiral_abyss.encounter.challenge.ChallengeTracker;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import com.pla.spiral_abyss.network.AbyssNetwork;
@@ -19,6 +20,10 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 import java.util.function.Supplier;
+import com.pla.spiral_abyss.config.GearConfig;
+import com.pla.spiral_abyss.entity.LootChestEntity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /** One encounter per host arena; timing and participants are isolated from other hosts. */
 public final class FloorController {
@@ -34,15 +39,18 @@ public final class FloorController {
     private final FloorClock clock = new FloorClock();
     private final WaveStages<Mob> stages = new WaveStages<>();
     private final BossEnvironments bossEnvironments;
+    private final EncounterReinforcements reinforcements;
+    private static final int CLEAR_DELAY_TICKS = 20;
+    private long emptySince = -1;
     private WaveEquipment waveEquipment;
-    private net.minecraft.resources.ResourceLocation selectedWaveType;
+    private ResourceLocation selectedWaveType;
     private State state;
     private FloorDefinition floor;
     private MobCatalog.Equipment equipment;
     private MobCatalog.ScalingSnapshot mobScaling = MobCatalog.ScalingSnapshot.EMPTY;
-    private com.pla.spiral_abyss.config.GearConfig.Floor gear;
-    private Map<net.minecraft.resources.ResourceLocation, List<FloorDefinition.RewardEntry>> mobRewards = Map.of();
-    private final Set<net.minecraft.resources.ResourceLocation> encounteredMobs = new LinkedHashSet<>();
+    private GearConfig.Floor gear;
+    private Map<ResourceLocation, List<FloorDefinition.RewardEntry>> mobRewards = Map.of();
+    private final Set<ResourceLocation> encounteredMobs = new LinkedHashSet<>();
     private UUID runId;
     private Vec3 center = new Vec3(0.5, 65, 0.5);
     private int waveIndex;
@@ -64,6 +72,7 @@ public final class FloorController {
         this.center = session.bounds().center();
         this.catalog = catalog;
         this.bossEnvironments = new BossEnvironments(level, session.bounds(), session.host());
+        this.reinforcements = new EncounterReinforcements(session);
         this.state = progress.pending() != null ? State.COMPLETED : State.READY;
         if (session.endless()) this.state = State.READY;
         this.revision = catalog.get().revision();
@@ -91,9 +100,9 @@ public final class FloorController {
             return new AbyssNetwork.EncounterStatus(true, false, currentFloor(), currentWave(), stages.removed(), waveEnemies,
                     clock.remainingSeconds(), state == State.BETWEEN_WAVES ? WaveChallenges.countdownSeconds(delayTicks) : 0, views,
                     stages.enemies().stream().filter(mob -> session.isCombatant(viewer) && mob.isAlive() && !mob.isRemoved()
-                                    && !(mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon dragon && DragonArena.defeated(dragon))
+                                    && !(mob instanceof EnderDragon dragon && DragonArena.defeated(dragon))
                                     && AbyssRejection.applies(viewer, mob))
-                            .map(mob -> net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).distinct().toList());
+                            .map(AbyssRejection::bossId).distinct().toList());
         }
         if ((state != State.READY && state != State.FAILED) || showsChest()) return AbyssNetwork.EncounterStatus.HIDDEN;
         if (readyHud == null || readyHudFloor != currentFloor()) {
@@ -171,7 +180,7 @@ public final class FloorController {
         mobScaling = MobCatalog.scalingSnapshot();
         mobRewards = MobCatalog.rewards();
         encounteredMobs.clear();
-        gear = com.pla.spiral_abyss.config.GearConfig.load(currentFloor());
+        gear = GearConfig.load(currentFloor());
         partyScale = FloorRewards.partyScale(session.participants().size());
         runId = UUID.randomUUID();
         waveIndex = 0;
@@ -218,10 +227,15 @@ public final class FloorController {
         // its five-minute deadline fails even when the final removal is observed now.
         if (clock.tick(true)) { fail("time_up"); return; }
         if (challengeTracker != null) challengeTracker.update(clock.elapsedTicks());
-        // Only the current stage's captured entity identities can advance this encounter.
-        try { bossEnvironments.tick(); }
-        catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
+        // Discover before checking completion: replacements may discard their parent before spawning.
+        reinforcements.discover(runId, mob -> { if (stages.add(mob)) emptySince = -1; });
+        waveEnemies = stages.total();
         stages.removeInvalid(mob -> DragonArena.finished(mob, level));
+        if (!stages.enemies().isEmpty()) emptySince = -1;
+        else if (emptySince < 0) emptySince = level.getGameTime();
+        boolean settled = emptySince >= 0 && level.getGameTime() - emptySince >= CLEAR_DELAY_TICKS;
+        try { bossEnvironments.tick(mob -> !settled && reinforcements.retainsEnvironment(mob)); }
+        catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
         bossHealthBars.tick(stages.enemies(), session.players());
         for (Mob mob : stages.enemies()) {
             if (DragonArena.defeated(mob)) { session.keepMobActive(mob); continue; }
@@ -233,6 +247,7 @@ public final class FloorController {
                 mob.setTarget(target);
         }
         if (stages.enemies().isEmpty()) {
+            if (!settled) return;
             // Boss cleanup retracts visibly before any next stage or final-wave payout.
             if (bossEnvironments.cleaning()) return;
             LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} cleared", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size());
@@ -262,7 +277,7 @@ public final class FloorController {
                 var selected = EndlessWaves.select(wave, session.endlessSeed(wave), FloorCatalog.waveTypes().values(),
                         MobCatalog.snapshot(), equipment);
                 stages.prepare(selected.enemies()); selectedWaveType = selected.type();
-                gear = com.pla.spiral_abyss.config.GearConfig.loadEndless(wave);
+                gear = GearConfig.loadEndless(wave);
                 partyScale = FloorRewards.partyScale(session.participants().size());
                 runId = UUID.randomUUID();
             } else {
@@ -287,12 +302,14 @@ public final class FloorController {
     }
 
     private void spawnStage(ServerPlayer target) {
+        emptySince = -1;
         stages.advance(composition -> {
             LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} starting: {}", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size(), composition);
             var created = spawner.spawn(level, center, target, composition, runId,
                     waveEquipment, currentFloor(), partyScale, mobScaling, session.endless() ? waveIndex + 1 : 0);
-            created.forEach(mob -> encounteredMobs.add(net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
+            created.forEach(mob -> encounteredMobs.add(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
             created.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
+            reinforcements.begin(created);
             return created;
         });
         bossEnvironments.begin(stages.enemies());
@@ -339,8 +356,8 @@ public final class FloorController {
         if (session.players().stream().noneMatch(p -> p.getUUID().equals(session.host()) && p.isAlive() && !p.isSpectator())) return;
         var payout = session.profile().endlessPayout;
         payout.tickOpening();
-        if (payout.chestTicks() < com.pla.spiral_abyss.entity.LootChestEntity.OPEN_TICKS
-                + com.pla.spiral_abyss.entity.LootChestEntity.DROP_INTERVAL_TICKS) {
+        if (payout.chestTicks() < LootChestEntity.OPEN_TICKS
+                + LootChestEntity.DROP_INTERVAL_TICKS) {
             session.refreshDisplay();
             return;
         }
@@ -406,6 +423,8 @@ public final class FloorController {
         bossHealthBars.clear();
         bossEnvironments.clear();
         stages.clear(Entity::discard);
+        reinforcements.clear();
+        emptySince = -1;
         selectedWaveType = null;
         waveEquipment = null;
         mobScaling = MobCatalog.ScalingSnapshot.EMPTY;

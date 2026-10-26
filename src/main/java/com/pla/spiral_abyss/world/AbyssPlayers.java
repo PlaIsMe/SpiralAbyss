@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
+import com.pla.spiral_abyss.encounter.ChestPayout;
 
 /** Offline progression and a fixed pool of reusable arena locations. */
 public final class AbyssPlayers extends SavedData {
@@ -21,7 +22,7 @@ public final class AbyssPlayers extends SavedData {
         profiles.values().forEach(profile -> {
             profile.progress.reset(); profile.followingHost = null; profile.personalRun = false;
             profile.endlessMode = false; profile.endlessWave = 1; profile.endlessCheckpoint = 0; profile.endlessRewardedWave = 0;
-            profile.endlessPayout = new com.pla.spiral_abyss.encounter.ChestPayout(this::setDirty);
+            profile.endlessPayout = new ChestPayout(this::setDirty);
             profile.portal = null; profile.cycleReturnRequired = true; profile.requestArenaReset();
         });
         setDirty();
@@ -40,7 +41,7 @@ public final class AbyssPlayers extends SavedData {
         public int endlessWave = 1;
         public int endlessCheckpoint;
         public int endlessRewardedWave;
-        public com.pla.spiral_abyss.encounter.ChestPayout endlessPayout = new com.pla.spiral_abyss.encounter.ChestPayout(AbyssPlayers.this::setDirty);
+        public ChestPayout endlessPayout = new ChestPayout(AbyssPlayers.this::setDirty);
         public void setEndlessMode(boolean enabled) { endlessMode = enabled; setDirty(); }
         public void saveEndlessWave(int wave) { endlessWave = Math.max(1, wave); setDirty(); }
         public void saveEndlessCheckpoint(int wave) { endlessCheckpoint = Math.max(0, wave); setDirty(); }
@@ -93,7 +94,7 @@ public final class AbyssPlayers extends SavedData {
             profile.endlessWave = Math.max(1, entry.getInt("EndlessWave"));
             profile.endlessCheckpoint = Math.max(0, entry.getInt("EndlessCheckpoint"));
             profile.endlessRewardedWave = Math.max(0, entry.getInt("EndlessRewardedWave"));
-            profile.endlessPayout = com.pla.spiral_abyss.encounter.ChestPayout.load(entry.getCompound("EndlessPayout"), data::setDirty);
+            profile.endlessPayout = ChestPayout.load(entry.getCompound("EndlessPayout"), data::setDirty);
         }
         return data;
     }

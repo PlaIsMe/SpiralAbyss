@@ -14,6 +14,18 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
+import com.pla.spiral_abyss.encounter.DragonArena;
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
+import com.pla.spiral_abyss.event.AbyssBlockProtection;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.projectile.EvokerFangs;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.AABB;
 
 /** One leased arena and original owner's progress; normal attempts capture a fixed roster. */
 public final class ArenaSession {
@@ -46,10 +58,10 @@ public final class ArenaSession {
     public long endlessSeed(int wave) { return parties.cycle().bannerPoseSeed() ^ host().getMostSignificantBits() ^ host().getLeastSignificantBits() ^ (0x9E3779B97F4A7C15L * wave); }
     public ServerLevel level() { return level; }
     public AbyssPlayers.Profile profile() { return profile; }
-    public List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges(int floor) { return parties.challenges(floor); }
-    public net.minecraft.resources.ResourceLocation selectedWaveType(int floor, int wave, com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycle().selectedType(floor, wave, definition); }
-    public List<com.pla.spiral_abyss.encounter.data.FloorDefinition.Enemy> cycleLineup(int floor, int wave,
-            com.pla.spiral_abyss.encounter.data.FloorDefinition.Wave definition) { return parties.cycleLineup(floor, wave, definition); }
+    public List<Challenge> challenges(int floor) { return parties.challenges(floor); }
+    public ResourceLocation selectedWaveType(int floor, int wave, FloorDefinition.Wave definition) { return parties.cycle().selectedType(floor, wave, definition); }
+    public List<FloorDefinition.Enemy> cycleLineup(int floor, int wave,
+            FloorDefinition.Wave definition) { return parties.cycleLineup(floor, wave, definition); }
     public UUID host() { return profile.owner; }
     /** Leadership can change without moving the arena or its saved reward bundle. */
     public boolean isLeader(ServerPlayer player) { return player.getUUID().equals(leader); }
@@ -99,7 +111,7 @@ public final class ArenaSession {
     public void completeChallenge(int[] stars, FloorDefinition.Rewards rewards) {
         attemptStars = stars.clone(); offeredRewards = rewards;
         displayedTiers = 0;
-        players().forEach(player -> player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+        players().forEach(player -> player.sendSystemMessage(Component.translatable(
                 "message.spiral_abyss.challenge_result", controller.currentFloor(), Arrays.stream(stars).sum())));
         for (ServerPlayer player : players()) {
             if (!rewardParticipants.contains(player.getUUID())) continue;
@@ -152,7 +164,7 @@ public final class ArenaSession {
         if (player.equals(leader) && !remaining.isEmpty()) {
             ServerPlayer next = remaining.get(level.random.nextInt(remaining.size()));
             leader = next.getUUID();
-            remaining.forEach(member -> member.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+            remaining.forEach(member -> member.sendSystemMessage(Component.translatable(
                     "message.spiral_abyss.host_changed", next.getDisplayName())));
         }
         // A departure can be the final living teammate even while spectators remain online.
@@ -196,7 +208,7 @@ public final class ArenaSession {
             player.setGameMode(GameType.SPECTATOR);
             returnToEntrance(player);
             if (combatants().isEmpty()) controller.defeated();
-            else player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("message.spiral_abyss.spectating"));
+            else player.sendSystemMessage(Component.translatable("message.spiral_abyss.spectating"));
         } else recover(player, true);
     }
     private void markDefeated(ServerPlayer player) {
@@ -237,14 +249,14 @@ public final class ArenaSession {
     }
     public void finishAttempt() {
         controller.bossEnvironments().clear();
-        com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
+        AbyssBlockProtection.clearCombatHazards(level, bounds());
         // Includes boss summons and lingering attacks, so recovery is safe after a team wipe.
-        var area = new net.minecraft.world.phys.AABB(bounds().center().x - ArenaBounds.FLIGHT_RADIUS, 0,
+        var area = new AABB(bounds().center().x - ArenaBounds.FLIGHT_RADIUS, 0,
                 bounds().center().z - ArenaBounds.FLIGHT_RADIUS, bounds().center().x + ArenaBounds.FLIGHT_RADIUS,
                 level.getMaxBuildHeight(), bounds().center().z + ArenaBounds.FLIGHT_RADIUS);
         level.getEntities((Entity) null, area, entity -> !(entity instanceof ArenaInteractable)
-                && (entity instanceof Mob || entity instanceof net.minecraft.world.entity.projectile.Projectile
-                || entity instanceof AreaEffectCloud || entity instanceof net.minecraft.world.entity.projectile.EvokerFangs))
+                && (entity instanceof Mob || entity instanceof Projectile
+                || entity instanceof AreaEffectCloud || entity instanceof EvokerFangs))
                 .forEach(Entity::discard);
         for (ServerPlayer player : players()) {
             if (defeated.contains(player.getUUID()) || hasDefeatMarker(player)) recover(player, true);
@@ -267,7 +279,7 @@ public final class ArenaSession {
     public void tick() {
         // Entity persistence loads asynchronously. Never create replacement furniture before that finishes.
         if (!displayReady && furnitureLoaded()) {
-            com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
+            AbyssBlockProtection.clearCombatHazards(level, bounds());
             clearDroppedRewards();
             displayReady = true; refreshDisplay();
         }
@@ -312,11 +324,11 @@ public final class ArenaSession {
     }
 
     public void rescueMob(Mob mob) {
-        if (com.pla.spiral_abyss.encounter.DragonArena.defeated(mob)) return;
+        if (DragonArena.defeated(mob)) return;
         ArenaFlight.steer(mob, bounds());
         if (!bounds().rescueMob(mob, MobCatalog.isGhostMob(EntityType.getKey(mob.getType())))) return;
         Vec3 center = surfaceDestination(mob, bounds().center());
-        mob.teleportTo(center.x, center.y + (mob instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon ? 20 : 0.1), center.z);
+        mob.teleportTo(center.x, center.y + (mob instanceof EnderDragon ? 20 : 0.1), center.z);
         ArenaFlight.stop(mob);
     }
 
@@ -326,7 +338,7 @@ public final class ArenaSession {
         // Wait for the same bounded 3x3 region forced by initializeArena so saved
         // furniture is visible to deduplication before any replacements are created.
         for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++)
-            if (!level.areEntitiesLoaded(net.minecraft.world.level.ChunkPos.asLong(
+            if (!level.areEntitiesLoaded(ChunkPos.asLong(
                     (center.getX() >> 4) + x, (center.getZ() >> 4) + z))) return false;
         return true;
     }
@@ -342,7 +354,7 @@ public final class ArenaSession {
             BlockPos pos = BlockPos.containing(destination.x, y, destination.z);
             var shape = level.getBlockState(pos).getCollisionShape(level, pos);
             if (shape.isEmpty()) continue;
-            double feet = y + shape.max(net.minecraft.core.Direction.Axis.Y);
+            double feet = y + shape.max(Direction.Axis.Y);
             Vec3 candidate = new Vec3(destination.x, feet, destination.z);
             var box = entity.getBoundingBox().move(candidate.subtract(entity.position()));
             if (feet >= ArenaBounds.FLOOR_Y && box.maxY <= ArenaBounds.CEILING_Y && level.noCollision(entity, box)) return candidate;
@@ -450,7 +462,7 @@ public final class ArenaSession {
     /** Restore blocks without changing claims, pending rewards, or chest opening progress. */
     public void restoreStructure() {
         controller.bossEnvironments().clear();
-        com.pla.spiral_abyss.event.AbyssBlockProtection.clearCombatHazards(level, bounds());
+        AbyssBlockProtection.clearCombatHazards(level, bounds());
         clearDroppedRewards();
         AbyssDimension.restoreArena(level, profile);
         lastSafe.clear();
@@ -462,7 +474,7 @@ public final class ArenaSession {
         clearParticipants();
         restoreStructure();
         level.getEntities((Entity) null, bounds().structureArea(), entity -> entity instanceof ArenaInteractable
-                || entity instanceof net.minecraft.world.entity.item.ItemEntity || entity instanceof ExperienceOrb)
+                || entity instanceof ItemEntity || entity instanceof ExperienceOrb)
                 .forEach(Entity::discard);
         refreshDisplay();
     }
@@ -477,12 +489,12 @@ public final class ArenaSession {
 
     /** All floors share the same physical slot; loose loot belongs only to the previous visit. */
     private void clearDroppedRewards() {
-        level.getEntities((Entity) null, rewardArea(), entity -> entity instanceof net.minecraft.world.entity.item.ItemEntity
+        level.getEntities((Entity) null, rewardArea(), entity -> entity instanceof ItemEntity
                 || entity instanceof ExperienceOrb).forEach(Entity::discard);
     }
-    private net.minecraft.world.phys.AABB rewardArea() {
+    private AABB rewardArea() {
         Vec3 center = bounds().center();
-        return new net.minecraft.world.phys.AABB(center.x - ArenaBounds.FLIGHT_RADIUS, level.getMinBuildHeight(),
+        return new AABB(center.x - ArenaBounds.FLIGHT_RADIUS, level.getMinBuildHeight(),
                 center.z - ArenaBounds.FLIGHT_RADIUS, center.x + ArenaBounds.FLIGHT_RADIUS,
                 level.getMaxBuildHeight(), center.z + ArenaBounds.FLIGHT_RADIUS);
     }

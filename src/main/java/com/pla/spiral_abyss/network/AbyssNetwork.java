@@ -12,6 +12,22 @@ import net.minecraftforge.network.*;
 import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.*;
 import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.logging.LogUtils;
+import com.pla.spiral_abyss.client.handler.JournalClientHandler;
+import com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay;
+import com.pla.spiral_abyss.client.overlay.RareRewardOverlay;
+import com.pla.spiral_abyss.client.portal.PortalEntryAnimation;
+import com.pla.spiral_abyss.client.screen.FloorSelectionScreen;
+import com.pla.spiral_abyss.encounter.AbyssRejection;
+import com.pla.spiral_abyss.encounter.JournalPreviews;
+import com.pla.spiral_abyss.encounter.RewardPool;
+import com.pla.spiral_abyss.encounter.RewardPreviews;
+import com.pla.spiral_abyss.encounter.challenge.Challenge;
+import com.pla.spiral_abyss.encounter.data.FloorCatalog;
+import com.pla.spiral_abyss.world.AbyssDimension;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 public final class AbyssNetwork {
     private static final String VERSION = "23";
@@ -19,10 +35,10 @@ public final class AbyssNetwork {
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "main"), () -> VERSION, VERSION::equals, VERSION::equals);
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
-                             long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal, int endlessWave) {
+                             long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal, int endlessWave) {
         public OpenFloors { floors = List.copyOf(floors); endlessWave = Math.max(1, endlessWave); }
         public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
-                          long resetRemainingMillis, List<FloorPreview> floors, net.minecraft.core.BlockPos entryPortal) {
+                          long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal) {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, entryPortal, 1);
         }
         public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
@@ -34,23 +50,23 @@ public final class AbyssNetwork {
         public EnemyPreview(ResourceLocation id, int count, boolean rejected) { this(id, count, rejected, PreviewAnimation.DEFAULT); }
         public EnemyPreview(ResourceLocation id, int count) { this(id, count, false); }
     }
-    public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<net.minecraft.network.chat.Component> challenges) {
+    public record WavePreview(int wave, int stars, List<EnemyPreview> enemies, List<Component> challenges) {
         public WavePreview { enemies = List.copyOf(enemies); challenges = List.copyOf(challenges); }
     }
     public record RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents,
-                                boolean incomplete, net.minecraft.world.item.ItemStack icon, double displayChance) {
+                                boolean incomplete, ItemStack icon, double displayChance) {
         public RewardPreview {
             contents = List.copyOf(contents); icon = icon.copy();
             if (!Double.isFinite(displayChance) || displayChance < 0 || displayChance > 1)
                 throw new IllegalArgumentException("Invalid Abyss reward preview chance");
         }
         public RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents,
-                             boolean incomplete, net.minecraft.world.item.ItemStack icon) {
+                             boolean incomplete, ItemStack icon) {
             this(id, table, rare, contents, incomplete, icon,
-                    rare ? com.pla.spiral_abyss.encounter.RewardPool.RARE_CHANCE : 0);
+                    rare ? RewardPool.RARE_CHANCE : 0);
         }
         public RewardPreview(ResourceLocation id, boolean table, boolean rare, List<ResourceLocation> contents, boolean incomplete) {
-            this(id, table, rare, contents, incomplete, net.minecraft.world.item.ItemStack.EMPTY);
+            this(id, table, rare, contents, incomplete, ItemStack.EMPTY);
         }
     }
     public record FloorPreview(int floor, List<WavePreview> waves, List<RewardPreview> rewards) {
@@ -70,10 +86,10 @@ public final class AbyssNetwork {
     }
     public record SelectFloor(UUID token, int floor) {}
     public record KeepFloorsOpen(UUID token) {}
-    public record RareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
+    public record RareReward(Component player, ItemStack item) {
         public RareReward { player = player.copy(); item = item.copy(); }
     }
-    public record ChallengeView(net.minecraft.network.chat.Component description, int progress, int target, boolean satisfied, boolean failed) {}
+    public record ChallengeView(Component description, int progress, int target, boolean satisfied, boolean failed) {}
     public record EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total, int seconds, int countdownSeconds, List<ChallengeView> challenges, List<ResourceLocation> rejectedBosses) {
         public EncounterStatus { challenges = List.copyOf(challenges); rejectedBosses = List.copyOf(rejectedBosses); }
         public EncounterStatus(boolean active, boolean preparing, int floor, int wave, int defeated, int total,
@@ -88,7 +104,7 @@ public final class AbyssNetwork {
                 .encoder(AbyssNetwork::writeFloors)
                 .decoder(AbyssNetwork::readFloors)
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.portal.PortalEntryAnimation.open(message)))
+                        () -> () -> PortalEntryAnimation.open(message)))
                 .add();
         CHANNEL.messageBuilder(SelectFloor.class, 1, NetworkDirection.PLAY_TO_SERVER)
                 .encoder((message, buffer) -> { buffer.writeUUID(message.token); buffer.writeVarInt(message.floor); })
@@ -109,13 +125,13 @@ public final class AbyssNetwork {
                 .decoder(buffer -> new EncounterStatus(buffer.readBoolean(), buffer.readBoolean(), buffer.readVarInt(), buffer.readVarInt(),
                         buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), readChallenges(buffer), readRejectedBosses(buffer)))
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay.update(message)))
+                        () -> () -> AbyssEncounterOverlay.update(message)))
                 .add();
         CHANNEL.messageBuilder(CloseFloors.class, 3, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder((message, buffer) -> {})
                 .decoder(buffer -> new CloseFloors())
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.screen.FloorSelectionScreen.closeForReset()))
+                        () -> () -> FloorSelectionScreen.closeForReset()))
                 .add();
         CHANNEL.messageBuilder(KeepFloorsOpen.class, 4, NetworkDirection.PLAY_TO_SERVER)
                 .encoder((message, buffer) -> buffer.writeUUID(message.token))
@@ -128,7 +144,7 @@ public final class AbyssNetwork {
                 .encoder((message, buffer) -> { buffer.writeComponent(message.player); buffer.writeItem(message.item); })
                 .decoder(buffer -> new RareReward(buffer.readComponent(), buffer.readItem()))
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.overlay.RareRewardOverlay.enqueue(message.player, message.item)))
+                        () -> () -> RareRewardOverlay.enqueue(message.player, message.item)))
                 .add();
         CHANNEL.messageBuilder(RequestJournal.class, 6, NetworkDirection.PLAY_TO_SERVER)
                 .encoder((message, buffer) -> {})
@@ -141,19 +157,19 @@ public final class AbyssNetwork {
                     if (last != null && now - last < 5) return;
                     JOURNAL_REQUESTS.put(sender, now);
                     var parties = AbyssParties.get(sender.server);
-                    if (sender.level().dimension().equals(com.pla.spiral_abyss.world.AbyssDimension.LEVEL)) {
+                    if (sender.level().dimension().equals(AbyssDimension.LEVEL)) {
                         parties.portals().openArenaMenu(sender);
                         return;
                     }
                     CHANNEL.send(PacketDistributor.PLAYER.with(() -> sender),
                             new OpenJournal(parties.resetRemainingMillis(), parties.cycle().bannerPoseSeed(),
-                                    com.pla.spiral_abyss.encounter.JournalPreviews.bosses(sender)));
+                                    JournalPreviews.bosses(sender)));
                 }).add();
         CHANNEL.messageBuilder(OpenJournal.class, 7, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(AbyssNetwork::writeJournal)
                 .decoder(AbyssNetwork::readJournal)
                 .consumerMainThread((message, context) -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                        () -> () -> com.pla.spiral_abyss.client.handler.JournalClientHandler.open(message)))
+                        () -> () -> JournalClientHandler.open(message)))
                 .add();
     }
     private static void writeFloors(OpenFloors message, FriendlyByteBuf buffer) {
@@ -189,7 +205,7 @@ public final class AbyssNetwork {
             ResourceLocation id = buffer.readResourceLocation();
             PreviewAnimation animation = readAnimation(buffer);
             List<RewardPreview> rewards = new ArrayList<>();
-            for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--)
+            for (int r = bounded(buffer, RewardPreviews.MAX_REWARDS); r > 0; r--)
                 rewards.add(new RewardPreview(buffer.readResourceLocation(), false, true, List.of(), false,
                         buffer.readItem(), buffer.readDouble()));
             bosses.add(new BannerBoss(floor, wave, id, rewards, animation));
@@ -200,7 +216,7 @@ public final class AbyssNetwork {
         openFloors(player, token, claimed, selectable, visible, inside, null);
     }
     public static void openFloors(ServerPlayer player, UUID token, int claimed, int selectable, int visible, boolean inside,
-                                  net.minecraft.core.BlockPos entryPortal) {
+                                  BlockPos entryPortal) {
         var progress = AbyssParties.get(player.server).profile(player.getUUID()).progress;
         int unlocked = 1 << 7;
         for (int floor = 1; floor <= 6; floor++) if (progress.unlocked(floor)) unlocked |= 1 << floor;
@@ -213,11 +229,11 @@ public final class AbyssNetwork {
         var parties = AbyssParties.get(player.server);
         var progress = parties.profile(player.getUUID()).progress;
         List<FloorPreview> floors = new ArrayList<>();
-        var rewards = new com.pla.spiral_abyss.encounter.RewardPreviews(player.server);
-        for (var definition : new TreeMap<>(com.pla.spiral_abyss.encounter.data.FloorCatalog.snapshot().floors()).values()) {
+        var rewards = new RewardPreviews(player.server);
+        for (var definition : new TreeMap<>(FloorCatalog.snapshot().floors()).values()) {
             List<WavePreview> waves = new ArrayList<>();
             Set<ResourceLocation> floorEnemies = new LinkedHashSet<>();
-            List<com.pla.spiral_abyss.encounter.challenge.Challenge> challenges;
+            List<Challenge> challenges;
             try { challenges = parties.challenges(definition.number()); }
             catch (IllegalArgumentException ex) { challenges = List.of(); }
             int[] stars = progress.waveStars(definition.number());
@@ -227,16 +243,16 @@ public final class AbyssNetwork {
                     parties.cycleLineup(definition.number(), index + 1, definition.waves().get(index))
                             .forEach(enemy -> counts.merge(enemy.id(), enemy.count(), Integer::sum));
                 } catch (IllegalArgumentException ex) {
-                    com.mojang.logging.LogUtils.getLogger().warn("Cannot preview Abyss floor {} wave {}: {}", definition.number(), index + 1, ex.getMessage());
+                    LogUtils.getLogger().warn("Cannot preview Abyss floor {} wave {}: {}", definition.number(), index + 1, ex.getMessage());
                 }
                 int wavePopulation = counts.values().stream().mapToInt(Integer::intValue).sum();
                 floorEnemies.addAll(counts.keySet());
-                List<net.minecraft.network.chat.Component> objectives = challenges.isEmpty()
-                        ? List.of(net.minecraft.network.chat.Component.translatable("message.spiral_abyss.challenges_unavailable"))
+                List<Component> objectives = challenges.isEmpty()
+                        ? List.of(Component.translatable("message.spiral_abyss.challenges_unavailable"))
                         : challenges.stream().map(challenge -> challenge.description(wavePopulation)).toList();
                 waves.add(new WavePreview(index + 1, stars[index], counts.entrySet().stream()
                         .map(entry -> new EnemyPreview(entry.getKey(), entry.getValue(),
-                                com.pla.spiral_abyss.encounter.AbyssRejection.isRejected(player, definition.number(), entry.getKey()),
+                                AbyssRejection.isRejected(player, definition.number(), entry.getKey()),
                                 MobCatalog.bossOptions(entry.getKey()).previewAnimation()))
                         .toList(), objectives));
             }
@@ -304,7 +320,7 @@ public final class AbyssNetwork {
             List<WavePreview> waves = new ArrayList<>();
             for (int w = bounded(buffer, 3); w > 0; w--) {
                 int wave = bounded(buffer, 3), stars = bounded(buffer, 3);
-                List<net.minecraft.network.chat.Component> challenges = new ArrayList<>();
+                List<Component> challenges = new ArrayList<>();
                 for (int c = bounded(buffer, 3); c > 0; c--) challenges.add(buffer.readComponent());
                 List<EnemyPreview> enemies = new ArrayList<>();
                 for (int e = bounded(buffer, 128); e > 0; e--)
@@ -312,14 +328,14 @@ public final class AbyssNetwork {
                 waves.add(new WavePreview(wave, stars, enemies, challenges));
             }
             List<RewardPreview> rewards = new ArrayList<>();
-            for (int r = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_REWARDS); r > 0; r--) {
+            for (int r = bounded(buffer, RewardPreviews.MAX_REWARDS); r > 0; r--) {
                 ResourceLocation id = buffer.readResourceLocation();
                 boolean table = buffer.readBoolean(), rare = buffer.readBoolean(), incomplete = buffer.readBoolean();
                 double displayChance = buffer.readDouble();
                 List<ResourceLocation> contents = new ArrayList<>();
-                for (int i = bounded(buffer, com.pla.spiral_abyss.encounter.RewardPreviews.MAX_CONTENTS); i > 0; i--)
+                for (int i = bounded(buffer, RewardPreviews.MAX_CONTENTS); i > 0; i--)
                     contents.add(buffer.readResourceLocation());
-                var icon = table ? net.minecraft.world.item.ItemStack.EMPTY : buffer.readItem();
+                var icon = table ? ItemStack.EMPTY : buffer.readItem();
                 rewards.add(new RewardPreview(id, table, rare, contents, incomplete, icon, displayChance));
             }
             floors.add(new FloorPreview(floor, waves, rewards));
@@ -328,7 +344,7 @@ public final class AbyssNetwork {
     }
     public static void select(UUID token, int floor) { CHANNEL.sendToServer(new SelectFloor(token, floor)); }
     public static void requestJournal() { CHANNEL.sendToServer(new RequestJournal()); }
-    public static void broadcastRareReward(net.minecraft.network.chat.Component player, net.minecraft.world.item.ItemStack item) {
+    public static void broadcastRareReward(Component player, ItemStack item) {
         CHANNEL.send(PacketDistributor.ALL.noArg(), new RareReward(player, item));
     }
     public static void keepFloorsOpen(UUID token) { CHANNEL.sendToServer(new KeepFloorsOpen(token)); }

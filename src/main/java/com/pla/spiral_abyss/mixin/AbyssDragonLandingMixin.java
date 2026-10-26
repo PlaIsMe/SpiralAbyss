@@ -8,6 +8,7 @@ import net.minecraft.world.level.pathfinder.Path;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.core.BlockPos;
 
 @Mixin(DragonLandingApproachPhase.class)
 public abstract class AbyssDragonLandingMixin extends AbstractDragonPhaseInstance {
@@ -23,7 +24,7 @@ public abstract class AbyssDragonLandingMixin extends AbstractDragonPhaseInstanc
             var target = dragon.getTarget();
             var approach = DragonArena.approach(origin, target == null ? null : target.position());
             int finish = dragon.findClosestNode(approach.x, approach.y, approach.z);
-            var landing = net.minecraft.core.BlockPos.containing(DragonArena.landingTarget(dragon));
+            var landing = BlockPos.containing(DragonArena.landingTarget(dragon));
             currentPath = dragon.findPath(start, finish, new Node(landing.getX(), landing.getY(), landing.getZ()));
             if (currentPath != null) currentPath.advance();
         }

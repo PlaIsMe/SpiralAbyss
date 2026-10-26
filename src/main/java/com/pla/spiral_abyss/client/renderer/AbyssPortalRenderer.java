@@ -11,6 +11,9 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import com.mojang.math.Axis;
+import com.pla.spiral_abyss.block.AbyssGateActivationBlock;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.phys.Vec3;
 
 /** One continuous, double-sided portal surface, clipped around the gate frame and controller. */
 public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
@@ -18,7 +21,7 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
     @Override public void render(AbyssPortalBlockEntity entity, float partialTick, PoseStack pose,
                                  MultiBufferSource buffers, int light, int overlay) {
-        if (!entity.getBlockState().getValue(com.pla.spiral_abyss.block.AbyssGateActivationBlock.ACTIVE)) return;
+        if (!entity.getBlockState().getValue(AbyssGateActivationBlock.ACTIVE)) return;
         pose.pushPose();
         var offset = entity.frame().base().subtract(entity.getBlockPos());
         pose.translate(offset.getX(), offset.getY(), offset.getZ());
@@ -35,9 +38,9 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
         texturedStrip(vertices, pose, xAxis, -1.5F, 2.5F, 2, 4);
         texturedStrip(vertices, pose, xAxis, -1.5F, 2.5F, 4, 4.5F);
         texturedStrip(vertices, pose, xAxis, -1, 2, 4.5F, 5);
-        var client = net.minecraft.client.Minecraft.getInstance();
+        var client = Minecraft.getInstance();
         double distance = client.gameRenderer.getMainCamera().getPosition()
-                .distanceTo(net.minecraft.world.phys.Vec3.atCenterOf(entity.frame().base()).add(0, 2.3, 0));
+                .distanceTo(Vec3.atCenterOf(entity.frame().base()).add(0, 2.3, 0));
         int detail = switch (client.options.particles().get()) {
             case ALL -> 2;
             case DECREASED -> 1;
