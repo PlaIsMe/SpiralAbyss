@@ -75,5 +75,13 @@
   ],
   "netherman:bell_guardian",
   "soulsweapons:withered_demon",
-  "soulsweapons:soulmass"
+  "soulsweapons:soulmass",
+  "illageandspillage:absorber",
+  "illagerinvasion:inquisitor",
+  [
+    "twilightforest:minoshroom",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:mangrove_chest"], "radius": 0, "height": 0, "ticks": 20}
+    }
+  ]
 ]

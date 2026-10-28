@@ -9,6 +9,41 @@
     "experience": 500,
     "entries": [
       {
+        "loot_table": "twilightforest:chests/aurora_cache",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/graveyard",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/labyrinth_vault",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/stronghold_cache",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/tree_cache",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/troll_garden",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "illagerinvasion:chests/illager_fort_tower",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "netherman:chests/maze_loot",
         "weight": 1,
         "chance": 0.25

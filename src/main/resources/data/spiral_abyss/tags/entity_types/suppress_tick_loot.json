@@ -2,6 +2,14 @@
   "replace": false,
   "values": [
     {"id": "netherman:azazel", "required": false},
-    {"id": "netherman:azazel_human", "required": false}
+    {"id": "netherman:azazel_human", "required": false},
+    {"id": "twilightforest:naga", "required": false},
+    {"id": "twilightforest:lich", "required": false},
+    {"id": "twilightforest:hydra", "required": false},
+    {"id": "illageandspillage:magispeller", "required": false},
+    {"id": "illageandspillage:spiritcaller", "required": false},
+    {"id": "illageandspillage:freakager", "required": false},
+    {"id": "illageandspillage:ragno", "required": false},
+    {"id": "twilightforest:ur_ghast", "required": false}
   ]
 }

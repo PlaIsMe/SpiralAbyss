@@ -171,6 +171,14 @@
     {
       "id": "born_in_chaos_v1:pumpkin_bruiser",
       "required": false
-    }
+    },
+    {"id": "twilightforest:naga", "required": false},
+    {"id": "twilightforest:lich", "required": false},
+    {"id": "twilightforest:hydra", "required": false},
+    {"id": "twilightforest:unstable_ice_core", "required": false},
+    {"id": "illageandspillage:absorber", "required": false},
+    {"id": "illageandspillage:freakager", "required": false},
+    {"id": "illageandspillage:ragno", "required": false},
+    {"id": "twilightforest:ur_ghast", "required": false}
   ]
 }

@@ -9,6 +9,36 @@
     "experience": 300,
     "entries": [
       {
+        "loot_table": "twilightforest:chests/fancy_well",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/hill_2",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/labyrinth_dead_end",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/darktower_cache",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/tower_library",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "illagerinvasion:chests/illusioner_tower_stairs",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "netherman:chests/believer_loot",
         "weight": 1,
         "chance": 0.25

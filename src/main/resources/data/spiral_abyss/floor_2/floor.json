@@ -9,6 +9,26 @@
     "experience": 200,
     "entries": [
       {
+        "loot_table": "twilightforest:chests/hill_1",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/tower_room",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "illagerinvasion:chests/illusioner_tower_entrance",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "illagerinvasion:chests/labyrinth_map",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "netherman:chests/hospital_loot",
         "weight": 1,
         "chance": 0.25

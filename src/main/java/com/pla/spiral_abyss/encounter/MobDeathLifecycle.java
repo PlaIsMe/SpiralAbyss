@@ -13,6 +13,8 @@ import java.util.Set;
 public final class MobDeathLifecycle {
     private static final TagKey<EntityType<?>> WAIT_FOR_REMOVAL = TagKey.create(Registries.ENTITY_TYPE,
             ResourceLocation.fromNamespaceAndPath("spiral_abyss", "waits_for_removal"));
+    private static final TagKey<EntityType<?>> DELAYS_DEATH_EVENT = TagKey.create(Registries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath("spiral_abyss", "delays_death_event"));
     private static final Set<ResourceLocation> DELAYED_DEATH_EVENTS = Set.of(
             ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_zombie"),
             ResourceLocation.fromNamespaceAndPath("mutantmonsters", "mutant_creeper"),
@@ -27,7 +29,8 @@ public final class MobDeathLifecycle {
     private MobDeathLifecycle() {}
 
     public static boolean delaysDeathEvent(Mob mob) {
-        return DELAYED_DEATH_EVENTS.contains(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+        return mob.getType().is(DELAYS_DEATH_EVENT)
+                || DELAYED_DEATH_EVENTS.contains(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
     }
 
     public static boolean waitsForRemoval(Mob mob) {

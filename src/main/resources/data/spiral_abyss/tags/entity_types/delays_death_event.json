@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "illageandspillage:magispeller", "required": false},
+    {"id": "illageandspillage:spiritcaller", "required": false}
+  ]
+}

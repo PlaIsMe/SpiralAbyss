@@ -9,6 +9,26 @@
     "experience": 100,
     "entries": [
       {
+        "loot_table": "twilightforest:chests/basement",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/hedge_maze",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/well",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "illagerinvasion:chests/illager_fort_ground",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "netherman:chests/mansion_ordinary_loot",
         "weight": 1,
         "chance": 0.25

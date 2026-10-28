@@ -1,6 +1,14 @@
 {
   "replace": false,
   "values": [
-    {"id": "netherman:bell_guardian", "required": false}
+    {"id": "netherman:bell_guardian", "required": false},
+    {"id": "twilightforest:naga", "required": false},
+    {"id": "twilightforest:hydra", "required": false},
+    {"id": "twilightforest:hydra_mortar", "required": false},
+    {"id": "twilightforest:alpha_yeti", "required": false},
+    {"id": "twilightforest:snow_queen", "required": false},
+    {"id": "twilightforest:redcap_sapper", "required": false},
+    {"id": "twilightforest:towerwood_borer", "required": false},
+    {"id": "twilightforest:unstable_ice_core", "required": false}
   ]
 }

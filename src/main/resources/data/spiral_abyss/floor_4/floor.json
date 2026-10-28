@@ -9,6 +9,36 @@
     "experience": 400,
     "entries": [
       {
+        "loot_table": "twilightforest:chests/hill_3",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/labyrinth_room",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/stronghold_room",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/darktower_key",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "twilightforest:chests/troll_vault",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "illagerinvasion:chests/sorcerer_hut",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
         "loot_table": "netherman:chests/blacksmith_loot",
         "weight": 1,
         "chance": 0.25

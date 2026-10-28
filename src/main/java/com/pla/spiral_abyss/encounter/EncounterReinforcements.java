@@ -4,6 +4,8 @@ import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.world.ArenaBounds;
 import com.pla.spiral_abyss.world.ArenaSession;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -14,11 +16,33 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import com.pla.spiral_abyss.entity.ArenaInteractable;
 
 /** Adopts hostile reinforcements into one current stage, without adding reward candidates. */
 public final class EncounterReinforcements {
     public static final String PHASE_BOSS = "spiral_abyss_phase_boss";
+    private static final TagKey<EntityType<?>> OWNER_GETTER = TagKey.create(Registries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath("spiral_abyss", "reinforcement_owner_getter"));
+    private static final TagKey<EntityType<?>> SHOOTER_FIELD = TagKey.create(Registries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath("spiral_abyss", "reinforcement_shooter_field"));
+    private static final ClassValue<Optional<Method>> OWNER_METHODS = new ClassValue<>() {
+        @Override protected Optional<Method> computeValue(Class<?> type) {
+            try {
+                Method method = type.getMethod("getOwner");
+                return Entity.class.isAssignableFrom(method.getReturnType()) ? Optional.of(method) : Optional.empty();
+            } catch (ReflectiveOperationException | SecurityException ex) { return Optional.empty(); }
+        }
+    };
+    private static final ClassValue<Optional<Field>> SHOOTER_FIELDS = new ClassValue<>() {
+        @Override protected Optional<Field> computeValue(Class<?> type) {
+            try {
+                Field field = type.getField("shooter");
+                return Entity.class.isAssignableFrom(field.getType()) ? Optional.of(field) : Optional.empty();
+            } catch (ReflectiveOperationException | SecurityException ex) { return Optional.empty(); }
+        }
+    };
     private final ArenaSession session;
     private final Map<ResourceLocation, Mob> phases = new HashMap<>();
     private final Set<UUID> roots = new HashSet<>();
@@ -68,6 +92,21 @@ public final class EncounterReinforcements {
     }
 
     private boolean playerOwned(Mob mob) {
+        // Opt-in contracts for summon items whose living projectiles do not implement OwnableEntity.
+        // Inspect only public members; never initialize optional classes or change native ownership.
+        try {
+            if (mob.getType().is(OWNER_GETTER)) {
+                var getter = OWNER_METHODS.get(mob.getClass());
+                if (getter.isEmpty() || getter.get().invoke(mob) instanceof Player) return true;
+            }
+            if (mob.getType().is(SHOOTER_FIELD)) {
+                var field = SHOOTER_FIELDS.get(mob.getClass());
+                if (field.isEmpty() || field.get().get(mob) instanceof Player) return true;
+            }
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            // A changed optional API must not turn a potentially friendly summon into an enemy.
+            return true;
+        }
         // Some summon items use persistent ownership instead of vanilla OwnableEntity.
         // Resolve conventional owner/summoner UUID fields without linking optional classes.
         var data = mob.getPersistentData();

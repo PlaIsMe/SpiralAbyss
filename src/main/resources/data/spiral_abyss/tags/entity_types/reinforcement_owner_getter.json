@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "illageandspillage:pumpkin_bomb", "required": false},
+    {"id": "illageandspillage:trick_or_treat", "required": false},
+    {"id": "illageandspillage:imp", "required": false}
+  ]
+}

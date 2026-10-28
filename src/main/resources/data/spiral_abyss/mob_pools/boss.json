@@ -859,5 +859,152 @@
       "item": "soulsweapons:darkmoon_longbow",
       "enchantment": {"minecraft:power": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
     }
+  ],
+  [
+    "twilightforest:naga",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:twilight_oak_chest", "twilightforest:canopy_chest"], "radius": 0, "height": 0, "ticks": 200}
+    },
+    {
+      "environment": ["minecraft:grass_block", "minecraft:mossy_stone_bricks", "twilightforest:nagastone"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:naga_chestplate",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1, "twilightforest:fire_react": 3}
+    }
+  ],
+  [
+    "twilightforest:lich",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:twilight_oak_chest", "twilightforest:canopy_chest"], "radius": 0, "height": 0, "ticks": 240}
+    },
+    {
+      "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "twilightforest:canopy_planks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:lifedrain_scepter"
+    }
+  ],
+  [
+    "twilightforest:hydra",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:mangrove_chest"], "radius": 0, "height": 0, "ticks": 240}
+    },
+    {
+      "environment": ["minecraft:stone", "minecraft:andesite", "minecraft:cobblestone"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:fiery_sword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:looting": 3}
+    }
+  ],
+  [
+    "twilightforest:alpha_yeti",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:canopy_chest"], "radius": 0, "height": 0, "ticks": 40}
+    },
+    {
+      "environment": ["minecraft:snow_block", "minecraft:packed_ice", "minecraft:blue_ice"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:yeti_chestplate",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "twilightforest:snow_queen",
+    {
+      "suppress_death_blocks": {"blocks": ["twilightforest:twilight_oak_chest"], "radius": 0, "height": 0, "ticks": 40}
+    },
+    {
+      "environment": ["twilightforest:aurora_block", "minecraft:packed_ice", "minecraft:blue_ice"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:triple_bow",
+      "enchantment": {"minecraft:power": 5, "minecraft:punch": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "illageandspillage:magispeller",
+    {
+      "environment": ["minecraft:stone_bricks", "minecraft:oak_planks", "minecraft:coarse_dirt"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "illageandspillage:totem_of_banishment"
+    }
+  ],
+  [
+    "illageandspillage:spiritcaller",
+    {
+      "environment": ["minecraft:deepslate_bricks", "minecraft:mossy_cobblestone", "minecraft:coarse_dirt"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "illageandspillage:spellbound_book"
+    }
+  ],
+  [
+    "illageandspillage:freakager",
+    {
+      "phase_mobs": ["illageandspillage:ragno"]
+    },
+    {
+      "environment": ["minecraft:grass_block", "minecraft:coarse_dirt", "minecraft:oak_planks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "illageandspillage:bag_of_horrors"
+    }
+  ],
+  [
+    "illagerinvasion:invoker",
+    {
+      "environment": ["minecraft:birch_planks", "minecraft:dark_oak_planks", "minecraft:cobblestone"],
+      "decoration_environment": ["minecraft:red_carpet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "illagerinvasion:imbuing_table"
+    }
+  ],
+  [
+    "twilightforest:ur_ghast",
+    {
+      "spawn_y_offset": 3,
+      "suppress_death_blocks": {"blocks": ["twilightforest:dark_chest"], "radius": 0, "height": 0, "ticks": 120}
+    },
+    {
+      "environment": ["twilightforest:towerwood", "twilightforest:encased_towerwood", "minecraft:spruce_planks"],
+      "decoration_environment": [],
+      "decoration_placement": "surface",
+      "decoration_chance": 0
+    },
+    {
+      "item": "twilightforest:fiery_chestplate",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
   ]
 ]
