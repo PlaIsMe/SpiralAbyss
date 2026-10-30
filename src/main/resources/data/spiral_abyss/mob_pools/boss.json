@@ -1006,5 +1006,260 @@
       "item": "twilightforest:fiery_chestplate",
       "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
     }
+  ],
+  [
+    "iceandfire:fire_dragon",
+    {"spawn_nbt": "{AgeTicks:2400000,AgingDisabled:1b,Sleeping:0b,ModelDead:0b,DeathStage:0}"},
+    {
+      "environment": ["iceandfire:chared_stone", "iceandfire:chared_cobblestone"],
+      "decoration_environment": ["iceandfire:gold_pile"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.08
+    },
+    {
+      "item": "iceandfire:dragonsteel_fire_sword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "iceandfire:ice_dragon",
+    {"spawn_nbt": "{AgeTicks:2400000,AgingDisabled:1b,Sleeping:0b,ModelDead:0b,DeathStage:0}"},
+    {
+      "environment": ["iceandfire:frozen_stone", "iceandfire:frozen_cobblestone"],
+      "decoration_environment": ["iceandfire:silver_pile"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.08
+    },
+    {
+      "item": "iceandfire:dragonsteel_ice_sword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "iceandfire:lightning_dragon",
+    {"spawn_nbt": "{AgeTicks:2400000,AgingDisabled:1b,Sleeping:0b,ModelDead:0b,DeathStage:0}"},
+    {
+      "environment": ["iceandfire:crackled_stone", "iceandfire:crackled_cobblestone"],
+      "decoration_environment": ["iceandfire:copper_pile"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.08
+    },
+    {
+      "item": "iceandfire:dragonsteel_lightning_sword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "iceandfire:hydra",
+    {
+      "environment": ["minecraft:grass_block", "minecraft:moss_block", "minecraft:mossy_cobblestone"],
+      "decoration_environment": ["minecraft:brown_mushroom", "minecraft:red_mushroom"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.015
+    },
+    {
+      "item": "iceandfire:hydra_heart"
+    }
+  ],
+  [
+    "iceandfire:sea_serpent",
+    {"spawn_nbt": "{Scale:3.0f,Ancient:1b}"},
+    {
+      "environment": ["minecraft:prismarine", "minecraft:dark_prismarine"],
+      "decoration_environment": ["half_water"]
+    },
+    {
+      "item": "iceandfire:tide_trident",
+      "enchantment": {"minecraft:impaling": 5, "minecraft:loyalty": 3, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "rats:black_death",
+    {
+      "environment": ["minecraft:coarse_dirt", "minecraft:mossy_cobblestone"],
+      "decoration_environment": ["minecraft:brown_mushroom"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "rats:plague_scythe",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "rats:rat_king",
+    {
+      "environment": ["minecraft:coarse_dirt", "minecraft:mossy_cobblestone"],
+      "decoration_environment": []
+    },
+    {
+      "item": "rats:gilded_rat_flute",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "rats:ratlantean_automaton",
+    {
+      "environment": ["rats:marbled_cheese_brick", "rats:marbled_cheese_brick_cracked"],
+      "decoration_environment": []
+    },
+    {
+      "item": "rats:ratlantis_bow",
+      "enchantment": {"minecraft:power": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "rats:neo_ratlantean",
+    {
+      "environment": ["rats:marbled_cheese_brick", "rats:marbled_cheese_brick_mossy"],
+      "decoration_environment": []
+    },
+    {
+      "item": "rats:ratlantis_helmet",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "rats:dutchrat",
+    {
+      "environment": ["rats:pirat_planks", "minecraft:dark_oak_planks"],
+      "decoration_environment": []
+    },
+    {
+      "item": "rats:ratlantis_boots",
+      "enchantment": {"minecraft:protection": 4, "minecraft:feather_falling": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "eeeabsmobs:realm_warden",
+    {
+      "environment": ["eeeabsmobs:polished_boundary_bricks", "eeeabsmobs:cracked_polished_boundary_bricks"],
+      "decoration_environment": []
+    },
+    {
+      "item": "eeeabsmobs:doombolt_battleaxe",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "eeeabsmobs:nameless_guardian",
+    {
+      "environment": ["eeeabsmobs:polished_boundary_bricks", "eeeabsmobs:cracked_polished_boundary_bricks"],
+      "decoration_environment": []
+    },
+    {
+      "item": "eeeabsmobs:guardian_axe",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "eeeabsmobs:relic_annihilator",
+    {
+      "environment": ["eeeabsmobs:polished_boundary_bricks", "eeeabsmobs:cracked_polished_boundary_bricks"],
+      "decoration_environment": []
+    },
+    {
+      "item": "eeeabsmobs:chainsword",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    },
+    {
+      "item": "eeeabsmobs:buster_gauntlet"
+    }
+  ],
+  [
+    "annoyingvillagers:null",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:null_weapon"
+    }
+  ],
+  [
+    "annoyingvillagers:shadow_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:herobrine_ender_eye"
+    }
+  ],
+  [
+    "annoyingvillagers:swordsman_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:demoniac_voltage_reaver",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "annoyingvillagers:glaive_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:ender_glaive",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "annoyingvillagers:reaper_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:ender_slayer_scythe",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "annoyingvillagers:aegis_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:ender_aegis",
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "annoyingvillagers:sledgehammer_herobrine",
+    {"spawn_nbt": "{NeverRecall:1b}"},
+    {
+      "environment": ["minecraft:grass_block"],
+      "decoration_environment": ["minecraft:dandelion", "minecraft:poppy", "minecraft:oxeye_daisy", "minecraft:cornflower", "minecraft:azure_bluet"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.035
+    },
+    {
+      "item": "annoyingvillagers:obsidian_sledgehammer",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
+    }
   ]
 ]

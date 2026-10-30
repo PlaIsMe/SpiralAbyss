@@ -38,6 +38,9 @@ public final class WaveSpawner {
                            List<FloorDefinition.Enemy> composition, UUID runId,
                            WaveEquipment equipment, int floor, double partyScale,
                            MobCatalog.ScalingSnapshot scaling, int endlessWave) {
+        // Recheck explicit definitions and staged lineups captured before a config change.
+        for (var entry : composition) if (!MobCatalog.selectableMob(entry.id()))
+            throw new IllegalArgumentException(entry.id() + " is unavailable or blacklisted in mob_blacklist");
         List<Mob> created = new ArrayList<>();
         try {
             for (var entry : composition) {
@@ -54,6 +57,7 @@ public final class WaveSpawner {
                     SpawnGroupData group = mob instanceof Zombie ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
                             MobSpawnType.COMMAND, group, null);
+                    MobSpawnData.apply(mob, MobSpawnData.parse(MobCatalog.bossOptions(entry.id()).spawnNbt()));
                     var initialState = MobCatalog.bossOptions(entry.id()).spawnIntegers();
                     if (!initialState.isEmpty()) {
                         var saved = new CompoundTag();

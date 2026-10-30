@@ -1,11 +1,14 @@
 package com.pla.spiral_abyss.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraft.resources.ResourceLocation;
 
-/** Server policy only; mob pools and equipment eligibility are datapack definitions. */
+import java.util.List;
+
 public final class AbyssConfig {
     public static final ForgeConfigSpec SPEC;
     public static final ForgeConfigSpec.BooleanValue MIX_MOBS;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> MOB_BLACKLIST;
     public static final ForgeConfigSpec.IntValue RESET_DAYS;
     public static final ForgeConfigSpec.BooleanValue BROADCAST_RARE_LOOT;
     public static final ForgeConfigSpec.DoubleValue RARE_REWARD_CHANCE;
@@ -21,12 +24,13 @@ public final class AbyssConfig {
         MIX_MOBS = builder.comment("False: pick one entity ID per category per wave and repeat it for the count.",
                 "True: pick an entity ID independently for every spawn, including across mods.")
                 .define("mix_mobs", false);
-        BROADCAST_RARE_LOOT = builder.comment("Announce successful pickups of rare gold-trail Abyss rewards to every online player.",
-                "Controls both the animated reward banner and the chat announcement; read only by the server.")
+        MOB_BLACKLIST = builder.comment("Entity IDs excluded from all Abyss wave selections, including bosses and mini-bosses in normal and Endless modes.",
+                "Example: [\"minecraft:wither\", \"annoyingvillagers:herobrine_clone\"]. Empty allows all configured mobs.")
+                .defineListAllowEmpty("mob_blacklist", List.of(), value -> value instanceof String id
+                        && ResourceLocation.tryParse(id) != null && id.equals(ResourceLocation.tryParse(id).toString()));
+        BROADCAST_RARE_LOOT = builder.comment("Announce successful pickups of rare gold-trail Abyss rewards to every online player.")
                 .define("broadcast_rare_loot", true);
-        RARE_REWARD_CHANCE = builder.comment("Base rare reward probability per eligible player and mob-linked item roll in a Golden Chest.",
-                "0.05 = 5%, 0 disables rare rewards, 1 = 100%. Each chest still grants at most ONE rare item.",
-                "Read by the server when generating new rewards; already-opened chest contents remain unchanged.")
+        RARE_REWARD_CHANCE = builder.comment("Base rare reward probability per eligible player and mob-linked item roll in a Golden Chest.")
                 .defineInRange("rare_reward_chance", 0.05, 0.0, 1.0);
         SPEC = builder.build();
     }

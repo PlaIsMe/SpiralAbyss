@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "annoyingvillagers:infected_player_npc", "required": false},
+    {"id": "annoyingvillagers:infected_chris", "required": false},
+    {"id": "annoyingvillagers:infected_the_most_moist_burrit0", "required": false},
+    {"id": "annoyingvillagers:elite_herobrine_knocked", "required": false}
+  ]
+}

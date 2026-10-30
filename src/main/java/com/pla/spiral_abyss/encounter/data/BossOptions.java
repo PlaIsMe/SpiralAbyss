@@ -2,6 +2,7 @@ package com.pla.spiral_abyss.encounter.data;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.pla.spiral_abyss.encounter.MobSpawnData;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Set;
@@ -13,10 +14,10 @@ import java.util.Objects;
 /** Optional boss settings; death-block suppression also applies to other category pools. */
 public record BossOptions(double spawnYOffset, PreviewAnimation previewAnimation, DeathBlockRule deathBlocks,
                           boolean hideBossBar, Set<ResourceLocation> phaseMobs,
-                          Map<String, Integer> spawnIntegers) {
+                          Map<String, Integer> spawnIntegers, String spawnNbt) {
     public static final BossOptions DEFAULT = new BossOptions(0, PreviewAnimation.DEFAULT);
     public BossOptions(double spawnYOffset, PreviewAnimation previewAnimation) {
-        this(spawnYOffset, previewAnimation, DeathBlockRule.NONE, false, Set.of(), Map.of());
+        this(spawnYOffset, previewAnimation, DeathBlockRule.NONE, false, Set.of(), Map.of(), "{}");
     }
 
     public record PreviewAnimation(String name, double timeSeconds) {
@@ -37,18 +38,21 @@ public record BossOptions(double spawnYOffset, PreviewAnimation previewAnimation
         phaseMobs = Set.copyOf(phaseMobs);
         if (phaseMobs.size() > 32) throw new IllegalArgumentException("At most 32 phase_mobs are allowed");
         spawnIntegers = Map.copyOf(spawnIntegers);
+        var nativeFields = MobSpawnData.parse(spawnNbt);
+        if (spawnIntegers.keySet().stream().anyMatch(nativeFields::contains))
+            throw new IllegalArgumentException("spawn_nbt and spawn_integers must not override the same field");
         if (spawnIntegers.size() > 16) throw new IllegalArgumentException("At most 16 spawn_integers are allowed");
     }
 
     public static boolean isMetadata(JsonObject object) {
         return object.has("spawn_y_offset") || object.has("preview_animation")
                 || object.has("suppress_death_blocks") || object.has("hide_boss_bar") || object.has("phase_mobs")
-                || object.has("spawn_integers");
+                || object.has("spawn_integers") || object.has("spawn_nbt");
     }
 
     public static BossOptions parse(JsonObject object) {
         for (String key : object.keySet())
-            if (!Set.of("spawn_y_offset", "preview_animation", "suppress_death_blocks", "hide_boss_bar", "phase_mobs", "spawn_integers").contains(key))
+            if (!Set.of("spawn_y_offset", "preview_animation", "suppress_death_blocks", "hide_boss_bar", "phase_mobs", "spawn_integers", "spawn_nbt").contains(key))
                 throw new JsonParseException("unknown boss option " + key);
         double offset = object.has("spawn_y_offset") ? number(object, "spawn_y_offset") : 0;
         PreviewAnimation preview = PreviewAnimation.DEFAULT;
@@ -85,7 +89,13 @@ public record BossOptions(double spawnYOffset, PreviewAnimation previewAnimation
                 catch (ArithmeticException ex) { throw new JsonParseException("spawn_integers requires integer values", ex); }
             }
         }
-        return new BossOptions(offset, preview, deathBlocks, hideBossBar, phases, spawn);
+        String nbt = "{}";
+        if (object.has("spawn_nbt")) {
+            if (!object.get("spawn_nbt").isJsonPrimitive() || !object.getAsJsonPrimitive("spawn_nbt").isString())
+                throw new JsonParseException("spawn_nbt must be an SNBT string");
+            nbt = object.get("spawn_nbt").getAsString();
+        }
+        return new BossOptions(offset, preview, deathBlocks, hideBossBar, phases, spawn, nbt);
     }
 
     private static double number(JsonObject object, String key) {

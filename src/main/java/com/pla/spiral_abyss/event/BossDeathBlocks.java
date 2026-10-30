@@ -66,6 +66,7 @@ public final class BossDeathBlocks {
     public static boolean suppress(Level level, BlockPos pos, BlockState state) {
         if (!(level instanceof ServerLevel server) || !level.dimension().equals(AbyssDimension.LEVEL)
                 || EDIT_DEPTH.get() > 0) return false;
+        if (suppressMobChange(level)) return true;
         var scripted = scriptedGuard(level);
         if (scripted != null && scripted.contains(pos)
                 && scripted.rule().blocks().contains(ForgeRegistries.BLOCKS.getKey(state.getBlock()))) return true;
@@ -75,6 +76,13 @@ public final class BossDeathBlocks {
         long now = level.getGameTime();
         return guards.values().stream().anyMatch(guard -> now <= guard.until()
                 && guard.rule().blocks().contains(id) && guard.contains(pos));
+    }
+
+    /** Direct optional-mod block writes, including dragon breath; terrain restoration stays authorized. */
+    public static boolean suppressMobChange(Level level) {
+        var source = MobTickContext.blockChangeSource();
+        return level instanceof ServerLevel && level.dimension().equals(AbyssDimension.LEVEL)
+                && EDIT_DEPTH.get() == 0 && source != null && source.level() == level;
     }
 
     /** A rejected reward block must not redirect its loot table into a pre-existing container. */

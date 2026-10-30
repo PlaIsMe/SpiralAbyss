@@ -9,6 +9,15 @@
     "experience": 600,
     "entries": [
       {
+        "loot_table": "deeperdarker:chests/ancient_temple_basement",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {"loot_table": "iceandfire:chest/fire_dragon_male_cave", "weight": 1, "chance": 0.2},
+      {"loot_table": "iceandfire:chest/ice_dragon_male_cave", "weight": 1, "chance": 0.2},
+      {"loot_table": "iceandfire:chest/lightning_dragon_male_cave", "weight": 1, "chance": 0.2},
+      {"loot_table": "eeeabsmobs:chests/coreforge_ruins_treasure", "weight": 1, "chance": 0.15},
+      {
         "loot_table": "twilightforest:chests/aurora_room",
         "weight": 1,
         "chance": 0.15

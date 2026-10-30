@@ -95,5 +95,14 @@
   "illagerinvasion:archivist",
   "illagerinvasion:sorcerer",
   "illagerinvasion:firecaller",
-  "illagerinvasion:necromancer"
+  "illagerinvasion:necromancer",
+  "iceandfire:dread_scuttler",
+  "iceandfire:dread_knight",
+  "iceandfire:dread_lich",
+  "iceandfire:cockatrice",
+  "rats:feral_ratlantean",
+  "rats:ratlantean_ratbot",
+  "eeeabsmobs:immortal_shaman",
+  "eeeabsmobs:relic_ripper",
+  "deeperdarker:shriek_worm"
 ]

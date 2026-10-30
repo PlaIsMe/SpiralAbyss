@@ -9,6 +9,9 @@
     {"id": "twilightforest:snow_queen", "required": false},
     {"id": "twilightforest:redcap_sapper", "required": false},
     {"id": "twilightforest:towerwood_borer", "required": false},
-    {"id": "twilightforest:unstable_ice_core", "required": false}
+    {"id": "twilightforest:unstable_ice_core", "required": false},
+    {"id": "iceandfire:fire_dragon", "required": false},
+    {"id": "iceandfire:ice_dragon", "required": false},
+    {"id": "iceandfire:lightning_dragon", "required": false}
   ]
 }

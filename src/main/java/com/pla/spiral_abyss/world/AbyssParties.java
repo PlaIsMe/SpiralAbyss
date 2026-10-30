@@ -62,15 +62,15 @@ public final class AbyssParties {
     public void prepareCycle() {
         var cycle = cycle();
         var fallback = MobCatalog.snapshot();
-        cycle.repair(MobCatalog::availableMob, fallback);
+        cycle.repair(MobCatalog::selectableMob, fallback);
         for (var floor : FloorCatalog.snapshot().floors().values()) {
             try { challenges(floor.number()); }
             catch (IllegalArgumentException ex) { LogUtils.getLogger().warn("Abyss floor {} challenges unavailable: {}", floor.number(), ex.getMessage()); }
             for (int wave = 0; wave < floor.waves().size(); wave++) {
                 try {
-                    var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), MobCatalog::availableMob, fallback);
-                    if (lineup.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
-                        throw new IllegalArgumentException("No available replacement for a saved mob; update its category pool");
+                    var lineup = cycle.lineup(floor.number(), wave + 1, floor.waves().get(wave), MobCatalog::selectableMob, fallback);
+                    if (lineup.stream().anyMatch(enemy -> !MobCatalog.selectableMob(enemy.id())))
+                        throw new IllegalArgumentException("A saved or explicit mob is unavailable or blacklisted; check mob_blacklist and its category pool");
                 }
                 catch (IllegalArgumentException ex) { LogUtils.getLogger().warn("Abyss cycle floor {} wave {} unavailable: {}", floor.number(), wave + 1, ex.getMessage()); }
             }
@@ -79,10 +79,10 @@ public final class AbyssParties {
     }
     public List<FloorDefinition.Enemy> cycleLineup(int floor, int wave,
             FloorDefinition.Wave definition) {
-        var result = cycle().lineup(floor, wave, definition, MobCatalog::availableMob, MobCatalog.snapshot());
+        var result = cycle().lineup(floor, wave, definition, MobCatalog::selectableMob, MobCatalog.snapshot());
         data.setDirty();
-        if (result.stream().anyMatch(enemy -> !MobCatalog.availableMob(enemy.id())))
-            throw new IllegalArgumentException("No available replacement for a saved cycle mob; install a mob or update its category pool");
+        if (result.stream().anyMatch(enemy -> !MobCatalog.selectableMob(enemy.id())))
+            throw new IllegalArgumentException("A saved or explicit cycle mob is unavailable or blacklisted; check mob_blacklist and its category pool");
         return result;
     }
     public List<Challenge> challenges(int floor) {

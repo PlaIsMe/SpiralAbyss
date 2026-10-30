@@ -10,6 +10,19 @@
     {"id": "illageandspillage:spiritcaller", "required": false},
     {"id": "illageandspillage:freakager", "required": false},
     {"id": "illageandspillage:ragno", "required": false},
-    {"id": "twilightforest:ur_ghast", "required": false}
+    {"id": "twilightforest:ur_ghast", "required": false},
+    {"id": "annoyingvillagers:low_herobrine_clone", "required": false},
+    {"id": "annoyingvillagers:low_shadow_herobrine_clone", "required": false},
+    {"id": "annoyingvillagers:herobrine_clone", "required": false},
+    {"id": "annoyingvillagers:shadow_herobrine_clone", "required": false},
+    {"id": "annoyingvillagers:herobrine_7", "required": false},
+    {"id": "annoyingvillagers:armored_herobrine", "required": false},
+    {"id": "annoyingvillagers:null", "required": false},
+    {"id": "annoyingvillagers:shadow_herobrine", "required": false},
+    {"id": "annoyingvillagers:swordsman_herobrine", "required": false},
+    {"id": "annoyingvillagers:glaive_herobrine", "required": false},
+    {"id": "annoyingvillagers:reaper_herobrine", "required": false},
+    {"id": "annoyingvillagers:aegis_herobrine", "required": false},
+    {"id": "annoyingvillagers:sledgehammer_herobrine", "required": false}
   ]
 }

@@ -120,7 +120,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         Definitions definitions = current;
         return new ScalingSnapshot(definitions.scaling(), definitions.defaultScaling());
     }
-    public static Pools snapshot() { return new Pools(AbyssConfig.MIX_MOBS.get(), current.pools()).available(MobCatalog::availableMob); }
+    public static Pools snapshot() { return new Pools(AbyssConfig.MIX_MOBS.get(), current.pools()).available(MobCatalog::selectableMob); }
 
     private static Map<ResourceLocation, List<FloorDefinition.RewardEntry>> immutableRewards(
             Map<ResourceLocation, List<FloorDefinition.RewardEntry>> rewards) {
@@ -132,6 +132,10 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         Map<ResourceLocation, Set<ResourceLocation>> copy = new LinkedHashMap<>();
         values.forEach((id, entries) -> copy.put(id, Set.copyOf(entries)));
         return Collections.unmodifiableMap(copy);
+    }
+    /** Server encounter policy is separate from registry checks used for metadata and missing-ID warnings. */
+    public static boolean selectableMob(ResourceLocation id) {
+        return availableMob(id) && !AbyssConfig.MOB_BLACKLIST.get().contains(id.toString());
     }
     public static boolean availableMob(ResourceLocation id) {
         return ForgeRegistries.ENTITY_TYPES.containsKey(id)

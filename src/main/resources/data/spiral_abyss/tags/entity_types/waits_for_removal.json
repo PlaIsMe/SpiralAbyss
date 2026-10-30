@@ -179,6 +179,24 @@
     {"id": "illageandspillage:absorber", "required": false},
     {"id": "illageandspillage:freakager", "required": false},
     {"id": "illageandspillage:ragno", "required": false},
-    {"id": "twilightforest:ur_ghast", "required": false}
+    {"id": "twilightforest:ur_ghast", "required": false},
+    {"id": "rats:rat_king", "required": false},
+    {"id": "eeeabsmobs:corpse", "required": false},
+    {"id": "eeeabsmobs:corpse_villager", "required": false},
+    {"id": "eeeabsmobs:immortal_skeleton", "required": false},
+    {"id": "eeeabsmobs:immortal_archer", "required": false},
+    {"id": "eeeabsmobs:immortal_mage", "required": false},
+    {"id": "eeeabsmobs:immortal_warrior", "required": false},
+    {"id": "eeeabsmobs:immortal_knight", "required": false},
+    {"id": "eeeabsmobs:immortal_shaman", "required": false},
+    {"id": "eeeabsmobs:immortal_executioner", "required": false},
+    {"id": "eeeabsmobs:relic_observer", "required": false},
+    {"id": "eeeabsmobs:relic_ripper", "required": false},
+    {"id": "eeeabsmobs:relic_earthshaker", "required": false},
+    {"id": "eeeabsmobs:relic_annihilator", "required": false},
+    {"id": "eeeabsmobs:realm_warden", "required": false},
+    {"id": "eeeabsmobs:corpse_warlock", "required": false},
+    {"id": "eeeabsmobs:nameless_guardian", "required": false},
+    {"id": "eeeabsmobs:immortal", "required": false}
   ]
 }

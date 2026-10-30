@@ -3,6 +3,11 @@
   "values": [
     {"id": "illageandspillage:pumpkin_bomb", "required": false},
     {"id": "illageandspillage:trick_or_treat", "required": false},
-    {"id": "illageandspillage:imp", "required": false}
+    {"id": "illageandspillage:imp", "required": false},
+    {"id": "eeeabsmobs:corpse_to_player", "required": false},
+    {"id": "eeeabsmobs:corpse", "required": false},
+    {"id": "eeeabsmobs:corpse_villager", "required": false},
+    {"id": "rats:plague_beast", "required": false},
+    {"id": "rats:plague_cloud", "required": false}
   ]
 }

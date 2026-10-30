@@ -83,5 +83,16 @@
     {
       "suppress_death_blocks": {"blocks": ["twilightforest:mangrove_chest"], "radius": 0, "height": 0, "ticks": 20}
     }
-  ]
+  ],
+  "iceandfire:cyclops",
+  "iceandfire:gorgon",
+  "iceandfire:troll",
+  "eeeabsmobs:immortal_executioner",
+  "eeeabsmobs:relic_earthshaker",
+  "annoyingvillagers:herobrine_clone",
+  "annoyingvillagers:shadow_herobrine_clone",
+  "annoyingvillagers:herobrine_7",
+  "annoyingvillagers:armored_herobrine",
+  "eeeabsmobs:corpse_warlock",
+  "deeperdarker:stalker"
 ]

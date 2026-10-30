@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "annoyingvillagers:null_sword", "required": false},
+    {"id": "annoyingvillagers:null_axe", "required": false},
+    {"id": "annoyingvillagers:null_pickaxe", "required": false},
+    {"id": "annoyingvillagers:null_shovel", "required": false},
+    {"id": "annoyingvillagers:null_hoe", "required": false}
+  ]
+}

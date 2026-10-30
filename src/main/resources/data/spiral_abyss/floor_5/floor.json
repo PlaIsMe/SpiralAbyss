@@ -9,6 +9,13 @@
     "experience": 500,
     "entries": [
       {
+        "loot_table": "deeperdarker:chests/ancient_temple_apex",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {"loot_table": "iceandfire:chest/hydra_cave", "weight": 1, "chance": 0.25},
+      {"loot_table": "iceandfire:chest/mausoleum_chest", "weight": 1, "chance": 0.2},
+      {
         "loot_table": "twilightforest:chests/aurora_cache",
         "weight": 1,
         "chance": 0.2

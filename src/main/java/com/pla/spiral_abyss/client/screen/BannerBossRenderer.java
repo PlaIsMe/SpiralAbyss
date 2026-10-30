@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
+import com.pla.spiral_abyss.encounter.MobSpawnData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.Registries;
@@ -47,6 +48,10 @@ import net.minecraft.world.phys.Vec3;
 final class BannerBossRenderer {
     private static final TagKey<EntityType<?>> PREVIEW_UPRIGHT_NORMALS = TagKey.create(
             Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("spiral_abyss", "preview_upright_normals"));
+    private static final TagKey<EntityType<?>> PREVIEW_ADULT_AGE_TICKS = TagKey.create(
+            Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("spiral_abyss", "preview_adult_age_ticks"));
+    private static final TagKey<EntityType<?>> PREVIEW_NATIVE_SCALE = TagKey.create(
+            Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("spiral_abyss", "preview_native_scale"));
     private final Map<ResourceLocation, LivingEntity> entities = new HashMap<>();
     private final Map<ResourceLocation, TextureTarget> portraits = new HashMap<>();
     private final Map<ResourceLocation, PreviewAnimation> animations = new HashMap<>();
@@ -60,6 +65,13 @@ final class BannerBossRenderer {
 
     /** Initialize render-only state without spawning or ticking optional mobs. */
     static void initializeModel(LivingEntity entity) {
+        // Opt-in native AgeTicks contract: both dragon editions otherwise render hatchlings.
+        if (entity.getType().is(PREVIEW_ADULT_AGE_TICKS))
+            MobSpawnData.apply(entity, MobSpawnData.parse("{AgeTicks:2400000,AgingDisabled:1b}"));
+        // Sea Serpent's regular renderer multiplies by a constructor-default scale of zero.
+        // Its native float Scale contract is shared with CE; no AI tick/finalizeSpawn is needed.
+        if (entity.getType().is(PREVIEW_NATIVE_SCALE))
+            MobSpawnData.apply(entity, MobSpawnData.parse("{Scale:3.0f,Ancient:1b}"));
         if (!entity.getType().is(PREVIEW_UPRIGHT_NORMALS)) return;
         // Tagged models expose these public Vec3 fields, normally initialized
         // by ticking. Give unspawned previews a valid upright orientation.

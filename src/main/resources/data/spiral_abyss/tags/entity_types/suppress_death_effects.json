@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "annoyingvillagers:reaper_herobrine", "required": false},
+    {"id": "annoyingvillagers:glaive_herobrine", "required": false},
+    {"id": "annoyingvillagers:swordsman_herobrine", "required": false},
+    {"id": "annoyingvillagers:aegis_herobrine", "required": false},
+    {"id": "annoyingvillagers:sledgehammer_herobrine", "required": false}
+  ]
+}

@@ -9,6 +9,14 @@
     "experience": 100,
     "entries": [
       {
+        "loot_table": "deeperdarker:chests/crystallized_amber",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {"loot_table": "iceandfire:chest/village_scribe", "weight": 1, "chance": 0.2},
+      {"loot_table": "iceandfire:chest/cyclops_cave", "weight": 1, "chance": 0.2},
+      {"loot_table": "rats:chest/plague_doctor_hut", "weight": 1, "chance": 0.2},
+      {
         "loot_table": "twilightforest:chests/basement",
         "weight": 1,
         "chance": 0.2

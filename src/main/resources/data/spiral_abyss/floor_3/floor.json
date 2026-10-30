@@ -9,6 +9,14 @@
     "experience": 300,
     "entries": [
       {
+        "loot_table": "deeperdarker:chests/ancient_temple_fountain",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {"loot_table": "iceandfire:chest/graveyard", "weight": 1, "chance": 0.2},
+      {"loot_table": "rats:chest/pet_shop_upstairs", "weight": 1, "chance": 0.15},
+      {"loot_table": "eeeabsmobs:chests/coreforge_ruins_factory", "weight": 1, "chance": 0.25},
+      {
         "loot_table": "twilightforest:chests/fancy_well",
         "weight": 1,
         "chance": 0.2
