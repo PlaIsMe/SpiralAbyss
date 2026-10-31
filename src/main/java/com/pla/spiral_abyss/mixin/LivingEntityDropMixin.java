@@ -5,6 +5,7 @@ import com.pla.spiral_abyss.encounter.MobTickContext;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,7 +25,7 @@ public abstract class LivingEntityDropMixin {
     // Stop the pipeline before loot tables, equipment, XP and overridden custom-death-loot
     // hooks execute. This also covers custom hooks that directly add ItemEntity instances.
     @Inject(method = "dropAllDeathLoot", at = @At("HEAD"), cancellable = true)
-    private void spiralAbyss$preventMobDeathLoot(DamageSource source, CallbackInfo callback) {
+    private void spiralAbyss$preventMobDeathLoot(ServerLevel level, DamageSource source, CallbackInfo callback) {
         if (AbyssMobDrops.suppress((Entity) (Object) this)) callback.cancel();
     }
 }

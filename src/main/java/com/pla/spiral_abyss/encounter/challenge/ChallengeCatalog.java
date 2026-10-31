@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter.challenge;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.google.gson.*;
 import com.pla.spiral_abyss.encounter.challenge.Challenge.*;
 import net.minecraft.resources.ResourceLocation;
@@ -7,17 +8,21 @@ import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.*;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.io.Reader;
 import java.util.*;
 import java.util.stream.Collectors;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 /** Optional per-type datapack files; empty files deliberately disable a type. */
 public final class ChallengeCatalog extends SimplePreparableReloadListener<ChallengeCatalog.Snapshot> {
     public record Tier(int target, double percentage, List<ResourceLocation> pool, int choose, List<List<EquipmentSlot>> slotSets) {
         public Tier { pool = List.copyOf(pool); slotSets = slotSets.stream().map(List::copyOf).toList(); }
     }
-    public record Snapshot(Map<Type, Map<Difficulty, Tier>> types) {
+    public record Snapshot(Map<Type, Map<Difficulty, Tier>> types, Registry<Enchantment> enchantments) {
         public Snapshot {
             Map<Type, Map<Difficulty, Tier>> copy = new EnumMap<>(Type.class);
             types.forEach((type, tiers) -> copy.put(type, Map.copyOf(tiers))); types = Map.copyOf(copy);
@@ -46,7 +51,14 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
         }
     }
 
-    private static volatile Snapshot current = new Snapshot(Map.of());
+    private static volatile Snapshot current = new Snapshot(Map.of(), null);
+    private final Registry<Enchantment> enchantments;
+    public ChallengeCatalog(RegistryAccess registries) {
+        enchantments = registries.registryOrThrow(Registries.ENCHANTMENT);
+    }
+    public static Holder.Reference<Enchantment> enchantment(ResourceLocation id) {
+        return current.enchantments() == null ? null : current.enchantments().getHolder(id).orElse(null);
+    }
     public static Snapshot snapshot() { return current; }
     public static boolean countsKills(Type type) {
         return type != Type.TIME && type != Type.NO_ARMOR && type != Type.ARMOR_ENCHANTMENT
@@ -55,10 +67,10 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
     }
     public static boolean installed(Type type, ResourceLocation id) {
         return switch (type) {
-            case ARMOR_ENCHANTMENT, WEAPON_ENCHANTMENT -> ForgeRegistries.ENCHANTMENTS.containsKey(id);
-            case WEAPON -> ForgeRegistries.ITEMS.containsKey(id) && ForgeRegistries.ITEMS.getValue(id) != Items.AIR;
-            case PROJECTILE -> ForgeRegistries.ENTITY_TYPES.containsKey(id);
-            case PLAYER_EFFECT, MOB_EFFECT -> ForgeRegistries.MOB_EFFECTS.containsKey(id);
+            case ARMOR_ENCHANTMENT, WEAPON_ENCHANTMENT -> enchantment(id) != null;
+            case WEAPON -> BuiltInRegistries.ITEM.containsKey(id) && BuiltInRegistries.ITEM.get(id) != Items.AIR;
+            case PROJECTILE -> BuiltInRegistries.ENTITY_TYPE.containsKey(id);
+            case PLAYER_EFFECT, MOB_EFFECT -> BuiltInRegistries.MOB_EFFECT.containsKey(id);
             default -> true;
         };
     }
@@ -107,7 +119,7 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
         return separateKills <= minimumEnemies;
     }
     private static boolean armorEnchantmentsFit(List<ResourceLocation> ids, Set<EquipmentSlot> forbidden) {
-        List<EquipmentSlot> slots = Arrays.stream(EquipmentSlot.values()).filter(slot -> slot.getType() == EquipmentSlot.Type.ARMOR && !forbidden.contains(slot)).toList();
+        List<EquipmentSlot> slots = Arrays.stream(EquipmentSlot.values()).filter(slot -> slot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR && !forbidden.contains(slot)).toList();
         Map<EquipmentSlot, List<ResourceLocation>> groups = new EnumMap<>(EquipmentSlot.class);
         slots.forEach(slot -> groups.put(slot, new ArrayList<>()));
         return distributeArmor(ids, 0, groups);
@@ -116,27 +128,27 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
         if (index == ids.size()) return true;
         for (var entry : groups.entrySet()) {
             entry.getValue().add(ids.get(index));
-            var enchantments = entry.getValue().stream().map(ForgeRegistries.ENCHANTMENTS::getValue).filter(Objects::nonNull).toList();
+            var enchantments = entry.getValue().stream().map(ChallengeCatalog::enchantment).filter(Objects::nonNull).toList();
             boolean compatible = true;
             for (int i = 0; i < enchantments.size(); i++) for (int j = i + 1; j < enchantments.size(); j++)
-                if (!enchantments.get(i).isCompatibleWith(enchantments.get(j))) compatible = false;
-            boolean fits = compatible && ForgeRegistries.ITEMS.getValues().stream().filter(item -> item instanceof ArmorItem armor && armor.getEquipmentSlot() == entry.getKey())
-                    .anyMatch(item -> enchantments.stream().allMatch(enchantment -> enchantment.canEnchant(new ItemStack(item))));
+                if (!Enchantment.areCompatible(enchantments.get(i), enchantments.get(j))) compatible = false;
+            boolean fits = compatible && BuiltInRegistries.ITEM.stream().toList().stream().filter(item -> item instanceof ArmorItem armor && armor.getEquipmentSlot() == entry.getKey())
+                    .anyMatch(item -> enchantments.stream().allMatch(enchantment -> enchantment.value().canEnchant(new ItemStack(item))));
             if (fits && distributeArmor(ids, index + 1, groups)) return true;
             entry.getValue().remove(entry.getValue().size() - 1);
         }
         return false;
     }
     private static boolean weaponEnchantmentsFit(List<ResourceLocation> ids, ResourceLocation weapon) {
-        var enchantments = ids.stream().map(ForgeRegistries.ENCHANTMENTS::getValue).filter(Objects::nonNull).toList();
+        var enchantments = ids.stream().map(ChallengeCatalog::enchantment).filter(Objects::nonNull).toList();
         for (int i = 0; i < enchantments.size(); i++) for (int j = i + 1; j < enchantments.size(); j++)
-            if (!enchantments.get(i).isCompatibleWith(enchantments.get(j))) return false;
+            if (!Enchantment.areCompatible(enchantments.get(i), enchantments.get(j))) return false;
         if (weapon != null) {
-            var item = ForgeRegistries.ITEMS.getValue(weapon);
-            return item != null && enchantments.stream().allMatch(enchantment -> enchantment.canEnchant(new ItemStack(item)));
+            var item = BuiltInRegistries.ITEM.get(weapon);
+            return item != null && enchantments.stream().allMatch(enchantment -> enchantment.value().canEnchant(new ItemStack(item)));
         }
-        return ForgeRegistries.ITEMS.getValues().stream().filter(item -> item instanceof TieredItem || item instanceof ProjectileWeaponItem || item instanceof TridentItem)
-                .anyMatch(item -> enchantments.stream().allMatch(enchantment -> enchantment.canEnchant(new ItemStack(item))));
+        return BuiltInRegistries.ITEM.stream().toList().stream().filter(item -> item instanceof TieredItem || item instanceof ProjectileWeaponItem || item instanceof TridentItem)
+                .anyMatch(item -> enchantments.stream().allMatch(enchantment -> enchantment.value().canEnchant(new ItemStack(item))));
     }
     public static Map<Difficulty, Tier> parse(Type type, JsonElement json) {
         if (json == null || json.isJsonNull() || json.isJsonArray() && json.getAsJsonArray().size() == 0) return Map.of();
@@ -183,7 +195,7 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
                 List<EquipmentSlot> slots = new ArrayList<>();
                 for (JsonElement value : entry.getAsJsonArray()) {
                     EquipmentSlot slot = EquipmentSlot.byName(value.getAsString());
-                    if (slot.getType() != EquipmentSlot.Type.ARMOR) throw new JsonParseException("Only armor slots are allowed");
+                    if (slot.getType() != EquipmentSlot.Type.HUMANOID_ARMOR) throw new JsonParseException("Only armor slots are allowed");
                     if (!slots.contains(slot)) slots.add(slot);
                 }
                 if (slots.isEmpty() || slots.size() == 4) throw new JsonParseException("Forbidden armor slots must leave at least one armor slot usable"); slotSets.add(slots);
@@ -202,7 +214,7 @@ public final class ChallengeCatalog extends SimplePreparableReloadListener<Chall
                 JsonElement json = JsonParser.parseReader(reader); definitions.put(type, parse(type, json));
             } catch (Exception exception) { throw new JsonParseException("Invalid Abyss challenge " + id, exception); }
         }
-        return new Snapshot(definitions);
+        return new Snapshot(definitions, enchantments);
     }
     @Override protected void apply(Snapshot snapshot, ResourceManager manager, ProfilerFiller profiler) { current = snapshot; }
 }

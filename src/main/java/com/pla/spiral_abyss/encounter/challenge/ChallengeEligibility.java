@@ -1,11 +1,11 @@
 package com.pla.spiral_abyss.encounter.challenge;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -34,7 +34,7 @@ public final class ChallengeEligibility implements Predicate<Challenge> {
     }
 
     private boolean susceptible(ResourceLocation id, Challenge challenge) {
-        var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+        var type = BuiltInRegistries.ENTITY_TYPE.get(id);
         if (type == null) return false;
         if (challenge.type() == Challenge.Type.MOB_BURNING) return !type.fireImmune();
         Optional<LivingEntity> probe = probes.computeIfAbsent(id, ignored -> {
@@ -49,8 +49,8 @@ public final class ChallengeEligibility implements Predicate<Challenge> {
         if (probe.isEmpty()) return false;
         try {
             return challenge.ids().stream().allMatch(effectId -> {
-                var effect = ForgeRegistries.MOB_EFFECTS.getValue(effectId);
-                return effect != null && probe.get().canBeAffected(new MobEffectInstance(effect, 200));
+                var effect = BuiltInRegistries.MOB_EFFECT.get(effectId);
+                return effect != null && probe.get().canBeAffected(new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), 200));
             });
         } catch (RuntimeException exception) {
             return false;

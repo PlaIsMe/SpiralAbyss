@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.client.screen;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.network.AbyssNetwork.RewardPreview;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,7 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -46,7 +46,7 @@ final class RewardPreviewPanel {
         return px >= x && px < x + w && py >= y && py < y + h;
     }
     private static ItemStack stack(ResourceLocation id) {
-        var item = ForgeRegistries.ITEMS.getValue(id);
+        var item = BuiltInRegistries.ITEM.get(id);
         return item == null ? ItemStack.EMPTY : new ItemStack(item);
     }
     private static ItemStack iconStack(RewardPreview reward) {

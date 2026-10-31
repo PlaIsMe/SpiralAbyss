@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.block;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.*;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.*;
@@ -11,6 +12,8 @@ import net.minecraft.world.phys.shapes.*;
 
 /** A fixed architectural curve with stair-style facing/half placement, not corner joining. */
 public final class AbyssGateCurveBlock extends HorizontalDirectionalBlock implements SimpleWaterloggedBlock {
+    public static final MapCodec<AbyssGateCurveBlock> CODEC = simpleCodec(AbyssGateCurveBlock::new);
+    @Override public MapCodec<AbyssGateCurveBlock> codec() { return CODEC; }
     public static final EnumProperty<Half> HALF = BlockStateProperties.HALF;
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     private static final VoxelShape[][] SHAPES = new VoxelShape[2][4];

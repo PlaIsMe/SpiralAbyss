@@ -1,13 +1,13 @@
 package com.pla.spiral_abyss.encounter.data;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.google.gson.*;
 import com.pla.spiral_abyss.encounter.BossWavePolicy;
 import com.pla.spiral_abyss.encounter.WaveChallenges;
 import com.pla.spiral_abyss.encounter.challenge.Challenge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.ModList;
 
 import java.util.*;
 
@@ -101,11 +101,11 @@ public final class FloorParser {
                         mobId = id(spec.get("id"));
                         amount = integer(spec, "count", 1, 1, 128);
                     }
-                    if (!ForgeRegistries.ENTITY_TYPES.containsKey(mobId)) {
+                    if (!BuiltInRegistries.ENTITY_TYPE.containsKey(mobId)) {
                         MobCatalog.warnUnavailableMob(mobId, "data/spiral_abyss/floor_" + number + "/wave_" + entry.getKey() + ".json");
                         continue;
                     }
-                    require(ForgeRegistries.ENTITY_TYPES.getValue(mobId) != EntityType.PLAYER,
+                    require(BuiltInRegistries.ENTITY_TYPE.get(mobId) != EntityType.PLAYER,
                             "players cannot be wave enemies");
                     require(!mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "key_entity"))
                             && !mobId.equals(ResourceLocation.fromNamespaceAndPath("spiral_abyss", "reward_chest"))

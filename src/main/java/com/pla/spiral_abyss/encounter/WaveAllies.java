@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss.encounter;
 
 import com.pla.spiral_abyss.SpiralAbyss;
+import com.pla.spiral_abyss.compat.FlashbackCompat;
 import com.pla.spiral_abyss.world.AbyssDimension;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -15,21 +16,21 @@ import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.scores.Scoreboard;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.core.HolderLookup;
 
 /** A single bounded team for spawned wave mobs, with explicit AI/damage guards. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class WaveAllies {
     public static final String TEAM = "abyss";
     private WaveAllies() {}
@@ -87,19 +88,15 @@ public final class WaveAllies {
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void target(LivingChangeTargetEvent event) {
-        if (waveMob(event.getEntity()) && waveMob(event.getNewTarget())) event.setNewTarget(null);
+        if (waveMob(event.getEntity()) && waveMob(event.getNewAboutToBeSetTarget())) event.setNewAboutToBeSetTarget(null);
     }
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void attack(LivingAttackEvent event) {
-        if (friendly(event.getEntity(), event.getSource())) event.setCanceled(true);
-    }
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void hurt(LivingHurtEvent event) {
-        // Some mod damage paths bypass LivingAttackEvent but still emit hurt events.
+    public static void attack(LivingIncomingDamageEvent event) {
         if (friendly(event.getEntity(), event.getSource())) event.setCanceled(true);
     }
     @SubscribeEvent
     public static void started(ServerStartedEvent event) {
+        if (FlashbackCompat.isReplayServer(event.getServer())) return;
         // Runtime attempts never resume after a server restart. Remove only entries this
         // service owns; preserve unrelated players/mobs already in a user-created team.
         var server = event.getServer();
@@ -111,19 +108,19 @@ public final class WaveAllies {
             if (waveMob(entity)) add((Mob) entity);
     }
     private static Membership ledger(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(Membership::load, Membership::new, "spiral_abyss_team");
+        return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(Membership::new, Membership::load), "spiral_abyss_team");
     }
     static void clearMembers(Scoreboard board, Membership ledger) {
         for (String member : Set.copyOf(ledger.members)) removeMember(board, ledger, member);
     }
     static final class Membership extends SavedData {
         private final Set<String> members = new HashSet<>();
-        static Membership load(CompoundTag tag) {
+        static Membership load(CompoundTag tag, HolderLookup.Provider registries) {
             Membership data = new Membership();
             for (Tag member : tag.getList("Members", Tag.TAG_STRING)) data.members.add(member.getAsString());
             return data;
         }
-        @Override public CompoundTag save(CompoundTag tag) {
+        @Override public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
             ListTag list = new ListTag();
             members.forEach(name -> list.add(StringTag.valueOf(name)));
             tag.put("Members", list);

@@ -57,7 +57,7 @@ final class PortalAura {
 
     private static void point(PoseStack pose, VertexConsumer out, boolean xAxis,
                                float x, float y, float depth, int rgb, float alpha) {
-        out.vertex(pose.last().pose(), xAxis ? x : depth, y, xAxis ? depth : x)
-                .color((rgb >> 16 & 255) / 255F, (rgb >> 8 & 255) / 255F, (rgb & 255) / 255F, alpha).endVertex();
+        out.addVertex(pose.last().pose(), xAxis ? x : depth, y, xAxis ? depth : x)
+                .setColor((rgb >> 16 & 255) / 255F, (rgb >> 8 & 255) / 255F, (rgb & 255) / 255F, alpha);
     }
 }

@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.boss_enviroment;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.data.FloorParser;
 
 import com.google.gson.*;
@@ -9,7 +10,6 @@ import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.io.Reader;
 import java.util.*;
 import net.minecraft.world.level.block.BushBlock;
@@ -94,7 +94,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                 ResourceLocation entity = FloorParser.id(entry.get(0));
                 // MobCatalog reports unavailable installed-mod IDs. An absent boss
                 // cannot use an environment, including its optional mod's blocks.
-                if (!ForgeRegistries.ENTITY_TYPES.containsKey(entity)) continue;
+                if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entity)) continue;
                 for (int index = 1; index < entry.size(); index++) {
                     JsonElement metadata = entry.get(index);
                     if (!metadata.isJsonObject() || !isMetadata(metadata.getAsJsonObject())) continue;
@@ -210,8 +210,8 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
     static BlockState block(JsonElement value) { return block(value, false); }
     private static BlockState block(JsonElement value, boolean decoration) {
         ResourceLocation id = FloorParser.id(value);
-        if (!ForgeRegistries.BLOCKS.containsKey(id) || ForgeRegistries.BLOCKS.getValue(id).defaultBlockState().isAir()) throw new JsonParseException("unavailable block " + id);
-        BlockState state = ForgeRegistries.BLOCKS.getValue(id).defaultBlockState();
+        if (!BuiltInRegistries.BLOCK.containsKey(id) || BuiltInRegistries.BLOCK.get(id).defaultBlockState().isAir()) throw new JsonParseException("unavailable block " + id);
+        BlockState state = BuiltInRegistries.BLOCK.get(id).defaultBlockState();
         if (state.hasBlockEntity()) throw new JsonParseException("block entities are not supported: " + id);
         if (state.getBlock() instanceof FallingBlock || !state.getFluidState().isEmpty()
                 || state.is(Blocks.TNT)

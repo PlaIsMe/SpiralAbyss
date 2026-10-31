@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.client.screen;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.Lighting;
@@ -14,7 +15,6 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -44,7 +44,7 @@ final class BannerRewardRenderer {
     }
 
     private Portrait portrait(GuiGraphics graphics, ItemStack stack, float tilt) {
-        Key key = new Key(String.valueOf(ForgeRegistries.ITEMS.getKey(stack.getItem())), String.valueOf(stack.getTag()), tilt);
+        Key key = new Key(String.valueOf(BuiltInRegistries.ITEM.getKey(stack.getItem())), String.valueOf(stack.getComponents()), tilt);
         if (unavailable.contains(key)) return null;
         try {
             Portrait portrait = portraits.get(key);
@@ -72,9 +72,9 @@ final class BannerRewardRenderer {
             target.setClearColor(0, 0, 0, 0);
             RenderSystem.disableScissor();
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, 512, 512, 0, 1000, 21000), VertexSorting.ORTHOGRAPHIC_Z);
-            RenderSystem.getModelViewStack().pushPose();
+            RenderSystem.getModelViewStack().pushMatrix();
             try {
-                RenderSystem.getModelViewStack().setIdentity();
+                RenderSystem.getModelViewStack().identity();
                 RenderSystem.applyModelViewMatrix();
                 BannerPortrait.Crop crop = null;
                 for (int attempt = 0; attempt < 4; attempt++) {
@@ -102,7 +102,7 @@ final class BannerRewardRenderer {
             } finally {
                 try { if (!success) graphics.flush(); }
                 finally {
-                    RenderSystem.getModelViewStack().popPose();
+                    RenderSystem.getModelViewStack().popMatrix();
                     RenderSystem.applyModelViewMatrix();
                 }
             }

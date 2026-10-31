@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.world;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.SpiralAbyss;
@@ -10,11 +11,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +22,7 @@ import java.nio.file.*;
 import java.util.*;
 
 /** Lifetime normal-world victories, independent of every Abyss reset and of vanilla Abyss kill stats. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class BossProgress {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Map<MinecraftServer, Map<UUID, Progress>> SERVERS = new IdentityHashMap<>();
@@ -42,7 +42,7 @@ public final class BossProgress {
         Progress progress = progress(player);
         if (victim.level().isClientSide || victim.level().dimension().equals(AbyssDimension.LEVEL)
                 || victim.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
-        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(victim.getType());
+        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(victim.getType());
         // Track every species so adding a boss to the datapack later preserves existing progression.
         if (id != null && progress.writable && progress.defeated.add(id)) save(player, progress);
     }
@@ -74,9 +74,9 @@ public final class BossProgress {
         } else {
             // ServerStatsCounter already loads world/stats/<uuid>.json, including legacy DailyBoss kills.
             // Seed once only: historical stats cannot identify which dimension an old kill occurred in.
-            for (var type : ForgeRegistries.ENTITY_TYPES.getValues())
+            for (var type : BuiltInRegistries.ENTITY_TYPE.stream().toList())
                 if (player.getStats().getValue(Stats.ENTITY_KILLED.get(type)) > 0)
-                    progress.defeated.add(ForgeRegistries.ENTITY_TYPES.getKey(type));
+                    progress.defeated.add(BuiltInRegistries.ENTITY_TYPE.getKey(type));
             save(player, progress);
         }
         return progress;

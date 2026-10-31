@@ -4,7 +4,7 @@ import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.FloorParser;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.fml.loading.FMLPaths;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;

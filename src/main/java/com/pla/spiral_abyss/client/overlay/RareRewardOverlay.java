@@ -11,12 +11,13 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.gui.overlay.IGuiOverlay;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraft.client.gui.LayeredDraw;
+import net.neoforged.neoforge.event.tick.*;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -26,7 +27,7 @@ import java.util.Optional;
  * Rare pickup announcements using FancyToasts' StandardAnimation phases and terracraft atlas.
  * Adapted from FancyToasts, Copyright (c) 2026 Bivrik, MIT; see META-INF/licenses/FancyToasts.txt.
  */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public final class RareRewardOverlay {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
             SpiralAbyss.MOD_ID, "textures/gui/toast/terracraft.png");
@@ -66,8 +67,8 @@ public final class RareRewardOverlay {
     }
 
     @SubscribeEvent
-    public static void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void tick(ClientTickEvent.Post event) {
+
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || client.player == null) {
             clear();
@@ -87,7 +88,9 @@ public final class RareRewardOverlay {
         ticks = 0;
     }
 
-    public static final IGuiOverlay HUD = (gui, graphics, partialTick, width, height) -> {
+    public static final LayeredDraw.Layer HUD = (graphics, deltaTracker) -> {
+        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
+        int width = graphics.guiWidth(), height = graphics.guiHeight();
         Minecraft client = Minecraft.getInstance();
         if (current == null || client.options.hideGui || client.player == null || client.level == null) return;
         render(graphics, client.font, width, height, ticks + partialTick, current);

@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.block;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -15,6 +16,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /** The model's off-center side faces the player, with matching rotated collision. */
 public final class AbyssGateVerticalBlock extends HorizontalDirectionalBlock {
+    public static final MapCodec<AbyssGateVerticalBlock> CODEC = simpleCodec(AbyssGateVerticalBlock::new);
+    @Override public MapCodec<AbyssGateVerticalBlock> codec() { return CODEC; }
     private static final VoxelShape[] SHAPES = new VoxelShape[4];
     static {
         for (Direction facing : Direction.Plane.HORIZONTAL)

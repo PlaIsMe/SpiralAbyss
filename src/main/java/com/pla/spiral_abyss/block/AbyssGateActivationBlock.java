@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.block;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.*;
 import com.pla.spiral_abyss.block.entity.AbyssPortalBlockEntity;
 import com.pla.spiral_abyss.init.BlockEntityInit;
@@ -20,6 +21,8 @@ import net.minecraft.world.phys.shapes.*;
 
 /** The outward-facing controller between the two top horizontal gate slabs. */
 public final class AbyssGateActivationBlock extends HorizontalDirectionalBlock implements EntityBlock {
+    public static final MapCodec<AbyssGateActivationBlock> CODEC = simpleCodec(AbyssGateActivationBlock::new);
+    @Override public MapCodec<AbyssGateActivationBlock> codec() { return CODEC; }
     public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
     private static final VoxelShape[] SHAPES = new VoxelShape[4];
     static {

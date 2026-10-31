@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.core.HolderLookup;
 
 public final class AbyssPortalBlockEntity extends BlockEntity {
     private UUID portalId = UUID.randomUUID();
@@ -34,18 +35,18 @@ public final class AbyssPortalBlockEntity extends BlockEntity {
         displayedFloor = floor; hostRunning = running;
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
-    @Override public CompoundTag getUpdateTag() {
-        CompoundTag tag = saveWithoutMetadata();
+    @Override public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = saveWithoutMetadata(registries);
         tag.putInt("DisplayedFloor", displayedFloor); tag.putBoolean("HostRunning", hostRunning);
         return tag;
     }
     @Override public ClientboundBlockEntityDataPacket getUpdatePacket() { return ClientboundBlockEntityDataPacket.create(this); }
-    @Override protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag); tag.putUUID("PortalId", portalId);
+    @Override protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries); tag.putUUID("PortalId", portalId);
         if (host != null) tag.putUUID("Host", host);
     }
-    @Override public void load(CompoundTag tag) {
-        super.load(tag);
+    @Override protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         if (tag.hasUUID("PortalId")) portalId = tag.getUUID("PortalId");
         host = tag.hasUUID("Host") ? tag.getUUID("Host") : null;
         displayedFloor = Math.max(0, Math.min(7, tag.getInt("DisplayedFloor")));
@@ -66,8 +67,8 @@ public final class AbyssPortalBlockEntity extends BlockEntity {
             frame.activate(serverLevel);
         }
     }
-    @Override public AABB getRenderBoundingBox() {
-        return new AABB(frame().at(-AbyssPortalFrame.RADIUS, 0), frame().at(AbyssPortalFrame.RADIUS, AbyssPortalFrame.TOP).offset(1, 1, 1))
+    public AABB getRenderBoundingBox() {
+        return AABB.encapsulatingFullBlocks(frame().at(-AbyssPortalFrame.RADIUS, 0), frame().at(AbyssPortalFrame.RADIUS, AbyssPortalFrame.TOP))
                 .inflate(1, .5, 1);
     }
 }

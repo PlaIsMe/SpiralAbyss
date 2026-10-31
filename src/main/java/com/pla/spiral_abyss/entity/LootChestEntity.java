@@ -31,9 +31,9 @@ public abstract class LootChestEntity extends ArenaInteractable {
         Player player = level().getNearestPlayer(this, 10);
         if (player != null) lookAt(EntityAnchorArgument.Anchor.EYES, player.position());
     }
-    @Override protected void defineSynchedData() {
-        super.defineSynchedData();
-        entityData.define(PHASE, IDLE); entityData.define(PHASE_START, 0L); entityData.define(RARE, false);
+    @Override protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(PHASE, IDLE); builder.define(PHASE_START, 0L); builder.define(RARE, false);
     }
     public int phase() { return entityData.get(PHASE); }
     public long phaseStart() { return entityData.get(PHASE_START); }

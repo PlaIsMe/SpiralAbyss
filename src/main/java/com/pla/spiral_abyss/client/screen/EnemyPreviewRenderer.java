@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.client.screen;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.logging.LogUtils;
@@ -9,7 +10,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Quaternionf;
 import java.util.*;
 
@@ -19,7 +19,7 @@ final class EnemyPreviewRenderer {
     private final Set<ResourceLocation> unavailable = new HashSet<>();
     private final BannerBossRenderer geoPortraits = new BannerBossRenderer(0);
     Component name(ResourceLocation id) {
-        var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+        var type = BuiltInRegistries.ENTITY_TYPE.get(id);
         return type == null ? Component.literal(id.toString()) : type.getDescription();
     }
     void clear() { entities.clear(); unavailable.clear(); geoPortraits.clear(); }
@@ -32,7 +32,7 @@ final class EnemyPreviewRenderer {
         LivingEntity entity = entities.get(id);
         if (entity == null || entity.level() != client.level) {
             try {
-                var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+                var type = BuiltInRegistries.ENTITY_TYPE.get(id);
                 var created = type == null ? null : type.create(client.level);
                 if (!(created instanceof LivingEntity living)) { unavailable.add(id); fallback(graphics, x, y, width, height); return; }
                 BannerBossRenderer.initializeModel(living);

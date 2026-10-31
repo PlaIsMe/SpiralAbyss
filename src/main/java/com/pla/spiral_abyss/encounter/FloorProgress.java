@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.encounter;
 import com.pla.spiral_abyss.encounter.data.FloorParser;
 import net.minecraft.nbt.*;
 import java.util.*;
+import net.minecraft.core.HolderLookup;
 
 /** Committed personal stars/claims and exact, already-opened arena chest payouts. */
 public final class FloorProgress {
@@ -126,7 +127,7 @@ public final class FloorProgress {
             for (ChestPayout payout : payouts[number]) payout.complete();
         dirty.run();
     }
-    public CompoundTag save() {
+    public CompoundTag save(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         tag.putInt("Floor", floor);
         tag.putInt("StarProgressVersion", 1);
@@ -140,13 +141,13 @@ public final class FloorProgress {
         ListTag chests = new ListTag();
         for (int number = 1; number <= FloorParser.MAX_FLOORS; number++)
             for (int tier = 1; tier <= 3; tier++) if (payout(number, tier).active()) {
-                CompoundTag entry = payout(number, tier).save();
+                CompoundTag entry = payout(number, tier).save(registries);
                 entry.putInt("Floor", number); entry.putInt("Tier", tier); chests.add(entry);
             }
         tag.put("Payouts", chests);
         return tag;
     }
-    public static FloorProgress load(CompoundTag tag, Runnable dirty) {
+    public static FloorProgress load(CompoundTag tag, Runnable dirty, HolderLookup.Provider registries) {
         FloorProgress data = new FloorProgress(dirty);
         data.floor = Math.max(1, Math.min(FloorParser.MAX_FLOORS, tag.getInt("Floor")));
         if (tag.contains("StarProgressVersion")) {
@@ -164,7 +165,7 @@ public final class FloorProgress {
                 int tier = entry.getInt("Tier");
                 int number = entry.contains("Floor") ? entry.getInt("Floor") : data.floor;
                 if (validFloor(number) && tier >= 1 && tier <= 3)
-                    data.payouts[number][tier - 1] = ChestPayout.load(entry, dirty);
+                    data.payouts[number][tier - 1] = ChestPayout.load(entry, dirty, registries);
             }
         } else {
             // Legacy completion alone was recorded at victory; only actual claims carry forward.
@@ -174,7 +175,7 @@ public final class FloorProgress {
             }
             // Unclicked legacy offers are deliberately abandoned. Opened payouts retain the exact cursor.
             if (tag.contains("Pending") && tag.contains("ChestTicks") && tag.getInt("ChestTicks") >= 0)
-                data.payouts[data.floor][0] = ChestPayout.load(tag, dirty);
+                data.payouts[data.floor][0] = ChestPayout.load(tag, dirty, registries);
         }
         return data;
     }

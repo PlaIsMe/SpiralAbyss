@@ -8,12 +8,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.tick.*;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +23,7 @@ import java.util.WeakHashMap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 /** Repairs actual architecture removals, including mods that bypass Forge's griefing events. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssArchitectureRepair {
     private static final class Pending {
         final Map<BlockPos, BlockState> blocks = new HashMap<>();
@@ -74,8 +74,8 @@ public final class AbyssArchitectureRepair {
     }
 
     @SubscribeEvent
-    public static void tick(TickEvent.LevelTickEvent event) {
-        if (event.phase == TickEvent.Phase.END && event.level instanceof ServerLevel level) repair(level);
+    public static void tick(LevelTickEvent.Post event) {
+        if (event.getLevel() instanceof ServerLevel level) repair(level);
     }
 
     public static void repair(ServerLevel level) {

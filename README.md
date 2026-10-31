@@ -22,6 +22,20 @@
   </a>
 </p>
 
+## Development (Minecraft 1.21.1 / NeoForge)
+
+Requires Java 21. The build follows the official NeoForge ModDevGradle MDK and pins NeoForge 21.1.265 with ModDevGradle 2.0.148. GeckoLib 4.9.3 is supplied by the existing pinned development dependency.
+
+```powershell
+$env:JAVA_HOME = 'C:/Program Files/Eclipse Adoptium/jdk-21.0.5.11-hotspot'
+./gradlew.bat build --console=plain
+./gradlew.bat runClient --console=plain
+```
+
+The build writes `SpiralAbyss-1.21.1-2.0.0.jar` to `C:/Users/Admin/Desktop/Minecraft/delivery` (configured in `build.gradle`). `runServer` starts the development server. Development game data stays in `run-neoforge/`; Gradle launches use immutable class/resource snapshots so another build cannot break a running game.
+
+Datapacks use Minecraft 1.21's singular `recipe`, `loot_table`, `structure` and tag registry directories. Optional mod entries remain conditional on installed content; integrations originally authored against 1.20.1 still need checks with their corresponding 1.21.1 mods. This port is not a complete Forge-world converter; back up old worlds before upgrading.
+
 ## Boss environment examples
 
 Add these fields to a boss's metadata object in `data/spiral_abyss/mob_pools/boss.json`, keeping reward objects separate:

@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.event;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.encounter.WaveSpawner;
 import com.pla.spiral_abyss.encounter.data.DeathBlockRule;
@@ -10,14 +11,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.event.tick.*;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +25,7 @@ import java.util.WeakHashMap;
 import com.pla.spiral_abyss.encounter.MobTickContext;
 
 /** Suppresses configured delayed death structures without linking the boss's implementation. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class BossDeathBlocks {
     public static final String TAG = "spiral_abyss_suppress_death_blocks";
     private record Guard(BlockPos origin, DeathBlockRule rule, long until) {
@@ -45,7 +45,7 @@ public final class BossDeathBlocks {
                 || !event.getLevel().dimension().equals(AbyssDimension.LEVEL)
                 || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) return;
         var data = mob.getPersistentData();
-        if (!data.contains(TAG) && MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).deathBlocks().configured())
+        if (!data.contains(TAG) && MobCatalog.bossOptions(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())).deathBlocks().configured())
             data.putBoolean(TAG, true);
     }
 
@@ -55,7 +55,7 @@ public final class BossDeathBlocks {
                 || !level.dimension().equals(AbyssDimension.LEVEL)
                 || !(mob.getPersistentData().contains(TAG) ? mob.getPersistentData().getBoolean(TAG)
                     : mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG))) return;
-        var rule = MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).deathBlocks();
+        var rule = MobCatalog.bossOptions(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())).deathBlocks();
         if (!rule.configured()) return;
         // Some bosses schedule their reward before super.die posts this event, even if
         // another listener subsequently cancels death. Keep those queued rewards blocked.
@@ -69,10 +69,10 @@ public final class BossDeathBlocks {
         if (suppressMobChange(level)) return true;
         var scripted = scriptedGuard(level);
         if (scripted != null && scripted.contains(pos)
-                && scripted.rule().blocks().contains(ForgeRegistries.BLOCKS.getKey(state.getBlock()))) return true;
+                && scripted.rule().blocks().contains(BuiltInRegistries.BLOCK.getKey(state.getBlock()))) return true;
         var guards = GUARDS.get(server);
         if (guards == null || guards.isEmpty()) return false;
-        var id = ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        var id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         long now = level.getGameTime();
         return guards.values().stream().anyMatch(guard -> now <= guard.until()
                 && guard.rule().blocks().contains(id) && guard.contains(pos));
@@ -99,7 +99,7 @@ public final class BossDeathBlocks {
     private static Guard scriptedGuard(Level level) {
         Mob source = MobTickContext.scriptedRewardSource();
         if (source == null || source.level() != level) return null;
-        var rule = MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(source.getType())).deathBlocks();
+        var rule = MobCatalog.bossOptions(BuiltInRegistries.ENTITY_TYPE.getKey(source.getType())).deathBlocks();
         return rule.configured() ? new Guard(source.blockPosition(), rule, level.getGameTime()) : null;
     }
 
@@ -115,8 +115,8 @@ public final class BossDeathBlocks {
     }
 
     @SubscribeEvent
-    public static void tick(TickEvent.LevelTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
+    public static void tick(LevelTickEvent.Post event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
         var guards = GUARDS.get(level);
         if (guards == null) return;
         guards.values().removeIf(guard -> level.getGameTime() > guard.until());

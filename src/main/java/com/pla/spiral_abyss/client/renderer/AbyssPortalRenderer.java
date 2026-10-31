@@ -14,11 +14,15 @@ import com.mojang.math.Axis;
 import com.pla.spiral_abyss.block.AbyssGateActivationBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 
 /** One continuous, double-sided portal surface, clipped around the gate frame and controller. */
 public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
     private final Font font;
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
+    @Override public AABB getRenderBoundingBox(AbyssPortalBlockEntity entity) {
+        return entity.getRenderBoundingBox();
+    }
     @Override public void render(AbyssPortalBlockEntity entity, float partialTick, PoseStack pose,
                                  MultiBufferSource buffers, int light, int overlay) {
         if (!entity.getBlockState().getValue(AbyssGateActivationBlock.ACTIVE)) return;
@@ -82,10 +86,10 @@ public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPorta
     }
     private static void texturedVertex(VertexConsumer vertices, PoseStack pose, boolean xAxis,
                                        float across, float y, float normal) {
-        vertices.vertex(pose.last().pose(), xAxis ? across : 0.5F, y, xAxis ? 0.5F : across)
-                .color(255, 255, 255, 255).uv((across + 1.5F) / 4F, (5F - y) / 4.5F)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(LightTexture.FULL_BRIGHT)
-                .normal(pose.last().normal(), xAxis ? 0 : normal, 0, xAxis ? normal : 0).endVertex();
+        vertices.addVertex(pose.last().pose(), xAxis ? across : 0.5F, y, xAxis ? 0.5F : across)
+                .setColor(255, 255, 255, 255).setUv((across + 1.5F) / 4F, (5F - y) / 4.5F)
+                .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LightTexture.FULL_BRIGHT)
+                .setNormal(pose.last(), xAxis ? 0 : normal, 0, xAxis ? normal : 0);
     }
     @Override public int getViewDistance() { return 128; }
 }

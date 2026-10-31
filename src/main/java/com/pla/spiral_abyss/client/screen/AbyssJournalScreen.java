@@ -14,6 +14,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.util.FormattedCharSequence;
 import org.lwjgl.glfw.GLFW;
+import net.minecraft.world.item.Item;
 
 /** Read-only cycle showcase. Travel is requested separately and always authorized by the server. */
 public final class AbyssJournalScreen extends Screen {
@@ -90,6 +91,9 @@ public final class AbyssJournalScreen extends Screen {
             group.sources().add(new RewardSource(boss, reward.icon().copy()));
         }
         rewardGroups.addAll(unique.values());
+    }
+    @Override public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // render() draws the world backdrop first; Screen.render() must not blur the journal afterward.
     }
     @Override public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         hoveredTooltip = null;
@@ -186,10 +190,10 @@ public final class AbyssJournalScreen extends Screen {
                 lines.add(reward.icon().getHoverName());
                 Set<String> seen = new HashSet<>();
                 for (var source : reward.sources()) {
-                    String key = source.boss().id() + ":" + source.stack().getTag();
+                    String key = source.boss().id() + ":" + source.stack().getComponents();
                     if (!seen.add(key)) continue;
                     lines.add(bosses.name(source.boss().id()).copy().withStyle(ChatFormatting.GOLD));
-                    var details = source.stack().getTooltipLines(minecraft.player, TooltipFlag.Default.NORMAL);
+                    var details = source.stack().getTooltipLines(Item.TooltipContext.of(minecraft.level), minecraft.player, TooltipFlag.Default.NORMAL);
                     for (int j = 1; j < details.size(); j++) lines.add(details.get(j));
                 }
                 if (pages > 1) lines.add(tr("journal.scroll_rewards", rewardPage + 1, pages));
@@ -218,12 +222,12 @@ public final class AbyssJournalScreen extends Screen {
         g.pose().popPose();
         return top + row * scale;
     }
-    @Override public boolean mouseScrolled(double mx, double my, double amount) {
+    @Override public boolean mouseScrolled(double mx, double my, double horizontal, double amount) {
         if (!helpPage && mx >= x + w * .035 && mx < x + w * .335 && my >= y + h * .57 && my < y + h * .89) {
             int pages = Math.max(1, (rewardGroups.size() + REWARDS_PER_VIEW - 1) / REWARDS_PER_VIEW);
             rewardPage = Math.floorMod(rewardPage + (amount < 0 ? 1 : -1), pages); return true;
         }
-        return super.mouseScrolled(mx, my, amount);
+        return super.mouseScrolled(mx, my, horizontal, amount);
     }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
         if ((key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT)) {

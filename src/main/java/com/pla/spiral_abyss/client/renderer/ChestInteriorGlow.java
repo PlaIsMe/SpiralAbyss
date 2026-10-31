@@ -27,7 +27,7 @@ public final class ChestInteriorGlow {
         }
     }
     private static void vertex(PoseStack pose, VertexConsumer out, Vec3 point, int color, float alpha) {
-        out.vertex(pose.last().pose(), (float) point.x, (float) point.y, (float) point.z)
-                .color((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, alpha).endVertex();
+        out.addVertex(pose.last().pose(), (float) point.x, (float) point.y, (float) point.z)
+                .setColor((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, alpha);
     }
 }

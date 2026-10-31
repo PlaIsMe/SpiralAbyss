@@ -1,12 +1,12 @@
 package com.pla.spiral_abyss.client.screen;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.data.BossOptions.PreviewAnimation;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.ModList;
 
 /** Keeps optional animation-library linkage outside the ordinary client rendering path. */
 final class OptionalGeoPreview {
@@ -18,7 +18,7 @@ final class OptionalGeoPreview {
     }
 
     static boolean supports(LivingEntity entity, PreviewAnimation animation) {
-        var id = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (unavailable || id == null || (!animation.configured() && !id.getNamespace().equals("block_factorys_bosses"))
                 || !ModList.get().isLoaded("geckolib")) return false;
         try { return GeckoPreviewSampler.supports(entity); }

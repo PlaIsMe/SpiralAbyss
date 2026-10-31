@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.config.*;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
@@ -9,8 +10,10 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Vindicator;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.enchantment.*;
-import net.minecraftforge.registries.ForgeRegistries;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog;
 import java.util.*;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 
 /** A wave chooses one complete armor set; each eligible mob rolls whether to wear it. */
 public final class WaveEquipment {
@@ -27,7 +30,7 @@ public final class WaveEquipment {
             List<Item> items = ids.stream().map(WaveEquipment::item).toList();
             boolean valid = items.size() == ARMOR.length;
             for (int i = 0; valid && i < ARMOR.length; i++)
-                valid = items.get(i) != null && Mob.getEquipmentSlotForItem(new ItemStack(items.get(i))) == ARMOR[i];
+                valid = items.get(i) != null && items.get(i) instanceof ArmorItem piece && piece.getEquipmentSlot() == ARMOR[i];
             if (valid) sets.add(items);
             else LogUtils.getLogger().warn("Skipping unavailable or incorrectly ordered Abyss armor set: {}", ids);
         }
@@ -35,13 +38,13 @@ public final class WaveEquipment {
         weapons = floor.weapons().stream().map(WaveEquipment::item).filter(Objects::nonNull).toList();
     }
     private static Item item(ResourceLocation id) {
-        Item item = ForgeRegistries.ITEMS.containsKey(id) ? ForgeRegistries.ITEMS.getValue(id) : null;
+        Item item = BuiltInRegistries.ITEM.containsKey(id) ? BuiltInRegistries.ITEM.get(id) : null;
         return item == Items.AIR ? null : item;
     }
     public void apply(Mob mob) {
         mob.setCanPickUpLoot(false);
         for (EquipmentSlot slot : EquipmentSlot.values()) mob.setDropChance(slot, 0);
-        var id = ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
+        var id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
         RandomSource random = mob.getRandom();
         if (whitelist.armor().contains(id)) {
             // Remove vanilla random pieces first, so partial/mixed tiers cannot leak into a wave.
@@ -58,7 +61,7 @@ public final class WaveEquipment {
         // Ranged users take precedence if a custom config puts a mob in several lists.
         if (whitelist.tridents().contains(id)) {
             ItemStack stack = new ItemStack(Items.TRIDENT);
-            stack.enchant(Enchantments.LOYALTY, floor.loyaltyLevel());
+            stack.enchant(mob.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.LOYALTY), floor.loyaltyLevel());
             maybeEnchant(stack, floor.trident(), random);
             weapon(mob, stack);
         } else if (whitelist.crossbows().contains(id)) {
@@ -75,7 +78,7 @@ public final class WaveEquipment {
                     Item nativeItem = mob.getMainHandItem().isEmpty() ? Items.IRON_AXE : mob.getMainHandItem().getItem();
                     List<AxeItem> upgrades = weapons.stream().filter(AxeItem.class::isInstance)
                             .map(AxeItem.class::cast).filter(axe -> nativeItem instanceof AxeItem current
-                                    && axe.getTier().getLevel() > current.getTier().getLevel()).toList();
+                                    && axe.getTier().getAttackDamageBonus() > current.getTier().getAttackDamageBonus()).toList();
                     if (!upgrades.isEmpty()) {
                         ItemStack stack = new ItemStack(upgrades.get(random.nextInt(upgrades.size())));
                         maybeEnchant(stack, floor.melee(), random); weapon(mob, stack);
@@ -99,20 +102,19 @@ public final class WaveEquipment {
         if (random.nextDouble() < rule.chance()) enchant(stack, rule, random, false);
     }
     private static void enchant(ItemStack stack, GearConfig.Rule rule, RandomSource random, boolean armor) {
-        List<Enchantment> pool = new ArrayList<>();
+        List<Holder<Enchantment>> pool = new ArrayList<>();
         for (var id : rule.entries()) {
-            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
-            if (enchantment != null && !pool.contains(enchantment) && (!armor || enchantment.canEnchant(stack))) pool.add(enchantment);
+            var enchantment = ChallengeCatalog.enchantment(id);
+            if (enchantment != null && !pool.contains(enchantment) && (!armor || enchantment.value().canEnchant(stack))) pool.add(enchantment);
         }
         int count = pool.isEmpty() ? 0 : 1 + random.nextInt(Math.min(3, pool.size()));
-        var selected = new ArrayList<>(EnchantmentHelper.getEnchantments(stack).keySet());
+        var selected = new ArrayList<>(EnchantmentHelper.getEnchantmentsForCrafting(stack).keySet());
         while (count > 0 && !pool.isEmpty()) {
             var next = pool.remove(random.nextInt(pool.size()));
-            if (selected.stream().anyMatch(previous -> previous == next || !previous.isCompatibleWith(next)
-                    || !next.isCompatibleWith(previous))) continue;
+            if (selected.stream().anyMatch(previous -> previous == next || !Enchantment.areCompatible(previous, next))) continue;
             // Keep Quick Charge in its supported range (V has zero charge time). Multishot has one useful level.
-            int level = next == Enchantments.QUICK_CHARGE ? Math.min(3, rule.level())
-                    : next == Enchantments.MULTISHOT ? 1 : rule.level();
+            int level = next.is(Enchantments.QUICK_CHARGE) ? Math.min(3, rule.level())
+                    : next.is(Enchantments.MULTISHOT) ? 1 : rule.level();
             stack.enchant(next, level); selected.add(next); count--;
         }
     }

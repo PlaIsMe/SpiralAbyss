@@ -94,11 +94,11 @@ final class PortalFrameGlow {
     private static void draw(PoseStack pose, VertexConsumer out, Face face, float offset) {
         for (int v = 0; v < 4; v++) {
             int i = v * 5;
-            out.vertex(pose.last().pose(), face.vertices[i] + face.normal.x * offset,
+            out.addVertex(pose.last().pose(), face.vertices[i] + face.normal.x * offset,
                             face.vertices[i + 1] + face.normal.y * offset, face.vertices[i + 2] + face.normal.z * offset)
-                    .color(255, 255, 255, 255).uv(face.vertices[i + 3], face.vertices[i + 4])
-                    .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(LightTexture.FULL_BRIGHT)
-                    .normal(pose.last().normal(), face.normal.x, face.normal.y, face.normal.z).endVertex();
+                    .setColor(255, 255, 255, 255).setUv(face.vertices[i + 3], face.vertices[i + 4])
+                    .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LightTexture.FULL_BRIGHT)
+                    .setNormal(pose.last(), face.normal.x, face.normal.y, face.normal.z);
         }
     }
 }

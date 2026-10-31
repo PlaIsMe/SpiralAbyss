@@ -10,15 +10,16 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
-import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 /** Explicit noncombat reward replacements and persistent harvestable corpses, only in the Abyss. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssRewardCarriers {
     private static final TagKey<EntityType<?>> CARRIERS = tag("suppressed_reward_carriers");
     private static final TagKey<EntityType<?>> CORPSES = tag("remove_corpse_on_death");
@@ -50,7 +51,7 @@ public final class AbyssRewardCarriers {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void tick(LivingEvent.LivingTickEvent event) {
+    public static void tick(EntityTickEvent.Pre event) {
         if (suppress(event.getEntity())) {
             event.getEntity().discard();
             event.setCanceled(true);

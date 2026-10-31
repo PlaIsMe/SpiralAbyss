@@ -242,6 +242,9 @@ public final class FloorSelectionScreen extends Screen {
             }
         }
     }
+    @Override public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // render() draws the floor background first; Screen.render() must not blur the menu afterward.
+    }
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         float scale = Math.max(width / 2560F, height / 1440F);
         int imageWidth = (int) Math.ceil(2560 * scale), imageHeight = (int) Math.ceil(1440 * scale);
@@ -341,12 +344,12 @@ public final class FloorSelectionScreen extends Screen {
         graphics.pose().pushPose(); graphics.pose().translate(x, y, 0); graphics.pose().scale(scale, scale, 1);
         graphics.drawString(font, text, 0, 0, color, false); graphics.pose().popPose();
     }
-    @Override public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    @Override public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double amount) {
         if (rewardPanel != null && rewardPanel.scroll(mouseX, mouseY, amount)) return true;
         if (selectedWave != 0 && mouseX >= panelX && mouseX < panelX + panelWidth && mouseY >= gridTop && mouseY < gridBottom) {
             scroll = Math.max(0, Math.min(maxScroll, scroll - (int) (amount * 30))); return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount);
+        return super.mouseScrolled(mouseX, mouseY, horizontal, amount);
     }
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (rewardPanel != null && rewardPanel.popupContains(mouseX, mouseY)) return true;

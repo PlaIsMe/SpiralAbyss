@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.client.screen;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -21,7 +22,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.warden.Warden;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Quaternionf;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
@@ -85,7 +85,7 @@ final class BannerBossRenderer {
     }
 
     Component name(ResourceLocation id) {
-        var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+        var type = BuiltInRegistries.ENTITY_TYPE.get(id);
         return type == null ? Component.literal(id.toString()) : type.getDescription();
     }
 
@@ -128,7 +128,7 @@ final class BannerBossRenderer {
             TextureTarget oldPortrait = portraits.remove(id);
             if (oldPortrait != null) destroyPortrait(oldPortrait);
             try {
-                var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+                var type = BuiltInRegistries.ENTITY_TYPE.get(id);
                 var created = type == null ? null : type.create(client.level);
                 if (!(created instanceof LivingEntity living)) {
                     unavailable.add(id);
@@ -193,9 +193,9 @@ final class BannerBossRenderer {
             target.bindWrite(true);
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, pixelWidth, pixelHeight, 0,
                     1000, 21000), VertexSorting.ORTHOGRAPHIC_Z);
-            RenderSystem.getModelViewStack().pushPose();
+            RenderSystem.getModelViewStack().pushMatrix();
             try {
-                RenderSystem.getModelViewStack().setIdentity();
+                RenderSystem.getModelViewStack().identity();
                 RenderSystem.applyModelViewMatrix();
                 RenderSystem.enableDepthTest();
                 RenderSystem.depthMask(true);
@@ -228,7 +228,7 @@ final class BannerBossRenderer {
                 try {
                     if (!success) graphics.flush();
                 } finally {
-                    RenderSystem.getModelViewStack().popPose();
+                    RenderSystem.getModelViewStack().popMatrix();
                     RenderSystem.applyModelViewMatrix();
                 }
             }

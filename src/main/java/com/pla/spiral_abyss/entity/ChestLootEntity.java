@@ -10,7 +10,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkHooks;
 import java.util.ArrayDeque;
 import java.util.List;
 import net.minecraft.world.phys.AABB;
@@ -25,7 +24,7 @@ public final class ChestLootEntity extends ItemEntity {
         setPos(x, y, z); setItem(stack.copy()); entityData.set(RARE, rare);
         lifespan = stack.getEntityLifespan(level);
     }
-    @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(RARE, false); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder builder) { super.defineSynchedData(builder); builder.define(RARE, false); }
     public boolean rare() { return entityData.get(RARE); }
     public List<Vec3> trail() { return List.copyOf(trail); }
     @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(4); }
@@ -44,5 +43,4 @@ public final class ChestLootEntity extends ItemEntity {
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag); entityData.set(RARE, tag.getBoolean("RareChestLoot"));
     }
-    @Override public Packet<ClientGamePacketListener> getAddEntityPacket() { return NetworkHooks.getEntitySpawningPacket(this); }
 }

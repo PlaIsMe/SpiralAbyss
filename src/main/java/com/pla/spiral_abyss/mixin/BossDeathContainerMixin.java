@@ -12,6 +12,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 @Mixin(RandomizableContainerBlockEntity.class)
 public abstract class BossDeathContainerMixin {
@@ -23,16 +25,9 @@ public abstract class BossDeathContainerMixin {
         if (BossDeathBlocks.suppressLoot(container.getLevel(), container.getBlockPos())) callback.cancel();
     }
 
-    @Inject(method = "setLootTable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/util/RandomSource;Lnet/minecraft/core/BlockPos;Lnet/minecraft/resources/ResourceLocation;)V",
+    @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceKey;)V",
             at = @At("HEAD"), cancellable = true)
-    private static void spiral_abyss$suppressDeathLoot(BlockGetter reader, RandomSource random, BlockPos pos,
-                                                      ResourceLocation table, CallbackInfo callback) {
-        if (reader instanceof Level level && BossDeathBlocks.suppressLoot(level, pos)) callback.cancel();
-    }
-
-    @Inject(method = "setLootTable(Lnet/minecraft/resources/ResourceLocation;J)V",
-            at = @At("HEAD"), cancellable = true)
-    private void spiral_abyss$suppressAssignedDeathLoot(ResourceLocation table, long seed, CallbackInfo callback) {
+    private void spiral_abyss$suppressAssignedDeathLoot(ResourceKey<LootTable> table, CallbackInfo callback) {
         var container = (RandomizableContainerBlockEntity) (Object) this;
         if (BossDeathBlocks.suppressLoot(container.getLevel(), container.getBlockPos())) callback.cancel();
     }

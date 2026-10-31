@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.world.ArenaBounds;
 import com.pla.spiral_abyss.world.ArenaSession;
@@ -12,7 +13,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -75,7 +75,7 @@ public final class EncounterReinforcements {
                     || playerOwned(mob)
                     || mob instanceof OwnableEntity owned && owned.getOwnerUUID() != null
                         && !(owned.getOwner() instanceof Mob owner && session.controller().owns(owner))) continue;
-            Mob root = phases.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+            Mob root = phases.get(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
             if (root == null && !(mob instanceof Enemy) && mob.getType().getCategory() != MobCategory.MONSTER
                     && !(mob.getTarget() instanceof Player player && session.admitted().contains(player.getUUID()))) continue;
             data.putUUID(WaveSpawner.RUN_TAG, run);
@@ -127,8 +127,7 @@ public final class EncounterReinforcements {
         if (health != null && modifier != null) {
             float fraction = phase.getMaxHealth() > 0 ? phase.getHealth() / phase.getMaxHealth() : 1;
             health.removeModifier(WaveScaling.HEALTH_MODIFIER);
-            health.addPermanentModifier(new AttributeModifier(WaveScaling.HEALTH_MODIFIER, "Spiral Abyss phase health",
-                    modifier.getAmount(), AttributeModifier.Operation.MULTIPLY_TOTAL));
+            health.addPermanentModifier(new AttributeModifier(WaveScaling.HEALTH_MODIFIER, modifier.amount(), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
             phase.setHealth(phase.getMaxHealth() * fraction);
         }
         phase.getPersistentData().putDouble(WaveSpawner.DAMAGE_TAG, root.getPersistentData().getDouble(WaveSpawner.DAMAGE_TAG));

@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.boss_enviroment.BossEnvironments;
 
 import com.mojang.logging.LogUtils;
@@ -23,7 +24,6 @@ import java.util.function.Supplier;
 import com.pla.spiral_abyss.config.GearConfig;
 import com.pla.spiral_abyss.entity.LootChestEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-import net.minecraftforge.registries.ForgeRegistries;
 
 /** One encounter per host arena; timing and participants are isolated from other hosts. */
 public final class FloorController {
@@ -307,7 +307,7 @@ public final class FloorController {
             LogUtils.getLogger().debug("Floor {} wave {} type {} stage {}/{} starting: {}", currentFloor(), currentWave(), selectedWaveType, stages.index() + 1, stages.size(), composition);
             var created = spawner.spawn(level, center, target, composition, runId,
                     waveEquipment, currentFloor(), partyScale, mobScaling, session.endless() ? waveIndex + 1 : 0);
-            created.forEach(mob -> encounteredMobs.add(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())));
+            created.forEach(mob -> encounteredMobs.add(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())));
             created.forEach(mob -> mob.getPersistentData().putUUID("spiral_abyss_host", session.host()));
             reinforcements.begin(created);
             return created;

@@ -22,19 +22,18 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.InteractionResult;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.entity.player.FillBucketEvent;
-import net.minecraftforge.event.entity.EntityMobGriefingEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent;
+import net.neoforged.bus.api.Event;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.event.entity.living.LivingDestroyBlockEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDestroyBlockEvent;
 
 /** Protects architecture while allowing temporary fire and TNT during a player's attempt. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssBlockProtection {
     private static final TagKey<EntityType<?>> NO_ARENA_GRIEFING = TagKey.create(Registries.ENTITY_TYPE,
             ResourceLocation.fromNamespaceAndPath("spiral_abyss", "no_arena_griefing"));
@@ -44,7 +43,7 @@ public final class AbyssBlockProtection {
     @SubscribeEvent
     public static void preventDirectMobGriefing(EntityMobGriefingEvent event) {
         if (event.getEntity().level().dimension().equals(AbyssDimension.LEVEL)
-                && event.getEntity().getType().is(NO_ARENA_GRIEFING)) event.setResult(Event.Result.DENY);
+                && event.getEntity().getType().is(NO_ARENA_GRIEFING)) event.setCanGrief(false);
     }
 
     @SubscribeEvent
@@ -116,10 +115,6 @@ public final class AbyssBlockProtection {
         }
     }
 
-    @SubscribeEvent
-    public static void preventBucketFill(FillBucketEvent event) {
-        if (restricted(event.getEntity())) event.setCanceled(true);
-    }
 
     @SubscribeEvent
     public static void preserveArenaDuringExplosion(ExplosionEvent.Detonate event) {

@@ -32,10 +32,10 @@ public abstract class AbyssDragonMixin {
     @Unique private static final EntityDataAccessor<Optional<UUID>> SPIRAL_ABYSS_CRYSTAL = SynchedEntityData.defineId(EnderDragon.class, EntityDataSerializers.OPTIONAL_UUID);
 
     @Inject(method = "defineSynchedData", at = @At("TAIL"))
-    private void spiralAbyss$defineData(CallbackInfo ci) {
+    private void spiralAbyss$defineData(SynchedEntityData.Builder builder, CallbackInfo ci) {
         EnderDragon dragon = (EnderDragon) (Object) this;
-        dragon.getEntityData().define(SPIRAL_ABYSS_ORIGIN, BlockPos.ZERO);
-        dragon.getEntityData().define(SPIRAL_ABYSS_CRYSTAL, Optional.empty());
+        builder.define(SPIRAL_ABYSS_ORIGIN, BlockPos.ZERO);
+        builder.define(SPIRAL_ABYSS_CRYSTAL, Optional.empty());
     }
     @Inject(method = "setFightOrigin", at = @At("TAIL"))
     private void spiralAbyss$syncOrigin(BlockPos origin, CallbackInfo ci) {

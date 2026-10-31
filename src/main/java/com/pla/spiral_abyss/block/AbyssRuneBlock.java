@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.block;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -15,6 +16,8 @@ import net.minecraft.world.level.block.Block;
 
 /** A horizontal pillar whose rune face points toward the player when placed. */
 public final class AbyssRuneBlock extends HorizontalDirectionalBlock {
+    public static final MapCodec<AbyssRuneBlock> CODEC = simpleCodec(AbyssRuneBlock::new);
+    @Override public MapCodec<AbyssRuneBlock> codec() { return CODEC; }
     public AbyssRuneBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));

@@ -1,11 +1,11 @@
 package com.pla.spiral_abyss.client.overlay;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
 
@@ -40,7 +40,7 @@ public final class AbyssRejectionNotice {
         Component damage = Component.translatable("rejection.spiral_abyss.damage");
         var names = Component.empty();
         for (ResourceLocation id : bosses) {
-            var type = ForgeRegistries.ENTITY_TYPES.getValue(id);
+            var type = BuiltInRegistries.ENTITY_TYPE.get(id);
             if (!names.getString().isEmpty()) names.append(Component.literal(", "));
             names.append(type == null ? Component.literal(id.toString()) : type.getDescription());
         }

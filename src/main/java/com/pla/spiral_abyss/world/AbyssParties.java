@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss.world;
 
 import com.pla.spiral_abyss.encounter.WaveSpawner;
+import com.pla.spiral_abyss.compat.FlashbackCompat;
 import com.pla.spiral_abyss.entity.*;
 import com.pla.spiral_abyss.network.AbyssNetwork;
 import com.pla.spiral_abyss.config.AbyssConfig;
@@ -35,6 +36,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.level.portal.DimensionTransition;
 
 /** Server-thread portal party management. Floor changes reuse a slot; empty parties release it. */
 public final class AbyssParties {
@@ -275,7 +277,7 @@ public final class AbyssParties {
     }
     private boolean enter(ServerPlayer player, UUID host) {
         if (!returnAfterCycleReset(player)) return false;
-        if (!canTravel(player)) return tell(player, "travel_unavailable");
+        if (!canTravel(player) || !player.canChangeDimensions(player.level(), server.getLevel(AbyssDimension.LEVEL))) return tell(player, "travel_unavailable");
         ArenaSession source = sessionFor(player);
         if (source != null && !source.host().equals(host) && source.controller().active()) return tell(player, "already_running");
         ArenaSession session = acquire(host);
@@ -293,7 +295,7 @@ public final class AbyssParties {
         Vec3 destination = session.bounds().entrance();
         ArenaSession previous = sessionFor(player);
         if (player.level() == session.level()) player.teleportTo(session.level(), destination.x, destination.y, destination.z, 180, 0);
-        else if (player.changeDimension(session.level(), new AbyssTeleporter(destination, 180, 0)) == null) {
+        else if (player.changeDimension(new DimensionTransition(session.level(), destination, Vec3.ZERO, 180, 0, DimensionTransition.DO_NOTHING)) == null) {
             if (session.admitted().isEmpty()) retire(session);
             return false;
         }
@@ -317,7 +319,7 @@ public final class AbyssParties {
         if (forced) {
             player.stopRiding(); player.ejectPassengers();
             if (player.isSleeping()) player.stopSleepInBed(true, true);
-        } else if (!canTravel(player)) return tell(player, "travel_unavailable");
+        } else if (!canTravel(player) || !player.canChangeDimensions(player.level(), server.overworld())) return tell(player, "travel_unavailable");
         if (!player.level().dimension().equals(AbyssDimension.LEVEL)) return tell(player, "wrong_dimension");
         CompoundTag persisted = persisted(player), saved = persisted.getCompound(RETURN);
         ResourceLocation id = ResourceLocation.tryParse(saved.getString("Dimension"));
@@ -331,7 +333,7 @@ public final class AbyssParties {
         if (forced) {
             player.teleportTo(destination, position.x, position.y, position.z, saved.getFloat("Yaw"), saved.getFloat("Pitch"));
             if (player.level() != destination) return false;
-        } else if (player.changeDimension(destination, new AbyssTeleporter(position, saved.getFloat("Yaw"), saved.getFloat("Pitch"))) == null) return false;
+        } else if (player.changeDimension(new DimensionTransition(destination, position, Vec3.ZERO, saved.getFloat("Yaw"), saved.getFloat("Pitch"), DimensionTransition.DO_NOTHING)) == null) return false;
         if (session != null) session.remove(player.getUUID());
         if (session != null && session.players().isEmpty()) retire(session);
         membership.remove(player.getUUID()); persisted.remove(VISIT); persisted.remove(VISIT_FLOOR); persisted.remove(RETURN); persisted.remove(RETURN_REQUIRED);
@@ -476,6 +478,7 @@ public final class AbyssParties {
         return true;
     }
     public void loggedIn(ServerPlayer player) {
+        if (FlashbackCompat.isReplayServer(server)) return;
         if (player.level().dimension().equals(AbyssDimension.LEVEL)) {
             CompoundTag mark = persisted(player);
             mark.putBoolean(RETURN_REQUIRED, true);
@@ -485,6 +488,7 @@ public final class AbyssParties {
         returnAfterDisconnect(player);
     }
     public void loggedOut(ServerPlayer player) {
+        if (FlashbackCompat.isReplayServer(server)) return;
         if (player.level().dimension().equals(AbyssDimension.LEVEL)) {
             CompoundTag mark = persisted(player);
             mark.putBoolean(RETURN_REQUIRED, true);
@@ -508,6 +512,7 @@ public final class AbyssParties {
         follow(player.getUUID(), null);
     }
     public void tick() {
+        if (FlashbackCompat.isReplayServer(server)) return;
         long now = System.currentTimeMillis();
         int days = AbyssConfig.RESET_DAYS.get();
         if (cycle().due(now, days)) resetGlobal(cycle().nextStart(now, days));
@@ -605,7 +610,7 @@ public final class AbyssParties {
         membership.values().removeIf(session.host()::equals);
     }
     private static CompoundTag persisted(ServerPlayer p) { return p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG); }
-    private static boolean canTravel(ServerPlayer p) { return !p.isPassenger() && !p.isVehicle() && !p.isSleeping() && p.canChangeDimensions(); }
+    private static boolean canTravel(ServerPlayer p) { return !p.isPassenger() && !p.isVehicle() && !p.isSleeping(); }
     private static boolean isSafe(ServerLevel level, ServerPlayer player, Vec3 position) {
         if (!Double.isFinite(position.x) || !Double.isFinite(position.y) || !Double.isFinite(position.z)) return false;
         BlockPos feet = BlockPos.containing(position);

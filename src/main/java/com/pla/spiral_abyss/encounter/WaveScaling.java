@@ -7,12 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
-import java.util.UUID;
-
 /** Applies mob-pool difficulty after the mob and its mod have initialized attributes. */
 public final class WaveScaling {
     public static final String HEALTH_DAMAGE_RATIO_TAG = "spiral_abyss_health_damage_ratio";
-    public static final UUID HEALTH_MODIFIER = UUID.fromString("2fce3415-4a70-4976-a728-98234fdac4e3");
+    public static final ResourceLocation HEALTH_MODIFIER = ResourceLocation.fromNamespaceAndPath("spiral_abyss", "health");
 
     private WaveScaling() {}
 
@@ -21,13 +19,13 @@ public final class WaveScaling {
         if (health != null) {
             health.removeModifier(HEALTH_MODIFIER);
             health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
-                    "Spiral Abyss health", 0, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                    0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
             double initial = health.getValue();
             double target = (category == MobCategory.BOSS ? EndlessWaves.bossHealth(wave)
                     : initial * EndlessWaves.mobScale(wave)) * partyScale;
             health.removeModifier(HEALTH_MODIFIER);
             if (initial > 0 && Double.isFinite(target)) health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
-                    "Spiral Abyss health", target / initial - 1, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                    target / initial - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
             mob.getPersistentData().remove(HEALTH_DAMAGE_RATIO_TAG);
         }
         mob.setHealth(mob.getMaxHealth());
@@ -43,14 +41,14 @@ public final class WaveScaling {
             // Opt in before reading the baseline, including modded base values above 1024.
             health.removeModifier(HEALTH_MODIFIER);
             health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
-                    "Spiral Abyss health", 0, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                    0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
             double initial = health.getValue();
             double nativeTarget = (scaling.health().absolute()
                     ? scaling.health().value() : initial * scaling.health().value()) * partyScale;
             health.removeModifier(HEALTH_MODIFIER);
             if (initial > 0 && Double.isFinite(nativeTarget) && nativeTarget > 0) {
                 health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
-                        "Spiral Abyss health", nativeTarget / initial - 1, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                        nativeTarget / initial - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
                 // This synchronized modifier opts only this attribute into the expanded
                 // health range. New spawns use real HP, without damage/healing conversion.
                 mob.getPersistentData().remove(HEALTH_DAMAGE_RATIO_TAG);

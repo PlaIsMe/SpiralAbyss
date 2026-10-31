@@ -7,6 +7,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 import com.pla.spiral_abyss.encounter.ChestPayout;
+import net.minecraft.core.HolderLookup;
 
 /** Offline progression and a fixed pool of reusable arena locations. */
 public final class AbyssPlayers extends SavedData {
@@ -64,7 +65,7 @@ public final class AbyssPlayers extends SavedData {
         }
     }
     public static AbyssPlayers get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(AbyssPlayers::load, AbyssPlayers::new, "spiral_abyss_players");
+        return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(AbyssPlayers::new, AbyssPlayers::load), "spiral_abyss_players");
     }
     public Profile profile(UUID owner) {
         return profiles.computeIfAbsent(owner, id -> {
@@ -72,7 +73,7 @@ public final class AbyssPlayers extends SavedData {
         });
     }
     public Collection<Profile> profiles() { return List.copyOf(profiles.values()); }
-    public static AbyssPlayers load(CompoundTag tag) {
+    public static AbyssPlayers load(CompoundTag tag, HolderLookup.Provider registries) {
         AbyssPlayers data = new AbyssPlayers();
         data.cycle = AbyssCycle.load(tag.getCompound("Cycle"));
         // Old placement flags refer to the retired arena. Upgrade each slot once when it is next used.
@@ -83,7 +84,7 @@ public final class AbyssPlayers extends SavedData {
             CompoundTag entry = (CompoundTag) value;
             UUID owner = entry.getUUID("Owner");
             Profile profile = data.new Profile(owner, -1,
-                    FloorProgress.load(entry.getCompound("Progress"), data::setDirty));
+                    FloorProgress.load(entry.getCompound("Progress"), data::setDirty, registries));
             data.profiles.put(owner, profile);
             if (entry.hasUUID("Portal")) profile.portal = entry.getUUID("Portal");
             if (entry.hasUUID("FollowingHost")) profile.followingHost = entry.getUUID("FollowingHost");
@@ -94,11 +95,11 @@ public final class AbyssPlayers extends SavedData {
             profile.endlessWave = Math.max(1, entry.getInt("EndlessWave"));
             profile.endlessCheckpoint = Math.max(0, entry.getInt("EndlessCheckpoint"));
             profile.endlessRewardedWave = Math.max(0, entry.getInt("EndlessRewardedWave"));
-            profile.endlessPayout = ChestPayout.load(entry.getCompound("EndlessPayout"), data::setDirty);
+            profile.endlessPayout = ChestPayout.load(entry.getCompound("EndlessPayout"), data::setDirty, registries);
         }
         return data;
     }
-    @Override public CompoundTag save(CompoundTag tag) {
+    @Override public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.put("Cycle", cycle.save());
         tag.putInt("ArenaLayoutVersion", ARENA_LAYOUT_VERSION);
         tag.putIntArray("PlacedSlots", placedSlots.stream().mapToInt(Integer::intValue).toArray());
@@ -113,11 +114,11 @@ public final class AbyssPlayers extends SavedData {
             entry.putInt("EndlessWave", profile.endlessWave);
             entry.putInt("EndlessCheckpoint", profile.endlessCheckpoint);
             entry.putInt("EndlessRewardedWave", profile.endlessRewardedWave);
-            entry.put("EndlessPayout", profile.endlessPayout.save());
+            entry.put("EndlessPayout", profile.endlessPayout.save(registries));
             if (profile.portal != null) entry.putUUID("Portal", profile.portal);
             if (profile.followingHost != null) entry.putUUID("FollowingHost", profile.followingHost);
             entry.putBoolean("PersonalRun", profile.personalRun);
-            entry.put("Progress", profile.progress.save()); list.add(entry);
+            entry.put("Progress", profile.progress.save(registries)); list.add(entry);
         });
         tag.put("Profiles", list); return tag;
     }

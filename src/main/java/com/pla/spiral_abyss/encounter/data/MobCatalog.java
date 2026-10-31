@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter.data;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.config.AbyssConfig;
@@ -7,8 +8,7 @@ import com.pla.spiral_abyss.encounter.RewardPool;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.*;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 import java.io.Reader;
 import java.util.*;
 import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog;
@@ -138,7 +138,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         return availableMob(id) && !AbyssConfig.MOB_BLACKLIST.get().contains(id.toString());
     }
     public static boolean availableMob(ResourceLocation id) {
-        return ForgeRegistries.ENTITY_TYPES.containsKey(id)
+        return BuiltInRegistries.ENTITY_TYPE.containsKey(id)
                 && !id.toString().equals("minecraft:player") && !id.toString().equals("spiral_abyss:key_entity")
                 && !id.toString().equals("spiral_abyss:copper_chest") && !id.toString().equals("spiral_abyss:iron_chest")
                 && !id.toString().equals("spiral_abyss:golden_chest")
@@ -147,7 +147,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
     }
 
     public static Pool parsePool(JsonArray array) {
-        return parsePool(array, ForgeRegistries.ITEMS::containsKey);
+        return parsePool(array, BuiltInRegistries.ITEM::containsKey);
     }
     public static Pool parsePool(JsonArray array, Predicate<ResourceLocation> isItem) {
         return parsePool(array, isItem, false);
@@ -281,8 +281,8 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
         for (MobCategory category : MobCategory.values()) {
             JsonArray poolEntries = read(manager, "mob_pools/" + category.key());
             Pool pool = category == MobCategory.BOSS
-                    ? parseBossPool(poolEntries, ForgeRegistries.ITEMS::containsKey)
-                    : parsePool(poolEntries, ForgeRegistries.ITEMS::containsKey);
+                    ? parseBossPool(poolEntries, BuiltInRegistries.ITEM::containsKey)
+                    : parsePool(poolEntries, BuiltInRegistries.ITEM::containsKey);
             pools.put(category, pool.mobs());
             scaling.put(category, pool.scaling());
             defaultScaling.put(category, pool.defaultScaling());

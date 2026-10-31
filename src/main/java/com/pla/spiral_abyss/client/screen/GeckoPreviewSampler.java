@@ -13,11 +13,12 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
-import software.bernie.geckolib.core.animatable.GeoAnimatable;
-import software.bernie.geckolib.core.animation.*;
-import software.bernie.geckolib.core.object.PlayState;
-import software.bernie.geckolib.core.state.BoneSnapshot;
-import software.bernie.geckolib.core.molang.MolangParser;
+import software.bernie.geckolib.animatable.GeoAnimatable;
+import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.state.BoneSnapshot;
+import software.bernie.geckolib.loading.math.MolangQueries;
+import software.bernie.geckolib.loading.math.value.Variable;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.model.data.EntityModelData;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -29,7 +30,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.io.IOException;
 import java.util.function.DoubleSupplier;
-import software.bernie.geckolib.core.object.DataTicket;
+import software.bernie.geckolib.constant.dataticket.DataTicket;
 
 /** Loaded only behind the optional GeckoLib gate. Never ticks entities or executes clip events. */
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -54,16 +55,21 @@ final class GeckoPreviewSampler {
         List<SavedField> rendererState = new ArrayList<>();
         List<SavedField> boneState = new ArrayList<>();
         List<SavedField> queryState = new ArrayList<>();
-        Set<String> originalQueries = new HashSet<>(MolangParser.VARIABLES.keySet());
-        Field querySupplier = null;
+        Map<String, Variable> queries = null;
+        Map<Variable, DoubleSupplier> queryValues = new IdentityHashMap<>();
+        Field actorField = null;
+        Object savedActor = null;
         AnimationProcessor processor = null;
         boolean reload = false;
         pose.pushPose();
         try {
-            querySupplier = Class.forName("software.bernie.geckolib.core.molang.LazyVariable").getDeclaredField("valueSupplier");
-            querySupplier.setAccessible(true);
-            for (Object variable : MolangParser.VARIABLES.values())
-                queryState.add(new SavedField(variable, querySupplier, querySupplier.get(variable)));
+            Field variables = MolangQueries.class.getDeclaredField("VARIABLES");
+            variables.setAccessible(true);
+            queries = (Map<String, Variable>) variables.get(null);
+            queries.values().forEach(variable -> queryValues.put(variable, variable.value().get()));
+            actorField = MolangQueries.class.getDeclaredField("ACTOR");
+            actorField.setAccessible(true);
+            savedActor = actorField.get(null);
             // Gecko renderers use this field for model variants. Scope it to the preview,
             // including when a transformed world entity was the last rendered instance.
             for (String name : List.of("animatable", "entityRenderTranslations", "modelRenderTranslations")) {
@@ -121,7 +127,7 @@ final class GeckoPreviewSampler {
             // Prime clip/transition at zero before seeking into the chosen animation.
             for (double time : new double[] {0, 0, sample}) {
                 state.animationTick = time;
-                processor.preAnimationSetup(animated, time);
+                processor.preAnimationSetup(state, time);
                 processor.tickAnimation(animated, model, manager, time, state, false);
             }
             model.setCustomAnimations(animated, renderer.getInstanceId(entity), state);
@@ -132,7 +138,7 @@ final class GeckoPreviewSampler {
             // live combat lighting/effect helpers that are absent on an unspawned preview.
             GeoRenderer mesh = preview.configured() ? new PreviewMesh(model, animated) : renderer;
             mesh.reRender(baked, pose, buffers, animated, type, buffers.getBuffer(type), 0,
-                    light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
+                    light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             LogUtils.getLogger().debug("Abyss preview {} samples {} at {} ticks", entity.getType(), clip, sample);
             return true;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
@@ -143,9 +149,12 @@ final class GeckoPreviewSampler {
             for (SavedField field : boneState) field.restore();
             for (SavedField field : rendererState) field.restore();
             for (SavedField field : queryState) field.restore();
-            if (querySupplier != null) for (var entry : MolangParser.VARIABLES.entrySet()) {
-                if (!originalQueries.contains(entry.getKey()))
-                    new SavedField(entry.getValue(), querySupplier, (DoubleSupplier) () -> 0).restore();
+            queryValues.forEach(Variable::set);
+            if (queries != null) for (Variable variable : queries.values())
+                if (!queryValues.containsKey(variable)) variable.set(() -> 0);
+            if (actorField != null) {
+                try { actorField.set(null, savedActor); }
+                catch (IllegalAccessException exception) { throw new IllegalStateException(exception); }
             }
             if (processor != null) processor.reloadAnimations = reload;
             pose.popPose();

@@ -3,6 +3,7 @@ package com.pla.spiral_abyss.encounter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import java.util.Objects;
+import net.minecraft.core.HolderLookup;
 
 /** One opened chest's immutable reward roll and independently persisted release cursor. */
 public final class ChestPayout {
@@ -35,18 +36,18 @@ public final class ChestPayout {
     public void complete() {
         pending = null; chestTicks = -1; releasedItems = 0; dirty.run();
     }
-    public CompoundTag save() {
+    public CompoundTag save(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         if (pending != null) {
-            tag.put("Pending", pending.save());
+            tag.put("Pending", pending.save(registries));
             tag.putInt("ChestTicks", chestTicks); tag.putInt("ReleasedItems", releasedItems);
         }
         return tag;
     }
-    public static ChestPayout load(CompoundTag tag, Runnable dirty) {
+    public static ChestPayout load(CompoundTag tag, Runnable dirty, HolderLookup.Provider registries) {
         ChestPayout payout = new ChestPayout(dirty);
         if (tag.contains("Pending")) {
-            payout.pending = FloorRewards.Bundle.load(tag.getCompound("Pending"));
+            payout.pending = FloorRewards.Bundle.load(tag.getCompound("Pending"), registries);
             payout.chestTicks = Math.max(0, tag.getInt("ChestTicks"));
             payout.releasedItems = Math.max(0, Math.min(tag.getInt("ReleasedItems"), payout.pending.items().size()));
         }

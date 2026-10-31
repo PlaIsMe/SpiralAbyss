@@ -10,21 +10,21 @@ import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ThrownEnderpearl;
 import net.minecraft.world.phys.EntityHitResult;
-import net.minecraftforge.event.entity.ProjectileImpactEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDamageEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
-import net.minecraftforge.event.entity.living.LivingUseTotemEvent;
-import net.minecraftforge.event.entity.living.ShieldBlockEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.entity.player.ArrowLooseEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingUseTotemEvent;
+import net.neoforged.neoforge.event.entity.living.LivingShieldBlockEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.player.ArrowLooseEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 /** Damage hooks collect evidence; FloorController confirms death and evaluates stars. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class ChallengeEvents {
     private ChallengeEvents() {}
     private static ChallengeTracker tracker(Mob mob) {
@@ -34,7 +34,7 @@ public final class ChallengeEvents {
         return session == null ? null : session.controller().challengeTracker();
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void damage(LivingDamageEvent event) {
+    public static void damage(LivingDamageEvent.Post event) {
         if (event.getEntity() instanceof ServerPlayer player && player.level().dimension().equals(AbyssDimension.LEVEL)) {
             var session = AbyssParties.get(player.server).sessionFor(player);
             if (session != null && session.controller().challengeTracker() != null)
@@ -76,7 +76,7 @@ public final class ChallengeEvents {
             session.controller().challengeTracker().totemUsed(player, event);
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void shield(ShieldBlockEvent event) {
+    public static void shield(LivingShieldBlockEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !player.level().dimension().equals(AbyssDimension.LEVEL)) return;
         var session = AbyssParties.get(player.server).sessionFor(player);
         if (session != null && session.controller().challengeTracker() != null)

@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.boss_enviroment;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.WaveAllies;
 import com.pla.spiral_abyss.encounter.WaveSpawner;
@@ -12,7 +13,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import com.pla.spiral_abyss.world.ArenaFlight;
@@ -91,8 +91,8 @@ final class BossPlacedEntities {
 
     void spawn(ServerLevel level, ArenaBounds bounds, UUID host, Mob boss, BossEnvironmentCatalog.Profile profile) {
         for (var entry : profile.entities()) {
-            var type = ForgeRegistries.ENTITY_TYPES.getValue(entry.id());
-            if (!ForgeRegistries.ENTITY_TYPES.containsKey(entry.id()) || type == null) {
+            var type = BuiltInRegistries.ENTITY_TYPE.get(entry.id());
+            if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entry.id()) || type == null) {
                 LogUtils.getLogger().warn("Skipping unavailable environment entity {}", entry.id()); continue;
             }
             for (int count = 0; count < entry.count(); count++) {
@@ -110,7 +110,7 @@ final class BossPlacedEntities {
                 if (entity instanceof Mob mob) {
                     SpawnGroupData group = mob instanceof Zombie
                             ? new Zombie.ZombieGroupData(false, false) : null;
-                    mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(anchor)), MobSpawnType.COMMAND, group, null);
+                    mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(anchor)), MobSpawnType.COMMAND, group);
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard); mob.stopRiding();
                     mob.setPersistenceRequired(); mob.setTarget(boss.getTarget());
                     anchor = entry.position().resolve(bounds.center(), mob.getBbWidth() / 2);

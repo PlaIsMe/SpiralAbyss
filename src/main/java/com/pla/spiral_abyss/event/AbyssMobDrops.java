@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.event;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.encounter.WaveSpawner;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
@@ -12,14 +13,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDropsEvent;
-import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.minecraft.world.InteractionResult;
 import java.util.Set;
 import com.pla.spiral_abyss.encounter.MobTickContext;
@@ -28,7 +28,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 
 /** Shared policy for death loot, custom drops and live-mob item drops. Players are excluded. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssMobDrops {
     public static final String NO_PICKUP = "spiral_abyss_no_pickup";
     private AbyssMobDrops() {}
@@ -44,7 +44,7 @@ public final class AbyssMobDrops {
     public static boolean suppressAuxiliary(Entity entity) {
         return !entity.level().isClientSide && entity.level().dimension().equals(AbyssDimension.LEVEL)
                 && !(entity instanceof LivingEntity) && !(entity instanceof ItemEntity)
-                && MobCatalog.suppressesSpawn(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()));
+                && MobCatalog.suppressesSpawn(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
     }
 
     /** Block-state filter for custom falling-block death effects, scoped to their dying wave mob. */
@@ -52,12 +52,12 @@ public final class AbyssMobDrops {
         if (!(level instanceof ServerLevel serverLevel) || !level.dimension().equals(AbyssDimension.LEVEL)) return false;
         var targets = MobCatalog.suppressedFallingBlocks();
         if (targets.isEmpty()) return false;
-        var block = ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        var block = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         if (targets.values().stream().noneMatch(blocks -> blocks.contains(block))) return false;
         for (Entity entity : serverLevel.getAllEntities()) {
             if (!(entity instanceof Mob mob) || mob.isAlive() || !mob.blockPosition().equals(pos)
                     || !mob.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)) continue;
-            var owner = ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
+            var owner = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
             if (targets.getOrDefault(owner, Set.of()).contains(block)) return true;
         }
         return false;

@@ -1,20 +1,20 @@
 package com.pla.spiral_abyss.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
 public final class AbyssConfig {
-    public static final ForgeConfigSpec SPEC;
-    public static final ForgeConfigSpec.BooleanValue MIX_MOBS;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> MOB_BLACKLIST;
-    public static final ForgeConfigSpec.IntValue RESET_DAYS;
-    public static final ForgeConfigSpec.BooleanValue BROADCAST_RARE_LOOT;
-    public static final ForgeConfigSpec.DoubleValue RARE_REWARD_CHANCE;
-    public static final ForgeConfigSpec.BooleanValue ABYSSAL_REJECTION;
+    public static final ModConfigSpec SPEC;
+    public static final ModConfigSpec.BooleanValue MIX_MOBS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_BLACKLIST;
+    public static final ModConfigSpec.IntValue RESET_DAYS;
+    public static final ModConfigSpec.BooleanValue BROADCAST_RARE_LOOT;
+    public static final ModConfigSpec.DoubleValue RARE_REWARD_CHANCE;
+    public static final ModConfigSpec.BooleanValue ABYSSAL_REJECTION;
     static {
-        var builder = new ForgeConfigSpec.Builder();
+        var builder = new ModConfigSpec.Builder();
         ABYSSAL_REJECTION = builder.comment("Reduce a player's damage to floor 5/6 bosses by 60% until they defeat that species outside the Abyss.",
                 "Preserves normal boss progression. Disable for packs that intentionally allow Abyss-first boss encounters.")
                 .define("abyssal_rejection", true);

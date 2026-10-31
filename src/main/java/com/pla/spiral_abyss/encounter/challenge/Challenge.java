@@ -1,10 +1,11 @@
 package com.pla.spiral_abyss.encounter.challenge;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraftforge.registries.ForgeRegistries;
+import com.pla.spiral_abyss.encounter.challenge.ChallengeCatalog;
 import java.util.*;
 
 /** A concrete cycle roll, shared by every wave of one floor. */
@@ -56,13 +57,13 @@ public record Challenge(Type type, Difficulty difficulty, int target, double per
     }
     private Component registryName(ResourceLocation id) {
         return switch (type) {
-            case ARMOR_ENCHANTMENT, WEAPON_ENCHANTMENT -> ForgeRegistries.ENCHANTMENTS.containsKey(id)
-                    ? Component.translatable(ForgeRegistries.ENCHANTMENTS.getValue(id).getDescriptionId()) : Component.literal(id.toString());
-            case WEAPON -> ForgeRegistries.ITEMS.containsKey(id) ? ForgeRegistries.ITEMS.getValue(id).getDescription() : Component.literal(id.toString());
-            case PLAYER_EFFECT, MOB_EFFECT -> ForgeRegistries.MOB_EFFECTS.containsKey(id)
-                    ? ForgeRegistries.MOB_EFFECTS.getValue(id).getDisplayName() : Component.literal(id.toString());
-            case PROJECTILE -> ForgeRegistries.ENTITY_TYPES.containsKey(id)
-                    ? ForgeRegistries.ENTITY_TYPES.getValue(id).getDescription() : Component.literal(id.toString());
+            case ARMOR_ENCHANTMENT, WEAPON_ENCHANTMENT -> ChallengeCatalog.enchantment(id) != null
+                    ? ChallengeCatalog.enchantment(id).value().description() : Component.literal(id.toString());
+            case WEAPON -> BuiltInRegistries.ITEM.containsKey(id) ? BuiltInRegistries.ITEM.get(id).getDescription() : Component.literal(id.toString());
+            case PLAYER_EFFECT, MOB_EFFECT -> BuiltInRegistries.MOB_EFFECT.containsKey(id)
+                    ? BuiltInRegistries.MOB_EFFECT.get(id).getDisplayName() : Component.literal(id.toString());
+            case PROJECTILE -> BuiltInRegistries.ENTITY_TYPE.containsKey(id)
+                    ? BuiltInRegistries.ENTITY_TYPE.get(id).getDescription() : Component.literal(id.toString());
             default -> Component.literal(id.toString());
         };
     }

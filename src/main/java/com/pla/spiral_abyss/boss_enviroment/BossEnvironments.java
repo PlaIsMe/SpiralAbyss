@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.boss_enviroment;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.DragonArena;
 import com.pla.spiral_abyss.encounter.WaveSpawner;
 
@@ -19,7 +20,6 @@ import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.util.*;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
@@ -91,7 +91,7 @@ public final class BossEnvironments {
         if (cleaning()) throw new IllegalStateException("Previous boss terrain is still retracting");
         BlockPos center = BlockPos.containing(bounds.center());
         for (Mob mob : mobs) {
-            Profile profile = BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+            Profile profile = BossEnvironmentCatalog.get(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
             if (profile == null || effects.containsKey(mob.getUUID())) continue;
             List<BossTerrainPlan.Placement> plan = new ArrayList<>(BossTerrainPlan.patches(profile, center, level.random));
             plan.removeIf(placement -> {

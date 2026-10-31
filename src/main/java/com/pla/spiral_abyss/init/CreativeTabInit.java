@@ -4,16 +4,18 @@ import com.pla.spiral_abyss.SpiralAbyss;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.*;
-import net.minecraftforge.registries.*;
+import net.neoforged.neoforge.registries.*;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomModelData;
 
 public final class CreativeTabInit {
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, SpiralAbyss.MOD_ID);
-    public static final RegistryObject<CreativeModeTab> SPIRAL_ABYSS = TABS.register("spiral_abyss", () -> CreativeModeTab.builder()
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> SPIRAL_ABYSS = TABS.register("spiral_abyss", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.spiral_abyss"))
             .icon(() -> {
                 // Use the supplied key artwork only for the tab, without registering a key item.
                 ItemStack icon = new ItemStack(ItemInit.ABYSS_GATE_ACTIVATE_BLOCK_ITEM.get());
-                icon.getOrCreateTag().putInt("CustomModelData", 1);
+                icon.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(1));
                 return icon;
             })
             .displayItems((parameters, output) -> {

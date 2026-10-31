@@ -31,8 +31,10 @@ public final class AbyssSkyEffects extends DimensionSpecialEffects {
     @Override public Vec3 getBrightnessDependentFogColor(Vec3 color, float brightness) { return new Vec3(0.025, 0.045, 0.1); }
     @Override public boolean isFoggyAt(int x, int z) { return false; }
     @Override public float[] getSunriseColor(float time, float partialTick) { return null; }
-    @Override public boolean renderSky(ClientLevel level, int ticks, float partialTick, PoseStack pose,
+    @Override public boolean renderSky(ClientLevel level, int ticks, float partialTick, Matrix4f modelView,
                                        Camera camera, Matrix4f projection, boolean foggy, Runnable setupFog) {
+        PoseStack pose = new PoseStack();
+        pose.mulPose(modelView);
         setupFog.run();
         if (foggy || camera.getFluidInCamera() != FogType.NONE
                 || (camera.getEntity() instanceof LivingEntity living
@@ -47,27 +49,26 @@ public final class AbyssSkyEffects extends DimensionSpecialEffects {
             RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
             RenderSystem.setShaderTexture(0, TEXTURE);
             RenderSystem.setShaderColor(1, 1, 1, 1);
-            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
             Matrix4f matrix = pose.last().pose();
             for (int face = 0; face < FACES.length; face++) {
                 float u0 = (face % 3) / 3F, u1 = u0 + 1F / 3F;
                 float v0 = (face / 3) / 2F, v1 = v0 + 0.5F;
                 for (int corner = 0; corner < 4; corner++) {
                     float[] xyz = FACES[face][corner];
-                    buffer.vertex(matrix, xyz[0] * 100, xyz[1] * 100, xyz[2] * 100)
-                            .uv(corner < 2 ? u0 : u1, corner == 0 || corner == 3 ? v0 : v1)
-                            .color(255, 255, 255, 255).endVertex();
+                    buffer.addVertex(matrix, xyz[0] * 100, xyz[1] * 100, xyz[2] * 100)
+                            .setUv(corner < 2 ? u0 : u1, corner == 0 || corner == 3 ? v0 : v1)
+                            .setColor(255, 255, 255, 255);
                 }
             }
-            BufferUploader.drawWithShader(buffer.end());
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
         } finally {
             pose.popPose(); RenderSystem.depthMask(true); RenderSystem.setShaderColor(1, 1, 1, 1); setupFog.run();
         }
         return true;
     }
     @Override public boolean renderClouds(ClientLevel level, int ticks, float partialTick, PoseStack pose,
-                                          double x, double y, double z, Matrix4f projection) { return true; }
+                                          double x, double y, double z, Matrix4f modelView, Matrix4f projection) { return true; }
     @Override public boolean renderSnowAndRain(ClientLevel level, int ticks, float partialTick, LightTexture light,
                                                double x, double y, double z) { return true; }
     @Override public boolean tickRain(ClientLevel level, int ticks, Camera camera) { return true; }

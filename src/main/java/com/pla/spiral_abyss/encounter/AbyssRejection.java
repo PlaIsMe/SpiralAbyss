@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.config.AbyssConfig;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
@@ -8,14 +9,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
-import net.minecraftforge.event.entity.living.LivingDamageEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 /** Per-attacker boss protection. No client flag participates in damage authorization. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID)
 public final class AbyssRejection {
     public static final float DAMAGE_MULTIPLIER = 0.4F;
     private AbyssRejection() {}
@@ -33,7 +33,7 @@ public final class AbyssRejection {
     }
     public static ResourceLocation bossId(LivingEntity victim) {
         var root = ResourceLocation.tryParse(victim.getPersistentData().getString(EncounterReinforcements.PHASE_BOSS));
-        return root != null && MobCatalog.isBoss(root) ? root : ForgeRegistries.ENTITY_TYPES.getKey(victim.getType());
+        return root != null && MobCatalog.isBoss(root) ? root : BuiltInRegistries.ENTITY_TYPE.getKey(victim.getType());
     }
     public static ServerPlayer attacker(DamageSource source) {
         ServerPlayer player = playerOwner(source.getEntity());
@@ -50,8 +50,8 @@ public final class AbyssRejection {
         return null;
     }
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void scaleDamage(LivingDamageEvent event) {
+    public static void scaleDamage(LivingDamageEvent.Pre event) {
         if (!event.getEntity().level().isClientSide && applies(attacker(event.getSource()), event.getEntity()))
-            event.setAmount(event.getAmount() * DAMAGE_MULTIPLIER);
+            event.setNewDamage(event.getNewDamage() * DAMAGE_MULTIPLIER);
     }
 }

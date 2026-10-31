@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.data.FloorCatalog;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
@@ -12,19 +13,24 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.storage.loot.LootDataId;
-import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 import java.util.*;
 import com.mojang.logging.LogUtils;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import com.mojang.serialization.Dynamic;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.datafix.DataFixers;
+import net.minecraft.util.datafix.fixes.References;
 
 /** Roll once when claiming a chest for its currently eligible roster, then persist the payout. */
 public final class FloorRewards {
@@ -32,10 +38,10 @@ public final class FloorRewards {
     private FloorRewards() {}
     static void resetMissingTableLogs() { missingTables.clear(); }
     static LootTable table(MinecraftServer server, ResourceLocation id) {
-        LootTable table = server.getLootData().getElement(new LootDataId<>(LootDataType.TABLE, id));
+        LootTable table = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).get(ResourceKey.create(Registries.LOOT_TABLE, id)).map(Holder::value).orElse(null);
         if (table == null && (id.getNamespace().equals("minecraft") || ModList.get().isLoaded(id.getNamespace()))
                 && missingTables.add(id)) LogUtils.getLogger().warn(
-                "[Spiral Abyss] Ignoring unavailable reward loot table {} (missing or failed to load). Check the configured ID and data/{}/loot_tables/{}.json; other available rewards remain usable.",
+                "[Spiral Abyss] Ignoring unavailable reward loot table {} (missing or failed to load). Check the configured ID and data/{}/loot_table/{}.json; other available rewards remain usable.",
                 id, id.getNamespace(), id.getPath());
         return table;
     }
@@ -58,17 +64,28 @@ public final class FloorRewards {
         public Bundle(List<ItemStack> items, int experience) { this(items, experience, Set.of()); }
         public boolean rare(int index) { return rareItems.contains(index); }
         public boolean hasRareItems() { return !rareItems.isEmpty(); }
-        public CompoundTag save() {
+        public CompoundTag save(HolderLookup.Provider registries) {
             CompoundTag tag = new CompoundTag();
             ListTag stacks = new ListTag();
-            items.forEach(stack -> stacks.add(stack.save(new CompoundTag())));
-            tag.put("Items", stacks); tag.putInt("Experience", experience);
+            items.forEach(stack -> stacks.add(stack.saveOptional(registries)));
+            tag.put("Items", stacks);
+            tag.putInt("ItemDataVersion", SharedConstants.getCurrentVersion().getDataVersion().getVersion()); tag.putInt("Experience", experience);
             tag.putIntArray("RareItems", rareItems.stream().sorted().mapToInt(Integer::intValue).toArray());
             return tag;
         }
-        public static Bundle load(CompoundTag tag) {
+        public static Bundle load(CompoundTag tag, HolderLookup.Provider registries) {
             List<ItemStack> stacks = new ArrayList<>();
-            tag.getList("Items", Tag.TAG_COMPOUND).forEach(value -> stacks.add(ItemStack.of((CompoundTag) value)));
+            int version = tag.contains("ItemDataVersion") ? tag.getInt("ItemDataVersion") : 3465; // Minecraft 1.20.1
+            int currentVersion = SharedConstants.getCurrentVersion().getDataVersion().getVersion();
+            tag.getList("Items", Tag.TAG_COMPOUND).forEach(value -> {
+                CompoundTag item = (CompoundTag) value;
+                if (!item.isEmpty() && version < currentVersion) {
+                    item = (CompoundTag) DataFixers.getDataFixer().update(
+                            References.ITEM_STACK,
+                            new Dynamic<>(NbtOps.INSTANCE, item), version, currentVersion).getValue();
+                }
+                stacks.add(ItemStack.parseOptional(registries, item));
+            });
             Set<Integer> rare = new HashSet<>();
             for (int index : tag.getIntArray("RareItems")) rare.add(index);
             return new Bundle(stacks, tag.getInt("Experience"), rare);
@@ -112,7 +129,7 @@ public final class FloorRewards {
                 if (table == null) break;
                 attempted.add(table.id());
                 if (level.random.nextDouble() >= table.chance()) continue;
-                var rolled = level.getServer().getLootData().getLootTable(table.id()).getRandomItems(params)
+                var rolled = table(level.getServer(), table.id()).getRandomItems(params)
                         .stream().filter(stack -> !stack.isEmpty()).toList();
                 if (rolled.isEmpty()) continue;
                 items.addAll(rolled);
@@ -125,10 +142,10 @@ public final class FloorRewards {
         if (tier == 3) {
             var rare = rarePool.singleBonus(rareBonuses, level.random, eligiblePlayers);
             if (rare != null) {
-                var item = ForgeRegistries.ITEMS.getValue(rare.id());
+                var item = BuiltInRegistries.ITEM.get(rare.id());
                 if (item != null && item != Items.AIR) {
                     rareItems.add(items.size());
-                    items.add(RewardItems.stack(rare, RewardPool.RARE_COUNT));
+                    items.add(RewardItems.stack(level.registryAccess(), rare, RewardPool.RARE_COUNT));
                 }
             }
         }
@@ -139,18 +156,18 @@ public final class FloorRewards {
         for (var requested : bonuses) {
             var entry = pool.bonus(requested, level.random);
             if (entry == null || level.random.nextDouble() >= entry.chance()) continue;
-            var item = ForgeRegistries.ITEMS.getValue(entry.id());
+            var item = BuiltInRegistries.ITEM.get(entry.id());
             if (item == null || item == Items.AIR) continue;
             int count = entry.minCount() + level.random.nextInt(entry.maxCount() - entry.minCount() + 1);
             while (count > 0) {
-                ItemStack stack = RewardItems.stack(entry, 1);
+                ItemStack stack = RewardItems.stack(level.registryAccess(), entry, 1);
                 stack.setCount(Math.min(count, stack.getMaxStackSize()));
                 items.add(stack); count -= stack.getCount();
             }
         }
     }
     private static boolean availableItem(FloorDefinition.RewardEntry entry) {
-        return ForgeRegistries.ITEMS.containsKey(entry.id()) && ForgeRegistries.ITEMS.getValue(entry.id()) != Items.AIR;
+        return BuiltInRegistries.ITEM.containsKey(entry.id()) && BuiltInRegistries.ITEM.get(entry.id()) != Items.AIR;
     }
     public static void releaseItem(ServerLevel level, Vec3 position, ItemStack stack) {
         releaseItem(level, position, stack, false);

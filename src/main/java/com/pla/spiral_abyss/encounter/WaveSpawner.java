@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.core.BlockPos;
@@ -8,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import com.pla.spiral_abyss.boss_enviroment.BossEnvironmentCatalog;
@@ -44,7 +44,7 @@ public final class WaveSpawner {
         List<Mob> created = new ArrayList<>();
         try {
             for (var entry : composition) {
-                EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(entry.id());
+                EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(entry.id());
                 for (int i = 0; i < entry.count(); i++) {
                     Entity entity = type == null ? null : type.create(level);
                     if (!(entity instanceof Mob mob)) {
@@ -56,7 +56,7 @@ public final class WaveSpawner {
                     // Keep zombie examples from adding random chicken jockeys outside the mob list.
                     SpawnGroupData group = mob instanceof Zombie ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
-                            MobSpawnType.COMMAND, group, null);
+                            MobSpawnType.COMMAND, group);
                     MobSpawnData.apply(mob, MobSpawnData.parse(MobCatalog.bossOptions(entry.id()).spawnNbt()));
                     var initialState = MobCatalog.bossOptions(entry.id()).spawnIntegers();
                     if (!initialState.isEmpty()) {
@@ -103,8 +103,8 @@ public final class WaveSpawner {
     }
 
     public boolean place(ServerLevel level, Mob mob, Vec3 center) {
-        double spawnY = center.y + MobCatalog.bossOptions(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType())).spawnYOffset();
-        var environment = BossEnvironmentCatalog.get(ForgeRegistries.ENTITY_TYPES.getKey(mob.getType()));
+        double spawnY = center.y + MobCatalog.bossOptions(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())).spawnYOffset();
+        var environment = BossEnvironmentCatalog.get(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
         if (environment != null && environment.centered()) {
             level.getChunkAt(BlockPos.containing(center));
             mob.moveTo(center.x, spawnY, center.z, 0, 0);

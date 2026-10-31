@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.encounter;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.google.gson.*;
 import com.pla.spiral_abyss.encounter.data.FloorDefinition;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
@@ -10,17 +11,17 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.*;
-import net.minecraftforge.registries.ForgeRegistries;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 import net.minecraft.world.item.ItemStack;
+import com.mojang.serialization.JsonOps;
 
 /** Describes possible rewards without executing loot rolls or consuming the world's random stream. */
 public final class RewardPreviews {
     public static final int MAX_REWARDS = 128, MAX_CONTENTS = 128;
     private final MinecraftServer server;
-    private final Gson gson = Deserializers.createLootTableSerializer().create();
+
     private final Map<ResourceLocation, Contents> cache = new HashMap<>();
     private record Contents(List<ResourceLocation> items, boolean incomplete) {}
     private record PreviewKey(ResourceLocation id, boolean item, boolean rare, Map<ResourceLocation, Integer> enchantments) {}
@@ -53,7 +54,7 @@ public final class RewardPreviews {
             if (result.size() >= MAX_REWARDS) break;
             if (entry.item()) {
                 if (available(entry.id())) result.add(new RewardPreview(entry.id(), false, entry.rare(), List.of(), false,
-                        RewardItems.stack(entry, 1), entry.rare() ? rareChance : 0));
+                        RewardItems.stack(server.registryAccess(), entry, 1), entry.rare() ? rareChance : 0));
             } else if (table(entry.id()) != null) {
                 Contents contents = cache.computeIfAbsent(entry.id(), id -> {
                     Scan scan = new Scan(); scanTable(id, scan, 0);
@@ -70,7 +71,7 @@ public final class RewardPreviews {
         return FloorRewards.table(server, id);
     }
     private static boolean available(ResourceLocation id) {
-        return ForgeRegistries.ITEMS.containsKey(id) && ForgeRegistries.ITEMS.getValue(id) != Items.AIR;
+        return BuiltInRegistries.ITEM.containsKey(id) && BuiltInRegistries.ITEM.get(id) != Items.AIR;
     }
     private void add(ResourceLocation id, Scan scan) {
         if (!available(id)) return;
@@ -87,7 +88,7 @@ public final class RewardPreviews {
             // invoke optional mods' serializers, including ones linked against a
             // different Gson version than Minecraft ships.
             ResourceLocation source = ResourceLocation.fromNamespaceAndPath(id.getNamespace(),
-                    "loot_tables/" + id.getPath() + ".json");
+                    "loot_table/" + id.getPath() + ".json");
             var resource = server.getResourceManager().getResource(source);
             if (resource.isPresent()) {
                 try (Reader reader = resource.get().openAsReader()) {
@@ -96,7 +97,7 @@ public final class RewardPreviews {
                 return;
             }
             // Some mods build tables in memory, without a datapack resource.
-            scan(gson.toJsonTree(table, LootTable.class), scan, depth + 1, transforms);
+            scan(LootTable.DIRECT_CODEC.encodeStart(server.registryAccess().createSerializationContext(JsonOps.INSTANCE), table).getOrThrow(), scan, depth + 1, transforms);
         } catch (IOException | RuntimeException | LinkageError ex) {
             // Custom entries may not support serialization. A partial preview is honest about that.
             scan.incomplete = true;
@@ -115,12 +116,20 @@ public final class RewardPreviews {
                     ? ResourceLocation.tryParse(object.get("name").getAsString()) : null;
             switch (type) {
                 case "minecraft:item" -> { if (id != null) addTransformed(id, state, transforms); }
-                case "minecraft:loot_table" -> { if (id != null) scanTable(id, state, depth + 1, transforms); }
+                case "minecraft:loot_table" -> {
+                    JsonElement nested = object.get("value");
+                    if (nested != null && nested.isJsonObject()) scan(nested, state, depth + 1, transforms);
+                    else if (nested != null && nested.isJsonPrimitive()) {
+                        var reference = ResourceLocation.tryParse(nested.getAsString());
+                        if (reference != null) scanTable(reference, state, depth + 1, transforms);
+                        else state.incomplete = true;
+                    } else state.incomplete = true;
+                }
                 case "minecraft:tag" -> {
                     final int appliedTransforms = transforms;
                     if (id != null) server.registryAccess().registryOrThrow(Registries.ITEM)
                             .getTag(TagKey.create(Registries.ITEM, id)).ifPresent(tag -> tag.forEach(item ->
-                                    addTransformed(ForgeRegistries.ITEMS.getKey(item.value()), state, appliedTransforms)));
+                                    addTransformed(BuiltInRegistries.ITEM.getKey(item.value()), state, appliedTransforms)));
                 }
                 case "minecraft:empty", "minecraft:alternatives", "minecraft:sequence", "minecraft:group",
                         "minecraft:chest" -> { }

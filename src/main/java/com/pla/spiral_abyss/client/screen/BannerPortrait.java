@@ -39,16 +39,15 @@ final class BannerPortrait {
             RenderSystem.defaultBlendFunc();
             RenderSystem.disableDepthTest();
             Matrix4f matrix = graphics.pose().last().pose();
-            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
             // Framebuffer textures have their origin at the lower left.
             float u0 = (float) crop.x / portrait.width, u1 = (float) (crop.x + crop.width) / portrait.width;
             float v0 = 1F - (float) (crop.y + crop.height) / portrait.height, v1 = 1F - (float) crop.y / portrait.height;
-            buffer.vertex(matrix, left, top + drawHeight, 0).uv(u0, v0).endVertex();
-            buffer.vertex(matrix, left + drawWidth, top + drawHeight, 0).uv(u1, v0).endVertex();
-            buffer.vertex(matrix, left + drawWidth, top, 0).uv(u1, v1).endVertex();
-            buffer.vertex(matrix, left, top, 0).uv(u0, v1).endVertex();
-            BufferUploader.drawWithShader(buffer.end());
+            buffer.addVertex(matrix, left, top + drawHeight, 0).setUv(u0, v0);
+            buffer.addVertex(matrix, left + drawWidth, top + drawHeight, 0).setUv(u1, v0);
+            buffer.addVertex(matrix, left + drawWidth, top, 0).setUv(u1, v1);
+            buffer.addVertex(matrix, left, top, 0).setUv(u0, v1);
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
         } finally {
             previous.restore();
         }

@@ -5,19 +5,20 @@ import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.client.overlay.AbyssEncounterOverlay;
 import com.pla.spiral_abyss.client.overlay.RareRewardOverlay;
 import com.pla.spiral_abyss.client.renderer.*;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent;
-import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.minecraft.resources.ResourceLocation;
 
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public class ModEventBusClientEvents {
     @SubscribeEvent
-    public static void registerOverlays(RegisterGuiOverlaysEvent event) {
-        event.registerAboveAll("encounter", AbyssEncounterOverlay.HUD);
-        event.registerAboveAll("rare_reward", RareRewardOverlay.HUD);
+    public static void registerOverlays(RegisterGuiLayersEvent event) {
+        event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "encounter"), AbyssEncounterOverlay.HUD);
+        event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "rare_reward"), RareRewardOverlay.HUD);
     }
     @SubscribeEvent
     public static void registerDimensionEffects(RegisterDimensionSpecialEffectsEvent event) {

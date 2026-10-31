@@ -7,14 +7,14 @@ import com.pla.spiral_abyss.network.AbyssNetwork;
 import com.pla.spiral_abyss.world.AbyssDimension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.gui.overlay.IGuiOverlay;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraft.client.gui.LayeredDraw;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 /** Display server snapshots without locally advancing the clock during wave delays or server pauses. */
-@Mod.EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
 public final class AbyssEncounterOverlay {
     private static final ItemStack STAR = new ItemStack(Items.NETHER_STAR);
     private static final float HUD_SCALE = 0.882F;
@@ -26,7 +26,9 @@ public final class AbyssEncounterOverlay {
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event) {
         state = AbyssNetwork.EncounterStatus.HIDDEN;
     }
-    public static final IGuiOverlay HUD = (gui, graphics, partialTick, width, height) -> {
+    public static final LayeredDraw.Layer HUD = (graphics, deltaTracker) -> {
+        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
+        int width = graphics.guiWidth(), height = graphics.guiHeight();
         Minecraft client = Minecraft.getInstance();
         if (!state.active() || client.options.hideGui || client.player == null || client.level == null
                 || !client.level.dimension().equals(AbyssDimension.LEVEL)) return;

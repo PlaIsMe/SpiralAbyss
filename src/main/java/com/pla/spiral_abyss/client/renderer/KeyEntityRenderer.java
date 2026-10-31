@@ -61,10 +61,10 @@ public class KeyEntityRenderer extends MobRenderer<KeyEntity, KeyEntityModel<Key
             float[] normal = FACE_NORMALS[face];
             for (int corner = 0; corner < 4; corner++) {
                 float[] point = CUBE_FACES[face][corner];
-                vertices.vertex(pose.pose(), point[0], point[1], point[2])
-                        .color(255, 255, 255, 255).uv(FACE_U[corner], FACE_V[corner])
-                        .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(LightTexture.FULL_BRIGHT)
-                        .normal(pose.normal(), normal[0], normal[1], normal[2]).endVertex();
+                vertices.addVertex(pose.pose(), point[0], point[1], point[2])
+                        .setColor(255, 255, 255, 255).setUv(FACE_U[corner], FACE_V[corner])
+                        .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LightTexture.FULL_BRIGHT)
+                        .setNormal(pose, normal[0], normal[1], normal[2]);
             }
         }
     }

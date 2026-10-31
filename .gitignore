@@ -2,6 +2,7 @@
 .gradle
 .idea
 .vscode
+.eclipse
 build
 run
 bin
@@ -9,3 +10,5 @@ libs
 reference
 .codex
 AGENTS.md
+run-neoforge
+port-*.log
