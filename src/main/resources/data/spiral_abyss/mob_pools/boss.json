@@ -25,7 +25,7 @@
     },
     {
       "item": "minecraft:elytra",
-      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 5}
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
     }
   ],
   [
@@ -38,7 +38,7 @@
     },
     {
       "item": "mowziesmobs:wrought_axe",
-      "enchantment": {"minecraft:sharpness": 5, "minecraft:smite": 3, "minecraft:looting": 3}
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:looting": 3}
     }
   ],
   [
@@ -57,7 +57,7 @@
     "mowziesmobs:umvuthi",
     {
       "environment": ["minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt"],
-      "decoration_environment": ["minecraft:acacia_log", "minecraft:acacia_leaves", "minecraft:campfire"],
+      "decoration_environment": ["minecraft:acacia_log", "minecraft:acacia_leaves"],
       "decoration_placement": "surface",
       "decoration_chance": 0.04
     },
@@ -79,12 +79,12 @@
       "chance": 0.4
     },
     {
-      "item": "aquamirae:coral_lance",
-      "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:mending": 1}
+      "item": "aquamirae:dagger_of_greed",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:looting": 3}
     },
     {
-      "item": "aquamirae:whisper_of_the_abyss",
-      "enchantment": {"minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:mending": 1}
+      "item": "aquamirae:salvager_helmet",
+      "enchantment": {"minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1}
     }
   ],
   [
@@ -240,24 +240,23 @@
     },
     {
       "item": "cataclysm:the_incinerator",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     }
   ],
   [
     "cataclysm:ancient_remnant",
     {
       "environment": ["minecraft:sandstone", "minecraft:cut_sandstone", "minecraft:smooth_sandstone", "cataclysm:polished_sandstone"],
-      "decoration_environment": ["minecraft:chiseled_sandstone", "minecraft:dead_bush"],
+      "decoration_environment": ["minecraft:chiseled_sandstone"],
       "decoration_placement": "surface",
       "decoration_chance": 0.03
     },
     {
-      "item": "cataclysm:wrath_of_the_desert",
-      "enchantment": {"minecraft:power": 5}
+      "item": "cataclysm:wrath_of_the_desert"
     },
     {
       "item": "cataclysm:meat_shredder",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     }
   ],
   [
@@ -282,7 +281,7 @@
     },
     {
       "item": "cataclysm:gauntlet_of_guard",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     }
   ],
   [
@@ -293,7 +292,7 @@
     },
     {
       "item": "cataclysm:tidal_claws",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     }
   ],
   [
@@ -306,7 +305,7 @@
     },
     {
       "item": "cataclysm:soul_render",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     }
   ],
   [
@@ -319,11 +318,11 @@
     },
     {
       "item": "cataclysm:ceraunus",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     },
     {
       "item": "cataclysm:astrape",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:fire_aspect": 2, "minecraft:sharpness": 5, "minecraft:smite": 3}
+      "enchantment": {"minecraft:fire_aspect": 2, "minecraft:sharpness": 5}
     },
     {
       "item": "cataclysm:brontes",
@@ -334,7 +333,7 @@
     "block_factorys_bosses:infernal_dragon",
     {
       "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:cobblestone"],
-      "decoration_environment": ["minecraft:iron_bars", "minecraft:campfire"],
+      "decoration_environment": ["minecraft:iron_bars"],
       "decoration_placement": "surface",
       "decoration_chance": 0.025
     },
@@ -357,7 +356,7 @@
     },
     {
       "item": "block_factorys_bosses:knight_sword",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping": 3, "minecraft:fire_aspect": 2}
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:fire_aspect": 2}
     }
   ],
 
@@ -377,8 +376,8 @@
   [
     "block_factorys_bosses:sandworm",
     {
-      "environment": ["minecraft:sand"],
-      "decoration_environment": ["minecraft:dead_bush"],
+      "environment": ["minecraft:sandstone", "minecraft:smooth_sandstone"],
+      "decoration_environment": ["block_factorys_bosses:bone_remains", "block_factorys_bosses:bone_remains_legs", "block_factorys_bosses:bone_remains_rib_cage"],
       "decoration_placement": "surface",
       "decoration_chance": 0.02
     },
@@ -390,7 +389,7 @@
   [
     "block_factorys_bosses:kraken",
     {
-      "environment": ["minecraft:gravel", "minecraft:clay", "minecraft:stone"],
+      "environment": ["minecraft:clay", "minecraft:stone"],
       "decoration_environment": ["half_water"],
       "decoration_placement": "surface",
       "decoration_chance": 0
@@ -450,7 +449,7 @@
     },
     {
       "item": "bosses_of_mass_destruction:earthdive_spear",
-      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping": 3, "minecraft:fire_aspect": 2}
+      "enchantment": {"minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:sharpness": 5, "minecraft:sweeping_edge": 3, "minecraft:fire_aspect": 2}
     }
   ],
   [
@@ -649,14 +648,14 @@
   [
     "legendary_monsters:dune_sentinel",
     {
-      "environment": ["minecraft:sandstone", "minecraft:sand", "minecraft:smooth_sandstone"],
+      "environment": ["minecraft:sandstone", "minecraft:smooth_sandstone"],
       "decoration_environment": [],
       "decoration_placement": "surface",
       "decoration_chance": 0
     },
     {
       "item": "legendary_monsters:sand_cannon",
-      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1, "minecraft:power": 5, "minecraft:flame": 1}
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
     },
     {
       "item": "legendary_monsters:blastproof_helmet",

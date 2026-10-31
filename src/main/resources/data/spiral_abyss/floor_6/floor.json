@@ -18,17 +18,17 @@
       {"loot_table": "iceandfire:chest/lightning_dragon_male_cave", "weight": 1, "chance": 0.2},
       {"loot_table": "eeeabsmobs:chests/coreforge_ruins_treasure", "weight": 1, "chance": 0.15},
       {
-        "loot_table": "twilightforest:chests/aurora_room",
+        "loot_table": "twilightforest:aurora_room",
         "weight": 1,
         "chance": 0.15
       },
       {
-        "loot_table": "twilightforest:chests/labyrinth_vault_jackpot",
+        "loot_table": "twilightforest:labyrinth_vault_jackpot",
         "weight": 1,
         "chance": 0.15
       },
       {
-        "loot_table": "twilightforest:chests/troll_vault_with_lamp",
+        "loot_table": "twilightforest:troll_vault_with_lamp",
         "weight": 1,
         "chance": 0.15
       },

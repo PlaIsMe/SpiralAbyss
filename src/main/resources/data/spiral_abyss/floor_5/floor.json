@@ -16,32 +16,32 @@
       {"loot_table": "iceandfire:chest/hydra_cave", "weight": 1, "chance": 0.25},
       {"loot_table": "iceandfire:chest/mausoleum_chest", "weight": 1, "chance": 0.2},
       {
-        "loot_table": "twilightforest:chests/aurora_cache",
+        "loot_table": "twilightforest:aurora_cache",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/graveyard",
+        "loot_table": "twilightforest:graveyard",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/labyrinth_vault",
+        "loot_table": "twilightforest:labyrinth_vault",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/stronghold_cache",
+        "loot_table": "twilightforest:stronghold_cache",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/tree_cache",
+        "loot_table": "twilightforest:tree_cache",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/troll_garden",
+        "loot_table": "twilightforest:troll_garden",
         "weight": 1,
         "chance": 0.2
       },

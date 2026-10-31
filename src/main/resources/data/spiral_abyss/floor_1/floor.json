@@ -22,12 +22,12 @@
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/hedge_maze",
+        "loot_table": "twilightforest:hedge_maze",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/well",
+        "loot_table": "twilightforest:well",
         "weight": 1,
         "chance": 0.2
       },

@@ -17,22 +17,22 @@
       {"loot_table": "rats:chest/pet_shop_upstairs", "weight": 1, "chance": 0.15},
       {"loot_table": "eeeabsmobs:chests/coreforge_ruins_factory", "weight": 1, "chance": 0.25},
       {
-        "loot_table": "twilightforest:chests/fancy_well",
+        "loot_table": "twilightforest:fancy_well",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/hill_2",
+        "loot_table": "twilightforest:hill_2",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/labyrinth_dead_end",
+        "loot_table": "twilightforest:labyrinth_dead_end",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/darktower_cache",
+        "loot_table": "twilightforest:darktower_cache",
         "weight": 1,
         "chance": 0.2
       },

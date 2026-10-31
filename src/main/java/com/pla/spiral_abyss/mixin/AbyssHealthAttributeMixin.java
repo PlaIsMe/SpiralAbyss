@@ -15,7 +15,8 @@ public abstract class AbyssHealthAttributeMixin {
             target = "Lnet/minecraft/world/entity/ai/attributes/Attribute;sanitizeValue(D)D"))
     private double spiralAbyss$scaledHealth(Attribute attribute, double value) {
         double sanitized = attribute.sanitizeValue(value);
-        if (attribute == Attributes.MAX_HEALTH && Double.isFinite(value) && value > 1024
+        // The sanitizer receives the attribute itself; 1.21 stores registry constants in holders.
+        if (attribute == Attributes.MAX_HEALTH.value() && Double.isFinite(value) && value > 1024
                 && ((AttributeInstance) (Object) this).getModifier(WaveScaling.HEALTH_MODIFIER) != null)
             return Math.max(sanitized, Math.min(Float.MAX_VALUE, value));
         return sanitized;

@@ -17,27 +17,27 @@
       {"loot_table": "iceandfire:chest/ice_dragon_roost", "weight": 1, "chance": 0.25},
       {"loot_table": "iceandfire:chest/lightning_dragon_roost", "weight": 1, "chance": 0.25},
       {
-        "loot_table": "twilightforest:chests/hill_3",
+        "loot_table": "twilightforest:hill_3",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/labyrinth_room",
+        "loot_table": "twilightforest:labyrinth_room",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/stronghold_room",
+        "loot_table": "twilightforest:stronghold_room",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/darktower_key",
+        "loot_table": "twilightforest:darktower_key",
         "weight": 1,
         "chance": 0.2
       },
       {
-        "loot_table": "twilightforest:chests/troll_vault",
+        "loot_table": "twilightforest:troll_vault",
         "weight": 1,
         "chance": 0.2
       },
