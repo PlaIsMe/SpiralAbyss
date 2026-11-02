@@ -112,7 +112,9 @@ public final class ArenaSession {
         attemptStars = stars.clone(); offeredRewards = rewards;
         displayedTiers = 0;
         players().forEach(player -> player.sendSystemMessage(Component.translatable(
-                "message.spiral_abyss.challenge_result", controller.currentFloor(), Arrays.stream(stars).sum())));
+                "message.spiral_abyss.challenge_result", controller.currentFloor(), Arrays.stream(stars).sum())
+                .append(" ").append(Component.translatable("message.spiral_abyss.menu_hint",
+                        Component.keybind("key.spiral_abyss.menu")))));
         for (ServerPlayer player : players()) {
             if (!rewardParticipants.contains(player.getUUID())) continue;
             var progress = parties.profile(player.getUUID()).progress;
@@ -306,6 +308,8 @@ public final class ArenaSession {
                     int experience = bundle.experience();
                     payout.complete();
                     FloorRewards.releaseExperience(level, chestPosition(tier), experience);
+                    if (!profile.progress.hasPayouts()) players().forEach(player -> player.sendSystemMessage(
+                            Component.translatable("message.spiral_abyss.menu_hint", Component.keybind("key.spiral_abyss.menu"))));
                 }
             }
             refreshDisplay();

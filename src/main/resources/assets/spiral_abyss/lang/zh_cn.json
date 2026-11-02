@@ -1,4 +1,12 @@
 {
+  "screen.spiral_abyss.config.title": "深境客户端设置",
+  "screen.spiral_abyss.config.description": "拖动深境按钮调整位置，修改立即生效。",
+  "screen.spiral_abyss.config.drag": "拖动以移动深境菜单按钮",
+  "screen.spiral_abyss.config.overlap": "按钮与背包预览重叠",
+  "screen.spiral_abyss.config.x": "按钮 X 坐标",
+  "screen.spiral_abyss.config.y": "按钮 Y 坐标",
+  "screen.spiral_abyss.config.reset": "重置位置",
+  "message.spiral_abyss.menu_hint": "按 %s 打开深境菜单，返回主世界或选择楼层。",
   "block.spiral_abyss.spinning_block": "挑战之钥旋转方块",
   "block.spiral_abyss.abyss_base_block": "深境基底方块",
   "block.spiral_abyss.abyss_pillar": "深境石柱",

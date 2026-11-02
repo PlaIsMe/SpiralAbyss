@@ -377,8 +377,8 @@
   [
     "block_factorys_bosses:sandworm",
     {
-      "environment": ["minecraft:sand"],
-      "decoration_environment": ["minecraft:dead_bush"],
+      "environment": ["minecraft:sandstone", "minecraft:smooth_sandstone"],
+      "decoration_environment": ["block_factorys_bosses:bone_remains", "block_factorys_bosses:bone_remains_legs", "block_factorys_bosses:bone_remains_rib_cage"],
       "decoration_placement": "surface",
       "decoration_chance": 0.02
     },
