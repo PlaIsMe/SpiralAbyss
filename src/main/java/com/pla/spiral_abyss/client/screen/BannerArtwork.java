@@ -1,23 +1,37 @@
 package com.pla.spiral_abyss.client.screen;
 
 import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 
 /** Resolution-independent pixel artwork: silver paper, an Abyss seal, and indigo constellations. */
-final class BannerArtwork {
+final class BannerArtwork implements AutoCloseable {
     private record Pixel(int x, int y, int width, int height, int color) {}
     private static final List<Pixel> ART = build();
-    private BannerArtwork() {}
+    private ResourceLocation texture;
 
-    static void render(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.fill(x + 4, y + 6, x + width + 4, y + height + 6, 0x66071628);
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
-        graphics.pose().scale(width / 800F, height / 400F, 1);
-        for (Pixel pixel : ART) graphics.fill(pixel.x, pixel.y, pixel.x + pixel.width,
-                pixel.y + pixel.height, pixel.color);
-        graphics.pose().popPose();
+    void render(GuiGraphics graphics, int x, int y, int width, int height) {
+        if (texture == null) {
+            NativeImage image = new NativeImage(800, 400, true);
+            for (Pixel pixel : ART) {
+                int argb = pixel.color;
+                int abgr = (argb & 0xFF00FF00) | (argb >> 16 & 0xFF) | (argb & 0xFF) << 16;
+                image.fillRect(pixel.x, pixel.y, pixel.width, pixel.height, abgr);
+            }
+            texture = Minecraft.getInstance().getTextureManager().register("abyss_banner", new DynamicTexture(image));
+        }
+        graphics.fill(x + width, y + 6, x + width + 4, y + height + 6, 0x66071628);
+        graphics.fill(x + 4, y + height, x + width, y + height + 6, 0x66071628);
+        graphics.blit(texture, x, y, width, height, 0, 0, 800, 400, 800, 400);
+    }
+
+    @Override public void close() {
+        if (texture != null) Minecraft.getInstance().getTextureManager().release(texture);
+        texture = null;
     }
 
     private static List<Pixel> build() {

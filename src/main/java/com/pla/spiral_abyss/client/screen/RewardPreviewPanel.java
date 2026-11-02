@@ -167,10 +167,12 @@ final class RewardPreviewPanel {
         graphics.renderItem(stack, 0, 0);
         graphics.pose().popPose();
         graphics.pose().pushPose(); graphics.pose().translate(0, 0, 200);
-        graphics.fillGradient(x, y + 1, x + 1, y + tileSize - 1, 0x22000000 | rgb, 0xFF000000 | rgb);
-        graphics.fillGradient(x + tileSize - 1, y + 1, x + tileSize, y + tileSize - 1, 0x22000000 | rgb, 0xFF000000 | rgb);
-        graphics.fill(x + 1, y + tileSize - 1, x + tileSize - 1, y + tileSize, 0xFF000000 | rgb);
-        graphics.fillGradient(x + 1, y + tileSize - 6, x + tileSize - 1, y + tileSize - 1, rgb, 0x55000000 | rgb);
+        graphics.drawManaged(() -> {
+            graphics.fillGradient(x, y + 1, x + 1, y + tileSize - 1, 0x22000000 | rgb, 0xFF000000 | rgb);
+            graphics.fillGradient(x + tileSize - 1, y + 1, x + tileSize, y + tileSize - 1, 0x22000000 | rgb, 0xFF000000 | rgb);
+            graphics.fill(x + 1, y + tileSize - 1, x + tileSize - 1, y + tileSize, 0xFF000000 | rgb);
+            graphics.fillGradient(x + 1, y + tileSize - 6, x + tileSize - 1, y + tileSize - 1, rgb, 0x55000000 | rgb);
+        });
         graphics.pose().popPose();
     }
     boolean scroll(double mouseX, double mouseY, double amount) {
