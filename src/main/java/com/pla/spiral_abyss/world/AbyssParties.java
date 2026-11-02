@@ -310,6 +310,8 @@ public final class AbyssParties {
         // Vanilla initializes clients with the overworld border, even after changing dimensions.
         player.connection.send(new ClientboundInitializeBorderPacket(session.level().getWorldBorder()));
         player.fallDistance = 0; player.setDeltaMovement(Vec3.ZERO);
+        player.sendSystemMessage(Component.translatable("message.spiral_abyss.menu_hint",
+                Component.keybind("key.spiral_abyss.menu")));
         return true;
     }
     public boolean leave(ServerPlayer player) {

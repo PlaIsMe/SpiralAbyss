@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss;
 
 import com.pla.spiral_abyss.config.AbyssConfig;
+import com.pla.spiral_abyss.config.AbyssClientConfig;
 import com.pla.spiral_abyss.config.GearConfig;
 import com.pla.spiral_abyss.init.*;
 import com.pla.spiral_abyss.network.AbyssNetwork;
@@ -19,6 +20,8 @@ public class SpiralAbyss {
         GearConfig.prepare();
         container.registerConfig(ModConfig.Type.COMMON,
                 AbyssConfig.SPEC, "spiral_abyss/spiral_abyss-common.toml");
+        container.registerConfig(ModConfig.Type.CLIENT,
+                AbyssClientConfig.SPEC, "spiral_abyss/spiral_abyss-client.toml");
         EntityInit.ENTITY_TYPES.register(modEventBus);
         BlockInit.BLOCKS.register(modEventBus);
         BlockEntityInit.BLOCK_ENTITIES.register(modEventBus);
