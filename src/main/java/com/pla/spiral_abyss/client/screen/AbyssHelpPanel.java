@@ -65,8 +65,12 @@ public final class AbyssHelpPanel {
             for (Kind kind : Kind.values()) {
                 if (mx >= kind.labelX - 80 && mx <= kind.labelX + 80 && my >= kind.labelY - 5 && my <= kind.labelY + 19) hovered = kind;
             }
-            for (Part part : parts) part.outline(graphics, hovered == part.kind);
-            graphics.flush();
+            Kind selected = hovered;
+            // All silhouette runs share a render type. Flush once before the block models,
+            // rather than submitting every one-pixel run separately.
+            graphics.drawManaged(() -> {
+                for (Part part : parts) part.outline(graphics, selected == part.kind);
+            });
             Lighting.setupFor3DItems();
             graphics.pose().pushPose();
             try {
@@ -119,11 +123,13 @@ public final class AbyssHelpPanel {
         graphics.drawCenteredString(font, Component.translatable("ui.spiral_abyss.help." + kind.key), 0, 0, color);
         graphics.pose().popPose();
         int elbow = kind.labelY + 34;
-        dashed(graphics, kind.labelX, kind.labelY + 19, kind.labelX, elbow, color);
-        dashed(graphics, kind.labelX, elbow, kind.targetX, elbow, color);
-        dashed(graphics, kind.targetX, elbow, kind.targetX, kind.targetY, color);
-        graphics.fill(kind.labelX - 2, kind.labelY + 17, kind.labelX + 3, kind.labelY + 22, color);
-        graphics.fill(kind.targetX - 2, kind.targetY - 2, kind.targetX + 3, kind.targetY + 3, kind.color);
+        graphics.drawManaged(() -> {
+            dashed(graphics, kind.labelX, kind.labelY + 19, kind.labelX, elbow, color);
+            dashed(graphics, kind.labelX, elbow, kind.targetX, elbow, color);
+            dashed(graphics, kind.targetX, elbow, kind.targetX, kind.targetY, color);
+            graphics.fill(kind.labelX - 2, kind.labelY + 17, kind.labelX + 3, kind.labelY + 22, color);
+            graphics.fill(kind.targetX - 2, kind.targetY - 2, kind.targetX + 3, kind.targetY + 3, kind.color);
+        });
     }
 
     private static void dashed(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {

@@ -18,7 +18,7 @@ import net.minecraft.world.item.Item;
 
 /** Read-only cycle showcase. Travel is requested separately and always authorized by the server. */
 public final class AbyssJournalScreen extends Screen {
-    private final JournalWorldBackdrop backdrop = new JournalWorldBackdrop();
+    private final BannerArtwork artwork = new BannerArtwork();
     private final AbyssNetwork.OpenJournal state;
     private final BannerBossRenderer bosses;
     private final AbyssHelpPanel help = new AbyssHelpPanel();
@@ -97,7 +97,8 @@ public final class AbyssJournalScreen extends Screen {
     }
     @Override public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         hoveredTooltip = null;
-        backdrop.render(g, width, height, partialTick);
+        if (helpPage) JournalWorldBackdrop.render(g, width, height, 26, 42, width - 52, height - 52);
+        else JournalWorldBackdrop.render(g, width, height, x, y, w, h);
         if (helpPage) help.render(g, 26, 42, width - 52, height - 52, mouseX, mouseY);
         else renderBanner(g, mouseX, mouseY);
         super.render(g, mouseX, mouseY, partialTick);
@@ -105,7 +106,7 @@ public final class AbyssJournalScreen extends Screen {
     }
     private void renderBanner(GuiGraphics g, int mouseX, int mouseY) {
         float unit = w / 800F;
-        BannerArtwork.render(g, x, y, w, h);
+        artwork.render(g, x, y, w, h);
         int tx = x + Math.round(w * .035F), tw = Math.round(w * .33F);
         long remaining = state == null || state.resetRemainingMillis() < 0 ? -1
                 : Math.max(0, state.resetRemainingMillis() - (Util.getMillis() - openedAt));
@@ -235,6 +236,6 @@ public final class AbyssJournalScreen extends Screen {
         }
         return super.keyPressed(key, scan, modifiers);
     }
-    @Override public void removed() { bosses.clear(); rewardModels.clear(); backdrop.close(); }
+    @Override public void removed() { bosses.clear(); rewardModels.clear(); artwork.close(); }
     @Override public boolean isPauseScreen() { return false; }
 }
