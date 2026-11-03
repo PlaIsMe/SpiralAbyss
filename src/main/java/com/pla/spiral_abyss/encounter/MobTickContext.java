@@ -26,27 +26,37 @@ public final class MobTickContext {
     private MobTickContext() {}
 
     public static void tick(Entity entity, Runnable action) {
+        Mob current = null;
+        Mob blockSource = null;
+        if (entity.level().dimension().equals(AbyssDimension.LEVEL)) {
+            Entity owner = entity instanceof Projectile projectile ? projectile.getOwner() : entity;
+            if (owner instanceof Mob mob && owner.level() == entity.level()
+                    && owner.getType().is(NO_BLOCK_CHANGES) && owner.getPersistentData().hasUUID(WaveSpawner.RUN_TAG))
+                blockSource = mob;
+            if (entity instanceof Mob mob && (entity.getType().is(REMOVAL_LOOT)
+                    || (entity.getType().is(SCRIPTED_LOOT) || entity.getType().is(PROTECT_INVENTORY)
+                    || entity.getType().is(SUPPRESS_DEATH_EFFECTS))
+                    && entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)))
+                current = mob;
+        }
         Mob previous = CURRENT.get();
         Mob previousBlockSource = BLOCK_SOURCE.get();
-        Entity owner = entity instanceof Projectile projectile ? projectile.getOwner() : entity;
-        if (owner instanceof Mob mob && owner.level() == entity.level()
-                && entity.level().dimension().equals(AbyssDimension.LEVEL)
-                && owner.getPersistentData().hasUUID(WaveSpawner.RUN_TAG) && owner.getType().is(NO_BLOCK_CHANGES))
-            BLOCK_SOURCE.set(mob);
-        else BLOCK_SOURCE.remove();
-        if (entity instanceof Mob mob && entity.level().dimension().equals(AbyssDimension.LEVEL)
-                && (entity.getType().is(REMOVAL_LOOT) || entity.getPersistentData().hasUUID(WaveSpawner.RUN_TAG)
-                && (entity.getType().is(SCRIPTED_LOOT) || entity.getType().is(PROTECT_INVENTORY)
-                || entity.getType().is(SUPPRESS_DEATH_EFFECTS))))
-            CURRENT.set(mob);
-        else CURRENT.remove();
+        // Most Abyss entities need neither guard. Do not remove and recreate their
+        // thread-local entries on every tick; nested calls still clear an outer source.
+        boolean changeCurrent = current != previous;
+        boolean changeBlockSource = blockSource != previousBlockSource;
+        if (changeCurrent) set(CURRENT, current);
+        if (changeBlockSource) set(BLOCK_SOURCE, blockSource);
         try { action.run(); }
         finally {
-            if (previous == null) CURRENT.remove();
-            else CURRENT.set(previous);
-            if (previousBlockSource == null) BLOCK_SOURCE.remove();
-            else BLOCK_SOURCE.set(previousBlockSource);
+            if (changeCurrent) set(CURRENT, previous);
+            if (changeBlockSource) set(BLOCK_SOURCE, previousBlockSource);
         }
+    }
+
+    private static void set(ThreadLocal<Mob> context, Mob source) {
+        if (source == null) context.remove();
+        else context.set(source);
     }
 
     public static Mob scriptedRewardSource() {
