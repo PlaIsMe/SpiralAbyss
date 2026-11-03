@@ -84,7 +84,7 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 tasks.named('jar', Jar).configure {
-    destinationDirectory = file("C:/Users/Admin/Desktop/Minecraft/delivery")
+    destinationDirectory = file("C:/Users/Admin/Desktop/Minecraft/delivery/spiral_abyss")
     manifest {
         attributes([
                 'MixinConfigs'           : 'spiral_abyss.mixins.json',
