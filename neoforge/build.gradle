@@ -1,0 +1,52 @@
+plugins { id 'com.gradleup.shadow' }
+architectury { platformSetupLoomIde(); neoForge() }
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentNeoForge.extendsFrom common
+}
+dependencies {
+    modCompileOnly 'curse.maven:geckolib-388172:8893490'
+    modLocalRuntime 'curse.maven:geckolib-388172:8893490'
+
+    neoForge "net.neoforged:neoforge:${rootProject.neo_version}"
+    modImplementation "dev.architectury:architectury-neoforge:${rootProject.architectury_version}"
+    include 'io.github.llamalad7:mixinextras-neoforge:0.5.0'
+    implementation 'io.github.llamalad7:mixinextras-common:0.5.0'
+    implementation 'io.github.llamalad7:mixinextras-neoforge:0.5.0'
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowCommon(project(path: ':common', configuration: 'transformProductionNeoForge')) { transitive = false }
+}
+shadowJar {
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier = 'dev-shadow'
+    // Common was compiled in Fabric's namespace; NeoForge uses the unchanged named selectors.
+    exclude 'spiral_abyss.common.refmap.json'
+}
+remapJar {
+    dependsOn shadowJar
+    inputFile = shadowJar.archiveFile
+    archiveClassifier = ''
+    destinationDirectory = rootProject.file(rootProject.delivery_directory)
+}
+processResources { from('src/main/templates') }
+jar { archiveClassifier = 'dev' }
+sourcesJar {
+    dependsOn ':common:sourcesJar'
+    from project(':common').sourceSets.main.allSource
+}
+def abyssDataModId = rootProject.mod_id
+def abyssGeneratedResources = project(':common').file('src/generated/resources').absolutePath
+def abyssExistingResources = project(':common').file('src/main/resources').absolutePath
+loom {
+    runs {
+        data {
+            data()
+            runDir '../run-multiloader-neoforge-data'
+            programArgs '--mod', abyssDataModId, '--all', '--output', abyssGeneratedResources, '--existing', abyssExistingResources
+        }
+    }
+}
+

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "spiral_abyss",
+  "version": "${mod_version}",
+  "name": "SpiralAbyss",
+  "description": "${mod_description}",
+  "authors": [
+    "pla_is_me"
+  ],
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.pla.spiral_abyss.fabric.SpiralAbyssFabric"
+    ],
+    "client": [
+      "com.pla.spiral_abyss.fabric.client.SpiralAbyssFabricClient"
+    ],
+    "modmenu": [
+      "com.pla.spiral_abyss.fabric.client.AbyssModMenu"
+    ]
+  },
+  "mixins": [
+    "spiral_abyss.mixins.json",
+    "spiral_abyss.fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "architectury": ">=13.0.11",
+    "forgeconfigapiport": ">=21.1.6"
+  },
+  "suggests": {
+    "geckolib": ">=4.9.3",
+    "modmenu": "*"
+  }
+}

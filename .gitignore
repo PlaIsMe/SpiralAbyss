@@ -12,3 +12,7 @@ reference
 AGENTS.md
 run-neoforge
 port-*.log
+
+run-multiloader-fabric
+run-multiloader-neoforge
+run-multiloader-neoforge-data

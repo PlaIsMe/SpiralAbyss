@@ -1,0 +1,30 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.pla.spiral_abyss.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityDataMixin",
+    "EntityJoinMixin",
+    "MobTargetMixin",
+    "PlayerDataMixin",
+    "ExplosionEventsMixin",
+    "ItemPickupMixin",
+    "ProjectileImpactMixin",
+    "BowReleaseMixin",
+    "NaturalSpawnMixin",
+    "BlockDestroyMixin",
+    "ItemPlacementMixin",
+    "LivingDamageMixin",
+    "PlayerDamageMixin",
+    "LivingEventsMixin",
+    "FinalizeSpawnMixin"
+  ],
+  "client": [
+    "client.PortalPresentationMixin",
+    "client.PortalHandMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
