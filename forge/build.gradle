@@ -1,0 +1,53 @@
+plugins { id 'com.github.johnrengelman.shadow' }
+architectury { platformSetupLoomIde(); forge() }
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+dependencies {
+    modCompileOnly 'curse.maven:geckolib-388172:8285794'
+    // The development transformer resolves optional preview superclasses while computing frames.
+    modLocalRuntime 'curse.maven:geckolib-388172:8285794'
+    // Forge's GeckoLib release nests this library; Loom development also needs it directly.
+    forgeRuntimeLibrary 'com.eliotlash.mclib:mclib:20'
+    forge "net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}"
+    modImplementation "dev.architectury:architectury-forge:${rootProject.architectury_version}"
+    include 'io.github.llamalad7:mixinextras-forge:0.5.0'
+    implementation 'io.github.llamalad7:mixinextras-common:0.5.0'
+    implementation 'io.github.llamalad7:mixinextras-forge:0.5.0'
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowCommon(project(path: ':common', configuration: 'transformProductionForge')) { transitive = false }
+}
+shadowJar { configurations = [project.configurations.shadowCommon]; archiveClassifier = 'dev-shadow' }
+remapJar {
+    dependsOn shadowJar
+    inputFile = shadowJar.archiveFile
+    archiveClassifier = ''
+    destinationDirectory = rootProject.file(rootProject.delivery_directory)
+}
+jar { archiveClassifier = 'dev' }
+sourcesJar {
+    dependsOn ':common:sourcesJar'
+    from project(':common').sourceSets.main.allSource
+}
+def abyssDataModId = rootProject.mod_id
+def abyssGeneratedResources = project(':common').file('src/generated/resources').absolutePath
+def abyssExistingResources = project(':common').file('src/main/resources').absolutePath
+loom {
+    runs {
+        data {
+            data()
+            runDir '../run-forge-data'
+            programArgs '--mod', abyssDataModId, '--all', '--output', abyssGeneratedResources, '--existing', abyssExistingResources
+        }
+    }
+    forge {
+        mixinConfig 'spiral_abyss.mixins.json'
+        mixinConfig 'spiral_abyss.forge.mixins.json'
+    }
+}
+
+

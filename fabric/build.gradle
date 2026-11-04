@@ -1,0 +1,36 @@
+plugins { id 'com.github.johnrengelman.shadow' }
+architectury { platformSetupLoomIde(); fabric() }
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentFabric.extendsFrom common
+}
+dependencies {
+    modCompileOnly "com.terraformersmc:modmenu:7.2.2"
+    modCompileOnly 'maven.modrinth:geckolib:SD2lOScS'
+    // The development transformer resolves optional preview superclasses while computing frames.
+    modLocalRuntime 'maven.modrinth:geckolib:SD2lOScS'
+    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    modImplementation "dev.architectury:architectury-fabric:${rootProject.architectury_version}"
+    modImplementation 'maven.modrinth:forge-config-api-port:HvR3IdRE'
+    include 'io.github.llamalad7:mixinextras-fabric:0.5.0'
+    modImplementation 'io.github.llamalad7:mixinextras-fabric:0.5.0'
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowCommon(project(path: ':common', configuration: 'transformProductionFabric')) { transitive = false }
+}
+shadowJar { configurations = [project.configurations.shadowCommon]; archiveClassifier = 'dev-shadow'; duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
+remapJar {
+    dependsOn shadowJar
+    inputFile = shadowJar.archiveFile
+    archiveClassifier = ''
+    destinationDirectory = rootProject.file(rootProject.delivery_directory)
+}
+jar { archiveClassifier = 'dev' }
+sourcesJar {
+    dependsOn ':common:sourcesJar'
+    from project(':common').sourceSets.main.allSource
+}
+

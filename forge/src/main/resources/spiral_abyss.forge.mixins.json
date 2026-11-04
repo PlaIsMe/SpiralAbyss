@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.pla.spiral_abyss.forge.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "ChestLootLifetimeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

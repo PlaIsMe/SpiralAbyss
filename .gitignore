@@ -4,6 +4,9 @@
 .vscode
 build
 run
+run-fabric
+run-forge
+run-forge-data
 bin
 libs
 reference
