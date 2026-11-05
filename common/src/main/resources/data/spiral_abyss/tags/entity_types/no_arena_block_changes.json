@@ -3,6 +3,11 @@
   "values": [
     {"id": "iceandfire:fire_dragon", "required": false},
     {"id": "iceandfire:ice_dragon", "required": false},
-    {"id": "iceandfire:lightning_dragon", "required": false}
+    {"id": "iceandfire:lightning_dragon", "required": false},
+    {"id": "adventurez:blackstone_golem", "required": false},
+    {"id": "adventurez:the_eye", "required": false},
+    {"id": "tofucraft:tofu_gandlem", "required": false},
+    {"id": "tofucraft:tofuspider", "required": false},
+    {"id": "aether:sun_spirit", "required": false}
   ]
 }

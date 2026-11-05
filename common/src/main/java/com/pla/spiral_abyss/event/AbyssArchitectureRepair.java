@@ -41,7 +41,7 @@ public final class AbyssArchitectureRepair {
         pending.blocks.putIfAbsent(pos.immutable(), previous);
     }
 
-    /** Structure rebuilds intentionally remove old architecture, including obsolete template cells. */
+    /** Structure rebuilds and owned temporary environments intentionally replace architecture. */
     public static void edit(ServerLevel level, Runnable action) {
         Pending pending = LEVELS.computeIfAbsent(level, ignored -> new Pending());
         pending.editDepth++;

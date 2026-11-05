@@ -5,6 +5,7 @@
     {"id": "annoyingvillagers:glaive_herobrine", "required": false},
     {"id": "annoyingvillagers:swordsman_herobrine", "required": false},
     {"id": "annoyingvillagers:aegis_herobrine", "required": false},
-    {"id": "annoyingvillagers:sledgehammer_herobrine", "required": false}
+    {"id": "annoyingvillagers:sledgehammer_herobrine", "required": false},
+    {"id": "betterend:end_slime", "required": false}
   ]
 }

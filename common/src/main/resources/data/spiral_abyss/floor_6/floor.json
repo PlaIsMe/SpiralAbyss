@@ -107,6 +107,16 @@
         "loot_table": "minecraft:chests/bastion_treasure",
         "weight": 1,
         "chance": 0.35
+      },
+      {
+        "loot_table": "betterend:chests/end_village_bonus_loot",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_chest",
+        "weight": 1,
+        "chance": 0.15
       }
     ]
   }

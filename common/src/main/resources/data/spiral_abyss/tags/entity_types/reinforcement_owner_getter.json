@@ -8,6 +8,7 @@
     {"id": "eeeabsmobs:corpse", "required": false},
     {"id": "eeeabsmobs:corpse_villager", "required": false},
     {"id": "rats:plague_beast", "required": false},
-    {"id": "rats:plague_cloud", "required": false}
+    {"id": "rats:plague_cloud", "required": false},
+    {"id": "aether:cloud_minion", "required": false}
   ]
 }

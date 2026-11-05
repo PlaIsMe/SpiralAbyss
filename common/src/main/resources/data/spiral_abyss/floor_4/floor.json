@@ -136,6 +136,21 @@
         "loot_table": "minecraft:chests/stronghold_corridor",
         "weight": 1,
         "chance": 0.65
+      },
+      {
+        "loot_table": "aether:chests/dungeon/silver/silver_dungeon",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "betterend:chests/end_village_template_loot",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_ruins_chest",
+        "weight": 1,
+        "chance": 0.25
       }
     ]
   }

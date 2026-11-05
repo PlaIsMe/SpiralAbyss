@@ -19,7 +19,7 @@ public final class WaveScaling {
 
     public static void applyEndless(Mob mob, int wave, MobCategory category, double partyScale) {
         var health = mob.getAttribute(Attributes.MAX_HEALTH);
-        if (health != null) {
+        if (!skipRaisingHealth(mob) && health != null) {
             health.removeModifier(HEALTH_MODIFIER);
             health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
                     "Spiral Abyss health", 0, AttributeModifier.Operation.MULTIPLY_TOTAL));
@@ -40,7 +40,7 @@ public final class WaveScaling {
                              MobCatalog.ScalingSnapshot plans) {
         var scaling = plans.at(category, mobId, floor);
         var health = mob.getAttribute(Attributes.MAX_HEALTH);
-        if (health != null) {
+        if (!skipRaisingHealth(mob) && health != null) {
             // Opt in before reading the baseline, including modded base values above 1024.
             health.removeModifier(HEALTH_MODIFIER);
             health.addPermanentModifier(new AttributeModifier(HEALTH_MODIFIER,
@@ -59,5 +59,15 @@ public final class WaveScaling {
         }
         mob.setHealth(mob.getMaxHealth());
         AbyssPlatform.data(mob).putDouble(WaveSpawner.DAMAGE_TAG, scaling.damage() * partyScale);
+    }
+
+    private static boolean skipRaisingHealth(Mob mob) {
+        // Some native AI and render formulas require their original absolute HP range.
+        // Opted-in mobs skip floor, party and Endless health boosts entirely.
+        if (!AbyssPlatform.data(mob).getBoolean(MobSpawnData.SKIP_RAISING_HEALTH)) return false;
+        var health = mob.getAttribute(Attributes.MAX_HEALTH);
+        if (health != null) health.removeModifier(HEALTH_MODIFIER);
+        AbyssPlatform.data(mob).remove(HEALTH_DAMAGE_RATIO_TAG);
+        return true;
     }
 }

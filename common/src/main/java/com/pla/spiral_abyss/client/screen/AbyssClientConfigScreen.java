@@ -45,6 +45,10 @@ public final class AbyssClientConfigScreen extends Screen {
         }).bounds(left + 148, footerY, 86, 20).build());
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> onClose())
                 .bounds(left + 242, footerY, 58, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("screen.spiral_abyss.config.hud"), button -> {
+            saveChanges();
+            minecraft.setScreen(new AbyssHudConfigScreen(this));
+        }).bounds(width / 2 - 80, 38, 160, 20).build());
         // This preview never requests the journal or interacts with inventory slots.
         menuButton = addRenderableWidget(JournalNavigation.icon(0, 0, BUTTON_SIZE, BUTTON_SIZE,
                 JournalNavigation.MENU_ICON, 256, "screen.spiral_abyss.config.drag", false, () -> {}));

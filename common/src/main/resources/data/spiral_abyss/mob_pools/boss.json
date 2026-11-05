@@ -1261,5 +1261,80 @@
       "item": "annoyingvillagers:obsidian_sledgehammer",
       "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1}
     }
+  ],
+  [
+    "adventurez:blackstone_golem",
+    {
+      "environment": ["minecraft:blackstone", "minecraft:polished_blackstone", "minecraft:polished_basalt"],
+      "decoration_environment": ["minecraft:polished_blackstone_brick_wall"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.025
+    },
+    {
+      "item": "adventurez:gilded_netherite_chestplate",
+      "enchantment": {"minecraft:protection": 5, "minecraft:unbreaking": 5, "minecraft:mending": 1}
+    },
+    {
+      "item": "adventurez:blackstone_golem_arm",
+      "enchantment": {"minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "adventurez:the_eye",
+    {
+      "environment": ["minecraft:end_stone", "minecraft:end_stone_bricks", "minecraft:obsidian"],
+      "decoration_environment": ["minecraft:end_stone_brick_wall"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "adventurez:prime_eye",
+      "enchantment": {"minecraft:mending": 1}
+    }
+  ],
+  [
+    "aether:slider",
+    {
+      "spawn_nbt": "{Awake:1b,BossFight:1b,SkipRaisingHealth:1b}"
+    },
+    {
+      "environment": ["aether:locked_carved_stone", "aether:locked_sentry_stone"],
+      "environment_type": "flat_room",
+      "decoration_environment": []
+    },
+    {
+      "item": "aether:valkyrie_lance",
+      "enchantment": {"minecraft:sharpness": 5, "minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "aether:valkyrie_queen",
+    {
+      "spawn_nbt": "{Ready:1b,BossFight:1b}"
+    },
+    {
+      "environment": ["aether:angelic_stone", "aether:light_angelic_stone"],
+      "decoration_environment": ["aether:ambrosium_torch", "aether:skyroot_fence"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.025
+    },
+    {
+      "item": "aether:valkyrie_chestplate",
+      "enchantment": {"minecraft:protection": 5, "minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "aether:sun_spirit",
+    {
+      "spawn_nbt": "{BossFight:1b}"
+    },
+    {
+      "environment": ["aether:hellfire_stone", "aether:light_hellfire_stone", "minecraft:netherrack"],
+      "decoration_environment": []
+    },
+    {
+      "item": "aether:phoenix_chestplate",
+      "enchantment": {"minecraft:protection": 5, "minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
   ]
 ]

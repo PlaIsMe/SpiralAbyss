@@ -1,4 +1,13 @@
 {
+  "screen.spiral_abyss.config.hud": "深境界面布局",
+  "screen.spiral_abyss.config.hud_drag": "拖动界面组以移动，按住圆形图标以缩放。",
+  "screen.spiral_abyss.config.hud_timer": "计时器",
+  "screen.spiral_abyss.config.hud_challenges": "楼层 / 波次 / 挑战",
+  "screen.spiral_abyss.config.hud_rejection": "深渊排斥",
+  "screen.spiral_abyss.config.hud_reset": "重置此组",
+  "screen.spiral_abyss.config.hud_scale": "缩放：%s%%",
+  "screen.spiral_abyss.config.preview_timer": "预览：战斗计时器",
+  "screen.spiral_abyss.config.preview_countdown": "预览：波次倒计时",
   "screen.spiral_abyss.config.title": "深境客户端设置",
   "screen.spiral_abyss.config.description": "拖动深境按钮调整位置，修改立即生效。",
   "screen.spiral_abyss.config.drag": "拖动以移动深境菜单按钮",
