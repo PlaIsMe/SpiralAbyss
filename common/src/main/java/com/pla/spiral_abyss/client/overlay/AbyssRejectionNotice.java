@@ -1,11 +1,12 @@
 package com.pla.spiral_abyss.client.overlay;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.List;
 
@@ -35,22 +36,12 @@ public final class AbyssRejectionNotice {
     public static void panel(GuiGraphics graphics, Font font, int x, int y, int availableWidth, int availableHeight,
                              List<ResourceLocation> bosses) {
         if (bosses.isEmpty() || availableHeight <= 0) return;
+        PanelLayout layout = layout(font, availableWidth, bosses);
         Component title = Component.translatable("rejection.spiral_abyss.title").withStyle(ChatFormatting.BOLD);
-        Component quote = Component.translatable("rejection.spiral_abyss.quote").withStyle(ChatFormatting.ITALIC);
         Component damage = Component.translatable("rejection.spiral_abyss.damage");
-        var names = Component.empty();
-        for (ResourceLocation id : bosses) {
-            var type = BuiltInRegistries.ENTITY_TYPE.get(id);
-            if (!names.getString().isEmpty()) names.append(Component.literal(", "));
-            names.append(type == null ? Component.literal(id.toString()) : type.getDescription());
-        }
-        // Fit the longest visible line, retaining only the text/icon padding.
-        int contentWidth = Math.max(font.width(title) + 31,
-                Math.max(font.width(quote), Math.max(font.width(damage), font.width(names))) + 16);
-        int width = Math.min(Math.min(300, availableWidth), contentWidth);
-        var quoteLines = font.split(quote, width - 16);
-        var nameLines = font.split(names, width - 16);
-        int height = 28 + (quoteLines.size() + nameLines.size() + 1) * (font.lineHeight + 2);
+        int width = layout.width(), height = layout.height();
+        var quoteLines = layout.quoteLines();
+        var nameLines = layout.nameLines();
         float scale = Math.min(0.9F, (float) availableHeight / height);
         graphics.pose().pushPose();
         graphics.pose().translate(x, y, 0); graphics.pose().scale(scale, scale, 1);
@@ -66,5 +57,28 @@ public final class AbyssRejectionNotice {
         lineY += font.lineHeight + 6;
         for (var line : nameLines) { graphics.drawString(font, line, 8, lineY, 0xFFAAA5B8, false); lineY += font.lineHeight + 2; }
         graphics.pose().popPose();
+    }
+
+    public record PanelLayout(int width, int height, List<FormattedCharSequence> quoteLines,
+                              List<FormattedCharSequence> nameLines) {}
+
+    public static PanelLayout layout(Font font, int availableWidth, List<ResourceLocation> bosses) {
+        Component title = Component.translatable("rejection.spiral_abyss.title").withStyle(ChatFormatting.BOLD);
+        Component quote = Component.translatable("rejection.spiral_abyss.quote").withStyle(ChatFormatting.ITALIC);
+        Component damage = Component.translatable("rejection.spiral_abyss.damage");
+        var names = Component.empty();
+        for (ResourceLocation id : bosses) {
+            var type = BuiltInRegistries.ENTITY_TYPE.get(id);
+            if (!names.getString().isEmpty()) names.append(Component.literal(", "));
+            names.append(type == null ? Component.literal(id.toString()) : type.getDescription());
+        }
+        // Fit the longest visible line, retaining only the text/icon padding.
+        int contentWidth = Math.max(font.width(title) + 31,
+                Math.max(font.width(quote), Math.max(font.width(damage), font.width(names))) + 16);
+        int width = Math.max(32, Math.min(Math.min(300, availableWidth), contentWidth));
+        var quoteLines = font.split(quote, width - 16);
+        var nameLines = font.split(names, width - 16);
+        int height = 28 + (quoteLines.size() + nameLines.size() + 1) * (font.lineHeight + 2);
+        return new PanelLayout(width, height, quoteLines, nameLines);
     }
 }

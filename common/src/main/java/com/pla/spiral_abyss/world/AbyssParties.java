@@ -487,8 +487,11 @@ public final class AbyssParties {
             mark.putBoolean(RETURN_REQUIRED, true);
             AbyssPlatform.data(player).put("PlayerPersisted", mark);
         }
-        if (ArenaSession.hasDefeatMarker(player)) ArenaSession.restoreSurvival(player);
-        returnAfterDisconnect(player);
+        // Fabric JOIN runs inside PlayerList.placeNewPlayer, before vanilla adds the
+        // player to its captured login level. Teleporting here would let that method
+        // register the player in the old level after the Overworld transfer, mixing
+        // chunk streams with different section counts. tick() performs recovery only
+        // after login has finished, including old saves with no return-required flag.
     }
     public void loggedOut(ServerPlayer player) {
         if (FlashbackCompat.isReplayServer(server)) return;

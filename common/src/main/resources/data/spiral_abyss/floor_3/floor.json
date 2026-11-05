@@ -132,6 +132,16 @@
         "loot_table": "minecraft:chests/village/village_weaponsmith",
         "weight": 1,
         "chance": 0.75
+      },
+      {
+        "loot_table": "aether:chests/dungeon/bronze/bronze_dungeon",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_village/tofusmith_chest",
+        "weight": 1,
+        "chance": 0.25
       }
     ]
   }

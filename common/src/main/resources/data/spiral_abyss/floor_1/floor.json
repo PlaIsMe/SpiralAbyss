@@ -86,6 +86,21 @@
         "loot_table": "minecraft:chests/village/village_temple",
         "weight": 1,
         "chance": 0.8
+      },
+      {
+        "loot_table": "aether:chests/dungeon/bronze/bronze_dungeon_trash",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_village/tofu_village_chest",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_food_container",
+        "weight": 1,
+        "chance": 0.25
       }
     ]
   }

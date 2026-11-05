@@ -104,6 +104,21 @@
         "loot_table": "minecraft:chests/stronghold_library",
         "weight": 1,
         "chance": 0.75
+      },
+      {
+        "loot_table": "aether:chests/ruined_portal",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "betterend:chests/end_village_loot",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_village/soyworker_chest",
+        "weight": 1,
+        "chance": 0.25
       }
     ]
   }

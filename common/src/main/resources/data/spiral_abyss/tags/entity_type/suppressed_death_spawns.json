@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     {"id": "annoyingvillagers:block_projectile", "required": false},
-    {"id": "annoyingvillagers:low_shadow_herobrine_clone", "required": false}
+    {"id": "annoyingvillagers:low_shadow_herobrine_clone", "required": false},
+    {"id": "betterend:end_slime", "required": false}
   ]
 }

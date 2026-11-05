@@ -16,3 +16,6 @@ port-*.log
 run-multiloader-fabric
 run-multiloader-neoforge
 run-multiloader-neoforge-data
+run-fabric
+run-forge
+run-forge-data

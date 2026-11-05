@@ -25,7 +25,7 @@ import java.util.*;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.mojang.logging.LogUtils;
-import com.pla.spiral_abyss.event.BossDeathBlocks;
+import com.pla.spiral_abyss.event.AbyssArchitectureRepair;
 import java.util.function.Predicate;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -64,7 +64,10 @@ public final class BossEnvironments {
             // must not destroy its partner through neighbor updates and spill decoration loot.
             boolean plant = state.getBlock() instanceof DoublePlantBlock
                     || level.getBlockState(pos).getBlock() instanceof DoublePlantBlock;
-            BossDeathBlocks.edit(() ->
+            // Temporary terrain owns these edits and restores the original states.
+            // Without the architecture scope, repair immediately resurrects cleared
+            // pillars/foundation through the room and obstructs native boss movement.
+            AbyssArchitectureRepair.edit(level, () ->
                     level.setBlock(pos, state, plant ? Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE : Block.UPDATE_ALL));
         });
     }
@@ -95,7 +98,13 @@ public final class BossEnvironments {
             Profile profile = BossEnvironmentCatalog.get(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
             if (profile == null || effects.containsKey(mob.getUUID())) continue;
             List<BossTerrainPlan.Placement> plan = new ArrayList<>(BossTerrainPlan.patches(profile, center, level.random));
-            plan.removeIf(placement -> {
+            if (profile.flatRoom()) {
+                for (BlockState state : profile.palette())
+                    if (!state.isCollisionShapeFullBlock(level, center))
+                        throw new IllegalArgumentException("flat_room requires full collision blocks: " + state);
+                if (plan.stream().anyMatch(placement -> level.getBlockEntity(placement.pos()) != null))
+                    throw new IllegalStateException("flat_room cannot replace a block entity");
+            } else plan.removeIf(placement -> {
                 BlockPos base = new BlockPos(placement.pos().getX(), center.getY(), placement.pos().getZ());
                 return !level.isEmptyBlock(base) && !terrain.contains(base);
             });
@@ -114,7 +123,7 @@ public final class BossEnvironments {
     }
     private List<Column> columns(Profile profile, BlockPos center, boolean dragonShape) {
         var spec = profile.pillars();
-        if (spec == null && dragonShape) spec = new BossEnvironmentCatalog.Pillars(
+        if (spec == null && dragonShape && !profile.flatRoom()) spec = new BossEnvironmentCatalog.Pillars(
                 Blocks.OBSIDIAN.defaultBlockState(), 4, 5, 18, 26, true);
         if (spec == null) return List.of();
         int count = spec.minimum() + level.random.nextInt(spec.maximum() - spec.minimum() + 1);
@@ -192,7 +201,10 @@ public final class BossEnvironments {
         placeBlocks(effect);
         boolean halfWater = effect.profile.waterDepth() == 15;
         if (effect.profile.centered() || halfWater) {
-            var destination = BossPlacedEntities.surface(level, bounds.center(), halfWater);
+            // A flat room has a known interior floor. A highest-surface search
+            // selects the box roof and strands gravity-free bosses above the fight.
+            var destination = effect.profile.flatRoom() ? bounds.center()
+                    : BossPlacedEntities.surface(level, bounds.center(), halfWater);
             var boss = effect.boss;
             var moved = boss.getBoundingBox().move(destination.subtract(boss.position()));
             if (!level.noCollision(boss, moved)) throw new IllegalStateException("Boss environment center is obstructed");
@@ -244,6 +256,20 @@ public final class BossEnvironments {
     }
     private void place(Effect effect, BossTerrainPlan.Placement placement) {
         BlockPos pos = placement.pos();
+        if (effect.profile.flatRoom()) {
+            // Room floors replace the original foundation instead of raising the combat
+            // surface. AIR is a reversible layer too, so native ornaments return on cleanup.
+            if (level.getBlockEntity(pos) != null)
+                throw new IllegalStateException("flat_room cannot replace a block entity");
+            if (!placement.state().isAir() && !makeRoom(placement,
+                    pos.getY() == ArenaBounds.FLOOR_Y - 1))
+                throw new IllegalStateException("flat_room is obstructed at " + pos);
+            if (placement.state().isAir() && level.isEmptyBlock(pos) && !terrain.contains(pos)) return;
+            terrain.put(effect.boss.getUUID(), pos, placement.state(), placement.priority());
+            effect.placed.add(pos);
+            if ((effect.cursor & 7) == 0 && !placement.state().isAir()) particles(pos, placement.state());
+            return;
+        }
         if (pos.getY() < ArenaBounds.FLOOR_Y || level.getBlockEntity(pos) != null || !level.isEmptyBlock(pos) && !terrain.contains(pos) && (effect.water == null || !effect.water.contains(pos))) return;
         if (level.getBlockState(pos.below()).isAir() || !placement.state().canSurvive(level, pos)) return;
         if (placement.state().getBlock() instanceof DoublePlantBlock) {
@@ -282,12 +308,15 @@ public final class BossEnvironments {
         if (effect.water != null) effect.water.restore(pos);
     }
     private boolean makeRoom(BossTerrainPlan.Placement placement) {
+        return makeRoom(placement, placement.priority() == 0);
+    }
+    private boolean makeRoom(BossTerrainPlan.Placement placement, boolean liftActors) {
         BlockPos pos = placement.pos();
         var actors = level.getEntitiesOfClass(LivingEntity.class, new AABB(pos), LivingEntity::isAlive);
         if (actors.isEmpty()) return true;
         // A single snow layer has no collision and can cover the grass beneath an actor.
         if (placement.state().is(Blocks.SNOW) && placement.state().getCollisionShape(level, pos).isEmpty()) return true;
-        if (placement.priority() != 0) return false;
+        if (!liftActors) return false;
         var shape = placement.state().getCollisionShape(level, pos);
         if (shape.isEmpty()) return true;
         double top = pos.getY() + shape.max(Direction.Axis.Y);

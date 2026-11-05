@@ -120,6 +120,21 @@
         "loot_table": "minecraft:chests/stronghold_corridor",
         "weight": 1,
         "chance": 0.65
+      },
+      {
+        "loot_table": "betterend:chests/common",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "betterend:chests/chorus_forest",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_hidden_bridge",
+        "weight": 1,
+        "chance": 0.2
       }
     ]
   }
