@@ -6,6 +6,7 @@ import com.pla.spiral_abyss.client.renderer.*;
 import com.pla.spiral_abyss.client.screen.AbyssClientConfigScreen;
 import com.pla.spiral_abyss.init.BlockEntityInit;
 import com.pla.spiral_abyss.init.EntityInit;
+import com.pla.spiral_abyss.neoforge.client.renderer.NeoForgeAbyssPortalRenderer;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -37,7 +38,7 @@ public final class ClientModHandler {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(EntityInit.KEY_ENTITY.get(), KeyEntityRenderer::new);
         event.registerBlockEntityRenderer(
-                BlockEntityInit.ABYSS_PORTAL.get(), AbyssPortalRenderer::new);
+                BlockEntityInit.ABYSS_PORTAL.get(), NeoForgeAbyssPortalRenderer::new);
         event.registerEntityRenderer(EntityInit.COPPER_CHEST.get(), LootChestRenderer::copper);
         event.registerEntityRenderer(EntityInit.IRON_CHEST.get(), LootChestRenderer::iron);
         event.registerEntityRenderer(EntityInit.GOLDEN_CHEST.get(), LootChestRenderer::golden);

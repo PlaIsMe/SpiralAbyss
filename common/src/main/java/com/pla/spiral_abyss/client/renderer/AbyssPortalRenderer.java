@@ -14,17 +14,13 @@ import com.mojang.math.Axis;
 import com.pla.spiral_abyss.block.AbyssGateActivationBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.AABB;
 
 /** One continuous, double-sided portal surface, clipped around the gate frame and controller. */
-public final class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
+public class AbyssPortalRenderer implements BlockEntityRenderer<AbyssPortalBlockEntity> {
     @Override public boolean shouldRenderOffScreen(com.pla.spiral_abyss.block.entity.AbyssPortalBlockEntity portal) { return dev.architectury.platform.Platform.isFabric(); }
 
     private final Font font;
     public AbyssPortalRenderer(BlockEntityRendererProvider.Context context) { font = context.getFont(); }
-    public AABB getRenderBoundingBox(AbyssPortalBlockEntity entity) {
-        return entity.getRenderBoundingBox();
-    }
     @Override public void render(AbyssPortalBlockEntity entity, float partialTick, PoseStack pose,
                                  MultiBufferSource buffers, int light, int overlay) {
         if (!entity.getBlockState().getValue(AbyssGateActivationBlock.ACTIVE)) return;
