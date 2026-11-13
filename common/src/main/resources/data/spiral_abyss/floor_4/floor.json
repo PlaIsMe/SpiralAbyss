@@ -151,6 +151,21 @@
         "loot_table": "tofucraft:chests/tofu_ruins_chest",
         "weight": 1,
         "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/twilight/eden/hut",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/crypt",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/temple_bottom",
+        "weight": 1,
+        "chance": 0.2
       }
     ]
   }

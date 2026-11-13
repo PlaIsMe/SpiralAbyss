@@ -5,7 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import java.util.Set;
 
@@ -28,12 +28,12 @@ public final class MobDeathLifecycle {
             ResourceLocation.fromNamespaceAndPath("goety", "hostile_redstone_monstrosity"));
     private MobDeathLifecycle() {}
 
-    public static boolean delaysDeathEvent(Mob mob) {
+    public static boolean delaysDeathEvent(LivingEntity mob) {
         return mob.getType().is(DELAYS_DEATH_EVENT)
                 || DELAYED_DEATH_EVENTS.contains(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
     }
 
-    public static boolean waitsForRemoval(Mob mob) {
+    public static boolean waitsForRemoval(LivingEntity mob) {
         return mob instanceof EnderDragon || delaysDeathEvent(mob) || mob.getType().is(WAIT_FOR_REMOVAL)
                 || DELAYED_GOETY.contains(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
     }

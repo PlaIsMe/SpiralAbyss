@@ -4,6 +4,8 @@ import com.pla.spiral_abyss.platform.event.AbyssEvents.*;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.init.BlockInit;
 import com.pla.spiral_abyss.world.AbyssDimension;
+import com.pla.spiral_abyss.world.AbyssParties;
+import com.pla.spiral_abyss.world.ArenaBounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -34,7 +36,11 @@ public final class AbyssArchitectureRepair {
             existing.blocks.remove(pos);
             return;
         }
-        if (previous == null || previous.is(replacement.getBlock()) || !BlockInit.isAbyssArchitecture(previous.getBlock())) return;
+        if (previous == null) return;
+        // Palette blocks are not native architecture. Resolve their desired state from
+        // the live terrain ledger instead of saving a stale state across room cleanup.
+        if (pos.getY() == ArenaBounds.FLOOR_Y - 1 && AbyssParties.queueBossFloorRepair(server, pos)) return;
+        if (previous.is(replacement.getBlock()) || !BlockInit.isAbyssArchitecture(previous.getBlock())) return;
         Pending pending = LEVELS.computeIfAbsent(server, ignored -> new Pending());
         if (pending.creativeBreaks.remove(pos)) return;
         // Keep the first state if another mod changes the same cell again before repair.

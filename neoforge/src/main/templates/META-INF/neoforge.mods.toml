@@ -34,3 +34,11 @@ side="BOTH"
 
 [[mixins]]
 config="spiral_abyss.neoforge.mixins.json"
+
+[[mixins]]
+config="spiral_abyss.fdbosses.mixins.json"
+requiredMods=["fdbosses"]
+
+[[mixins]]
+config="spiral_abyss.monsterexpansion.mixins.json"
+requiredMods=["monsterexpansion"]

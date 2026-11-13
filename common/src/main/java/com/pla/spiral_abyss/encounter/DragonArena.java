@@ -5,7 +5,7 @@ import com.pla.spiral_abyss.world.AbyssDimension;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.phys.Vec3;
@@ -28,7 +28,7 @@ public final class DragonArena {
         }
         return new Vec3(origin.getX() + 0.5, y, origin.getZ() + 0.5);
     }
-    public static void prepare(Mob mob, Vec3 center) {
+    public static void prepare(LivingEntity mob, Vec3 center) {
         if (!(mob instanceof EnderDragon dragon) || !abyss(dragon)) return;
         BlockPos origin = BlockPos.containing(center);
         AbyssPlatform.data(dragon).putLong(ORIGIN, origin.asLong());
@@ -36,10 +36,10 @@ public final class DragonArena {
         dragon.setDragonFight(null);
         dragon.getPhaseManager().setPhase(EnderDragonPhase.HOLDING_PATTERN);
     }
-    public static boolean defeated(Mob mob) {
+    public static boolean defeated(LivingEntity mob) {
         return mob.isDeadOrDying() || mob.isRemoved() || !mob.isAlive() || mob instanceof EnderDragon dragon && dragon.getPhaseManager().getCurrentPhase().getPhase() == EnderDragonPhase.DYING;
     }
-    public static boolean finished(Mob mob, ServerLevel level) {
+    public static boolean finished(LivingEntity mob, ServerLevel level) {
         if (mob.isRemoved() || mob.level() != level || level.getEntity(mob.getUUID()) != mob) return true;
         // Keep dragons and delayed mutant deaths (including zombie revivals) in the wave
         // until their own lifecycle removes them. Their death events may arrive much later.

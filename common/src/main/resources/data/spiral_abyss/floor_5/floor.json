@@ -135,6 +135,26 @@
         "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_hidden_bridge",
         "weight": 1,
         "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/twilight/wildwood/hut",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/temple_middle",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/temple_top",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/quadrotic_post",
+        "weight": 1,
+        "chance": 0.15
       }
     ]
   }

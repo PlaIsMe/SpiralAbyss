@@ -18,6 +18,7 @@ import com.pla.spiral_abyss.network.AbyssNetwork;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -38,7 +39,7 @@ public final class FloorController {
     private final WaveSpawner spawner = new WaveSpawner();
     private final BossHealthBars bossHealthBars = new BossHealthBars();
     private final FloorClock clock = new FloorClock();
-    private final WaveStages<Mob> stages = new WaveStages<>();
+    private final WaveStages<LivingEntity> stages = new WaveStages<>();
     private final BossEnvironments bossEnvironments;
     private final EncounterReinforcements reinforcements;
     private static final int CLEAR_DELAY_TICKS = 20;
@@ -85,7 +86,7 @@ public final class FloorController {
     public int currentWave() { return session.endless() && !active() ? session.profile().endlessWave : waveIndex + 1; }
     public int remainingTicks() { return clock.remainingTicks(); }
     public int remainingEnemies() { return stages.enemies().size(); }
-    public List<Mob> enemies() { return stages.enemies(); }
+    public List<LivingEntity> enemies() { return stages.enemies(); }
     public ChallengeTracker challengeTracker() { return challengeTracker; }
     public List<ChallengeTracker.Progress> challengeProgress() {
         return challengeTracker == null ? List.of() : challengeTracker.progress();
@@ -238,10 +239,11 @@ public final class FloorController {
         try { bossEnvironments.tick(mob -> !settled && reinforcements.retainsEnvironment(mob)); }
         catch (RuntimeException ex) { LogUtils.getLogger().error("Boss environment failed in floor {} wave {}", currentFloor(), currentWave(), ex); fail("spawn_failed"); return; }
         bossHealthBars.tick(stages.enemies(), session.players());
-        for (Mob mob : stages.enemies()) {
-            if (DragonArena.defeated(mob)) { session.keepMobActive(mob); continue; }
-            session.rescueMob(mob);
-            session.keepMobActive(mob);
+        for (LivingEntity enemy : stages.enemies()) {
+            if (DragonArena.defeated(enemy)) { session.keepMobActive(enemy); continue; }
+            session.rescueMob(enemy);
+            session.keepMobActive(enemy);
+            if (!(enemy instanceof Mob mob)) continue;
             if (mob.getTarget() == null || !mob.getTarget().isAlive() || mob.getTarget().isSpectator()
                     || mob.getTarget().level() != level
                     || (mob.getTarget() instanceof ServerPlayer p && !session.isCombatant(p)))
@@ -423,7 +425,7 @@ public final class FloorController {
         endlessLooted = false;
         bossHealthBars.clear();
         bossEnvironments.clear();
-        stages.clear(Entity::discard);
+        stages.clear(entity -> { QliphothEncounters.clear(entity); entity.discard(); });
         reinforcements.clear();
         emptySince = -1;
         selectedWaveType = null;

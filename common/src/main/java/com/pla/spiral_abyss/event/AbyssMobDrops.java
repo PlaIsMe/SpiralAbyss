@@ -30,6 +30,7 @@ public final class AbyssMobDrops {
     public static boolean suppress(Entity entity) {
         return !entity.level().isClientSide && !(entity instanceof Player)
                 && (AbyssPlatform.data(entity).hasUUID("spiral_abyss_environment_owner")
+                || AbyssPlatform.data(entity).hasUUID(WaveSpawner.RUN_TAG)
                 || entity instanceof Mob && (entity.level().dimension().equals(AbyssDimension.LEVEL)
                 || AbyssPlatform.data(entity).hasUUID(WaveSpawner.RUN_TAG)));
     }

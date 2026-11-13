@@ -119,6 +119,16 @@
         "loot_table": "tofucraft:chests/tofu_village/soyworker_chest",
         "weight": 1,
         "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/iceika/dungeon",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/arcana/utility_hallway",
+        "weight": 1,
+        "chance": 0.2
       }
     ]
   }

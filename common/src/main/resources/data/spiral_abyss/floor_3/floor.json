@@ -142,6 +142,26 @@
         "loot_table": "tofucraft:chests/tofu_village/tofusmith_chest",
         "weight": 1,
         "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/iceika/groglin_village",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/iceika/gruzzorlug_village",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/arcana/banquet_hall",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/overworld/ancient_tomb",
+        "weight": 1,
+        "chance": 0.15
       }
     ]
   }

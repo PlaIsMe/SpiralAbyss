@@ -29,34 +29,36 @@ public final class WaveSpawner {
     public static final String RUN_TAG = "spiral_abyss_run";
     public static final String DAMAGE_TAG = "spiral_abyss_damage_scale";
     public static final String BOSS_TAG = "spiral_abyss_wave_boss";
-    public List<Mob> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
+    public List<LivingEntity> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
                            List<FloorDefinition.Enemy> composition, UUID runId,
                            WaveEquipment equipment, int floor, double partyScale,
                            MobCatalog.ScalingSnapshot scaling) {
         return spawn(level, center, target, composition, runId, equipment, floor, partyScale, scaling, 0);
     }
-    public List<Mob> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
+    public List<LivingEntity> spawn(ServerLevel level, Vec3 center, ServerPlayer target,
                            List<FloorDefinition.Enemy> composition, UUID runId,
                            WaveEquipment equipment, int floor, double partyScale,
                            MobCatalog.ScalingSnapshot scaling, int endlessWave) {
         // Recheck explicit definitions and staged lineups captured before a config change.
         for (var entry : composition) if (!MobCatalog.selectableMob(entry.id()))
             throw new IllegalArgumentException(entry.id() + " is unavailable or blacklisted in mob_blacklist");
-        List<Mob> created = new ArrayList<>();
+        List<LivingEntity> created = new ArrayList<>();
         try {
             for (var entry : composition) {
                 EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(entry.id());
                 for (int i = 0; i < entry.count(); i++) {
                     Entity entity = type == null ? null : type.create(level);
-                    if (!(entity instanceof Mob mob)) {
+                    if (!(entity instanceof LivingEntity mob)) {
                         if (entity != null) entity.discard();
-                        throw new IllegalArgumentException(entry.id() + " is not a summonable Mob");
+                        throw new IllegalArgumentException(entry.id() + " is not a summonable living encounter");
                     }
+                    if (!(mob instanceof Mob) && !QliphothEncounters.supports(entry.id()))
+                        throw new IllegalArgumentException(entry.id() + " has no living encounter adapter");
                     created.add(mob);
                     mob.moveTo(center.x, center.y, center.z, 0, 0);
                     // Keep zombie examples from adding random chicken jockeys outside the mob list.
                     SpawnGroupData group = mob instanceof Zombie ? new Zombie.ZombieGroupData(false, false) : null;
-                    mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
+                    if (mob instanceof Mob ai) ai.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(center)),
                             MobSpawnType.COMMAND, group);
                     MobSpawnData.apply(mob, MobSpawnData.parse(MobCatalog.bossOptions(entry.id()).spawnNbt()));
                     var initialState = MobCatalog.bossOptions(entry.id()).spawnIntegers();
@@ -70,6 +72,7 @@ public final class WaveSpawner {
                         });
                         mob.readAdditionalSaveData(saved);
                     }
+                    if (mob instanceof Mob ai) MobAwakening.apply(ai);
                     if (mob instanceof Slime slime && entry.category() != null) {
                         if (entry.category() == FODDER_MOB)
                             slime.setSize(1 + level.random.nextInt(2), true);
@@ -77,12 +80,12 @@ public final class WaveSpawner {
                     }
                     if (mob instanceof AbstractPiglin piglin) piglin.setImmuneToZombification(true);
                     if (mob instanceof Piglin piglin) piglin.setBaby(false);
-                    equipment.apply(mob);
+                    if (mob instanceof Mob ai) equipment.apply(ai);
                     DragonArena.prepare(mob, center);
                     // Spawn initialization may add riders (for example a spider jockey).
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard);
                     mob.stopRiding();
-                    mob.setPersistenceRequired();
+                    if (mob instanceof Mob ai) ai.setPersistenceRequired();
                     AbyssPlatform.data(mob).putUUID(RUN_TAG, runId);
                     AbyssPlatform.data(mob).putBoolean(BOSS_TAG,
                             entry.category() == MobCategory.BOSS);
@@ -91,19 +94,20 @@ public final class WaveSpawner {
                     if (endlessWave > 0) WaveScaling.applyEndless(mob, endlessWave, entry.category(), partyScale);
                     else WaveScaling.apply(mob, floor, entry.category(), entry.id(), partyScale, scaling);
                     if (!place(level, mob, center)) throw new IllegalStateException("No safe spawn position for " + entry.id());
-                    mob.setTarget(target);
+                    if (mob instanceof Mob ai) ai.setTarget(target);
+                    QliphothEncounters.prepare(mob, center);
                     if (!level.addFreshEntity(mob)) throw new IllegalStateException("Spawn rejected for " + entry.id());
                     WaveAllies.add(mob);
                 }
             }
             return List.copyOf(created);
         } catch (RuntimeException ex) {
-            created.forEach(mob -> { WaveAllies.remove(mob); mob.discard(); });
+            created.forEach(mob -> { QliphothEncounters.clear(mob); WaveAllies.remove(mob); mob.discard(); });
             throw ex;
         }
     }
 
-    public boolean place(ServerLevel level, Mob mob, Vec3 center) {
+    public boolean place(ServerLevel level, LivingEntity mob, Vec3 center) {
         double spawnY = center.y + MobCatalog.bossOptions(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType())).spawnYOffset();
         var environment = BossEnvironmentCatalog.get(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
         if (environment != null && environment.centered()) {

@@ -4,7 +4,7 @@ import com.pla.spiral_abyss.platform.AbyssPlatform;
 import com.pla.spiral_abyss.encounter.data.MobCategory;
 import com.pla.spiral_abyss.encounter.data.MobCatalog;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
@@ -15,7 +15,7 @@ public final class WaveScaling {
 
     private WaveScaling() {}
 
-    public static void applyEndless(Mob mob, int wave, MobCategory category, double partyScale) {
+    public static void applyEndless(LivingEntity mob, int wave, MobCategory category, double partyScale) {
         var health = mob.getAttribute(Attributes.MAX_HEALTH);
         if (!skipRaisingHealth(mob) && health != null) {
             health.removeModifier(HEALTH_MODIFIER);
@@ -33,7 +33,7 @@ public final class WaveScaling {
         AbyssPlatform.data(mob).putDouble(WaveSpawner.DAMAGE_TAG, EndlessWaves.mobScale(wave) * partyScale);
     }
 
-    public static void apply(Mob mob, int floor, MobCategory category,
+    public static void apply(LivingEntity mob, int floor, MobCategory category,
                              ResourceLocation mobId, double partyScale,
                              MobCatalog.ScalingSnapshot plans) {
         var scaling = plans.at(category, mobId, floor);
@@ -59,7 +59,7 @@ public final class WaveScaling {
         AbyssPlatform.data(mob).putDouble(WaveSpawner.DAMAGE_TAG, scaling.damage() * partyScale);
     }
 
-    private static boolean skipRaisingHealth(Mob mob) {
+    private static boolean skipRaisingHealth(LivingEntity mob) {
         // Some native AI and render formulas require their original absolute HP range.
         // Opted-in mobs skip floor, party and Endless health boosts entirely.
         if (!AbyssPlatform.data(mob).getBoolean(MobSpawnData.SKIP_RAISING_HEALTH)) return false;

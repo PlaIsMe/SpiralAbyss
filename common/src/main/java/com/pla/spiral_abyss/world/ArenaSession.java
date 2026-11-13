@@ -162,6 +162,8 @@ public final class ArenaSession {
         } else if (!mark.isEmpty()) recover(player, true);
     }
     public void remove(UUID player) {
+        ServerPlayer departing = level.getServer().getPlayerList().getPlayer(player);
+        if (departing != null) QliphothEncounters.clearPlayer(departing);
         admitted.remove(player); lastSafe.remove(player); rewardParticipants.remove(player);
         var remaining = players();
         if (player.equals(leader) && !remaining.isEmpty()) {
@@ -328,13 +330,13 @@ public final class ArenaSession {
         } else if (player.onGround()) lastSafe.put(player.getUUID(), player.position());
     }
 
-    public void rescueMob(Mob mob) {
+    public void rescueMob(LivingEntity mob) {
         if (DragonArena.defeated(mob)) return;
-        ArenaFlight.steer(mob, bounds());
+        if (mob instanceof Mob ai) ArenaFlight.steer(ai, bounds());
         if (!bounds().rescueMob(mob, MobCatalog.isGhostMob(EntityType.getKey(mob.getType())))) return;
         Vec3 center = surfaceDestination(mob, bounds().center());
         mob.teleportTo(center.x, center.y + (mob instanceof EnderDragon ? 20 : 0.1), center.z);
-        ArenaFlight.stop(mob);
+        if (mob instanceof Mob ai) ArenaFlight.stop(ai);
     }
 
     private boolean furnitureLoaded() {
@@ -367,7 +369,7 @@ public final class ArenaSession {
         return destination;
     }
 
-    public void keepMobActive(Mob mob) {
+    public void keepMobActive(LivingEntity mob) {
         // Also called from the controller's tracked list when a boss teleports beyond player view distance.
         level.getChunkSource().addRegionTicket(MOB_TICKET, mob.chunkPosition(), 2, mob.getUUID());
     }

@@ -101,6 +101,21 @@
         "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_food_container",
         "weight": 1,
         "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/overworld/livestock_merchant_hut",
+        "weight": 1,
+        "chance": 0.25
+      },
+      {
+        "loot_table": "divinerpg:chests/overworld/amethyst_geode",
+        "weight": 1,
+        "chance": 0.2
+      },
+      {
+        "loot_table": "divinerpg:chests/iceika/hut",
+        "weight": 1,
+        "chance": 0.2
       }
     ]
   }

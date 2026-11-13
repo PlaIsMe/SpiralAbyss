@@ -8,6 +8,11 @@
     {"id": "adventurez:the_eye", "required": false},
     {"id": "tofucraft:tofu_gandlem", "required": false},
     {"id": "tofucraft:tofuspider", "required": false},
-    {"id": "aether:sun_spirit", "required": false}
+    {"id": "aether:sun_spirit", "required": false},
+    {"id": "monsterexpansion:ignathos", "required": false},
+    {"id": "monsterexpansion:leivekilth", "required": false},
+    {"id": "fdbosses:chesed", "required": false},
+    {"id": "fdbosses:malkuth", "required": false},
+    {"id": "fdbosses:geburah", "required": false}
   ]
 }

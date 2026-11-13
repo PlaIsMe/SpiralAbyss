@@ -4,7 +4,7 @@ import com.pla.spiral_abyss.platform.AbyssPlatform;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.BossEvent;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 
 import java.util.*;
 
@@ -20,9 +20,9 @@ public final class BossHealthBars {
     /** Called from the ServerBossEvent constructor, including events owned by other mods. */
     public static void registered(ServerBossEvent event) { REGISTERED.add(event); }
 
-    public void tick(List<Mob> enemies, List<ServerPlayer> players) {
+    public void tick(List<LivingEntity> enemies, List<ServerPlayer> players) {
         Set<UUID> active = new HashSet<>();
-        for (Mob mob : enemies) {
+        for (LivingEntity mob : enemies) {
             if (!AbyssPlatform.data(mob).getBoolean(WaveSpawner.BOSS_TAG) || !mob.isAlive()
                     || AbyssPlatform.data(mob).getBoolean(HIDE_BOSS_BAR_TAG)) continue;
             UUID id = mob.getUUID();

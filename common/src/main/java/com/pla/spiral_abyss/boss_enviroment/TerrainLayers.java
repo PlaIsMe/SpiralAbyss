@@ -23,6 +23,13 @@ public final class TerrainLayers<K, V> {
     public TerrainLayers(Function<K, V> read, BiConsumer<K, V> write) { this.read = read; this.write = write; }
     public boolean contains(K position) { return cells.containsKey(position); }
     public int size() { return cells.size(); }
+    /** Reassert the current overlay without changing its owners or original snapshot. */
+    public void repair(K position) {
+        Cell cell = cells.get(position);
+        if (cell == null) return;
+        V visible = cell.visible();
+        if (!Objects.equals(read.apply(position), visible)) write.accept(position, visible);
+    }
     public void put(UUID owner, K position, V value, int priority) {
         Cell cell = cells.computeIfAbsent(position, key -> new Cell(read.apply(key)));
         cell.owners.put(owner, new Layer<>(value, priority));
