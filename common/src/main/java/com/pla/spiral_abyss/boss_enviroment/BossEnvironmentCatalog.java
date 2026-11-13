@@ -31,11 +31,28 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             };
         }
     }
+    /** One placement selector for surface effects and level rooms; read old datapacks too. */
+    private static EnvironmentType placement(JsonObject json, EnvironmentType fallback) {
+        EnvironmentType legacy = json.has("environment_type") ? EnvironmentType.parse(json.get("environment_type")) : null;
+        if (!json.has("decoration_placement")) return legacy == null ? fallback : legacy;
+        JsonElement value = json.get("decoration_placement");
+        if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+            throw new JsonParseException("decoration_placement must be surface, flat_room or flat_room_box");
+        EnvironmentType chosen = switch (value.getAsString()) {
+            case "surface" -> EnvironmentType.PATCHES;
+            case "flat_room" -> EnvironmentType.FLAT_ROOM;
+            case "flat_room_box" -> EnvironmentType.FLAT_ROOM_BOX;
+            default -> throw new JsonParseException("unknown decoration_placement " + value.getAsString());
+        };
+        if (legacy != null && legacy != chosen)
+            throw new JsonParseException("environment_type conflicts with decoration_placement; use decoration_placement only");
+        return chosen;
+    }
     public record Pillars(BlockState block, int minimum, int maximum, int minHeight, int maxHeight, boolean crystals) {}
     public record Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
                           BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt,
                           int waterDepth, List<EnvironmentPlacements.Entry> entities, List<EnvironmentPlacements.Entry> blocks,
-                          EnvironmentType environmentType) {
+                          EnvironmentType environmentType, int roomRadius) {
         public Profile {
             palette = List.copyOf(palette); decorations = List.copyOf(decorations);
             entities = List.copyOf(entities); blocks = List.copyOf(blocks);
@@ -45,7 +62,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         public boolean centered() { return flatRoom() || !entities.isEmpty() || !blocks.isEmpty(); }
         public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
                        BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations, boolean snowDirt) {
-            this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars, decorations, snowDirt, 0, List.of(), List.of(), EnvironmentType.PATCHES);
+            this(id, palette, radius, height, patches, ticks, hazard, hazardChance, pillars, decorations, snowDirt, 0, List.of(), List.of(), EnvironmentType.PATCHES, 29);
         }
         public Profile(ResourceLocation id, List<BlockState> palette, int radius, int height, int patches, int ticks,
                        BlockState hazard, double hazardChance, Pillars pillars, List<BlockState> decorations) {
@@ -79,7 +96,7 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
     }
     @Override protected void apply(Map<ResourceLocation, Profile> loaded, ResourceManager manager, ProfilerFiller profiler) { profiles = loaded; }
     public static Profile parse(ResourceLocation id, JsonObject json) {
-        Set<String> fields = Set.of("entities", "palette", "radius", "height", "patches", "animation_ticks", "hazard", "hazard_chance", "pillars", "environment_type");
+        Set<String> fields = Set.of("entities", "palette", "radius", "height", "patches", "animation_ticks", "hazard", "hazard_chance", "pillars", "decoration_placement", "room_radius", "environment_type");
         for (String key : json.keySet()) if (!fields.contains(key)) throw new JsonParseException("unknown field " + key);
         if (!json.has("entities") || json.getAsJsonArray("entities").isEmpty()) throw new JsonParseException("entities needs at least one entity ID");
         List<BlockState> palette = new ArrayList<>();
@@ -95,10 +112,10 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
             int minimum = integer(spec, "min_count", 4, 1, 5), minHeight = integer(spec, "min_height", 18, 1, 32);
             pillars = new Pillars(block(spec.get("block")), minimum, integer(spec, "max_count", 5, minimum, 5), minHeight, integer(spec, "max_height", 26, minHeight, 32), spec.has("healing_crystals") && spec.get("healing_crystals").getAsBoolean());
         }
-        EnvironmentType type = json.has("environment_type") ? EnvironmentType.parse(json.get("environment_type")) : EnvironmentType.PATCHES;
+        EnvironmentType type = placement(json, EnvironmentType.PATCHES);
         validateType(type, palette, hazard == null ? List.of() : List.of(hazard), false, 0, pillars, List.of(), List.of());
         return new Profile(id, palette, integer(json, "radius", 32, 12, 32), integer(json, "height", 3, 1, 4), integer(json, "patches", 14, 1, 32), integer(json, "animation_ticks", 100, 1, 100), hazard, chance, pillars,
-                hazard == null ? List.of() : List.of(hazard), false, 0, List.of(), List.of(), type);
+                hazard == null ? List.of() : List.of(hazard), false, 0, List.of(), List.of(), type, integer(json, "room_radius", 29, 12, 47));
     }
     private static void overlayBossPool(ResourceManager manager, Map<ResourceLocation, Profile> result) {
         ResourceLocation file = new ResourceLocation("spiral_abyss", "mob_pools/boss.json");
@@ -129,33 +146,39 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
         } catch (Exception ex) { LogUtils.getLogger().error("Invalid boss environment metadata in {}: {}", file, ex.getMessage()); }
     }
     public static boolean isMetadata(JsonObject object) {
-        return object.has("environment") || object.has("environment_type") || object.has("decoration_environment") || object.has("entity_place") || object.has("block_place");
+        return object.has("environment") || object.has("environment_type") || object.has("decoration_placement")
+                || object.has("room_radius") || object.has("decoration_environment")
+                || object.has("entity_place") || object.has("block_place");
+    }
+    /** Shared by pool parsing and environment loading, including when optional bosses are absent. */
+    public static void validateMetadataFields(JsonObject metadata) {
+        for (String key : metadata.keySet()) if (!Set.of("environment", "environment_type", "decoration_environment",
+                "decoration_chance", "decoration_placement", "room_radius", "entity_place", "block_place").contains(key))
+            throw new JsonParseException("unknown boss environment metadata field " + key);
     }
     /** Geometry and dragon pillars keep their profile while pool metadata supplies effects. */
     public static Profile poolEnvironment(ResourceLocation entity, JsonObject metadata, Profile base) {
+        validateMetadataFields(metadata);
         JsonObject json;
         JsonElement environment = metadata.get("environment");
         if (environment != null && environment.isJsonObject()) {
             if (metadata.size() != 1) throw new JsonParseException("advanced environment object cannot have sibling decoration fields");
             json = environment.getAsJsonObject();
         } else {
-            for (String key : metadata.keySet()) if (!Set.of("environment", "environment_type", "decoration_environment",
-                    "decoration_chance", "decoration_placement", "entity_place", "block_place").contains(key))
-                throw new JsonParseException("unknown boss environment metadata field " + key);
             json = new JsonObject();
             if (environment != null) json.add("terrain_blocks", environment);
             if (metadata.has("environment_type")) json.add("environment_type", metadata.get("environment_type"));
-            for (String field : List.of("entity_place", "block_place")) if (metadata.has(field)) json.add(field, metadata.get(field));
+            if (metadata.has("decoration_placement")) json.add("decoration_placement", metadata.get("decoration_placement"));
+            for (String field : List.of("entity_place", "block_place", "room_radius")) if (metadata.has(field)) json.add(field, metadata.get(field));
             if (metadata.has("decoration_environment")) {
                 JsonObject decoration = new JsonObject();
                 decoration.add("blocks", metadata.get("decoration_environment"));
                 if (metadata.has("decoration_chance")) decoration.add("chance", metadata.get("decoration_chance"));
-                if (metadata.has("decoration_placement")) decoration.add("placement", metadata.get("decoration_placement"));
                 json.add("decoration_environment", decoration);
-            } else if (metadata.has("decoration_chance") || metadata.has("decoration_placement"))
-                throw new JsonParseException("decoration_environment is required for decoration chance/placement");
+            } else if (metadata.has("decoration_chance"))
+                throw new JsonParseException("decoration_environment is required for decoration_chance");
         }
-        for (String key : json.keySet()) if (!Set.of("terrain_blocks", "environment_type", "decoration_environment", "entity_place", "block_place").contains(key))
+        for (String key : json.keySet()) if (!Set.of("terrain_blocks", "decoration_placement", "room_radius", "environment_type", "decoration_environment", "entity_place", "block_place").contains(key))
             throw new JsonParseException("unknown environment field " + key);
         List<BlockState> terrain = base == null ? List.of() : base.palette();
         if (json.has("terrain_blocks")) {
@@ -203,8 +226,13 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                     }
                 }
             }
-            String placement = decoration.has("placement") ? decoration.get("placement").getAsString() : "surface";
-            if (!placement.equals("surface")) throw new JsonParseException("decoration_environment placement must be surface");
+            // Advanced objects historically kept placement inside decoration_environment.
+            if (decoration.has("placement")) {
+                if (json.has("decoration_placement") && !json.get("decoration_placement").equals(decoration.get("placement")))
+                    throw new JsonParseException("conflicting decoration placements");
+                json = json.deepCopy();
+                json.add("decoration_placement", decoration.get("placement"));
+            }
             chance = decoration.has("chance") ? decoration.get("chance").getAsDouble() : 0.08;
             if (!Double.isFinite(chance) || chance < 0 || chance > 1) throw new JsonParseException("decoration chance must be 0..1");
             decorations = chosen;
@@ -219,19 +247,18 @@ public final class BossEnvironmentCatalog extends SimplePreparableReloadListener
                 : base == null ? List.of() : base.entities();
         List<EnvironmentPlacements.Entry> blocks = json.has("block_place") ? EnvironmentPlacements.parse(json, "block_place", "block")
                 : base == null ? List.of() : base.blocks();
-        EnvironmentType type = json.has("environment_type") ? EnvironmentType.parse(json.get("environment_type"))
-                : base == null ? EnvironmentType.PATCHES : base.environmentType();
+        EnvironmentType type = placement(json, base == null ? EnvironmentType.PATCHES : base.environmentType());
         validateType(type, terrain, decorations, snowDirt, waterDepth, pillars, entities, blocks);
         return new Profile(entity, terrain, radius, height, patches, ticks, legacyHazard, chance, pillars, decorations, snowDirt,
-                waterDepth, entities, blocks, type);
+                waterDepth, entities, blocks, type, integer(json, "room_radius", base == null ? 29 : base.roomRadius(), 12, 47));
     }
     private static void validateType(EnvironmentType type, List<BlockState> terrain, List<BlockState> decorations,
                                      boolean snowDirt, int waterDepth, Pillars pillars,
                                      List<EnvironmentPlacements.Entry> entities, List<EnvironmentPlacements.Entry> blocks) {
         if (type == EnvironmentType.PATCHES) return;
         if (terrain.isEmpty()) throw new JsonParseException("flat_room requires an environment block palette");
-        if (!decorations.isEmpty() || snowDirt || waterDepth > 0 || pillars != null || !entities.isEmpty() || !blocks.isEmpty())
-            throw new JsonParseException("flat_room cannot contain decorations, water, pillars or extra placements");
+        if (!decorations.isEmpty() || snowDirt || waterDepth > 0 || pillars != null)
+            throw new JsonParseException("flat_room cannot contain decorations, water or pillars");
     }
     private static JsonArray blockList(JsonElement value) {
         if (value == null) throw new JsonParseException("block list is required");

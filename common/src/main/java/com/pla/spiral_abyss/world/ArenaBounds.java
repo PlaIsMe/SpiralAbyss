@@ -1,5 +1,6 @@
 package com.pla.spiral_abyss.world;
 
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -18,10 +19,20 @@ public record ArenaBounds(Vec3 center) {
     public Vec3 entrance() { return center.add(0, 0, 8); }
     public AABB structureArea() { return new AABB(center.x - 34, 64, center.z - 34, center.x + 35, 121, center.z + 35); }
 
+    public double combatRadius(Entity entity) {
+        if (!(entity.level() instanceof ServerLevel level)
+                || !level.dimension().equals(AbyssDimension.LEVEL)) return HALF_SIZE;
+        var parties = AbyssParties.get(level.getServer());
+        var session = parties.hostedBy(parties.hostOf(entity));
+        return session == null || session.bounds().center().distanceToSqr(center) >= 1 ? HALF_SIZE
+                : session.controller().bossEnvironments().combatRadius();
+    }
+
     public boolean outsidePlayer(Entity entity) {
+        double radius = combatRadius(entity);
         AABB box = entity.getBoundingBox();
-        return box.minX < center.x - HALF_SIZE || box.maxX > center.x + HALF_SIZE
-                || box.minZ < center.z - HALF_SIZE || box.maxZ > center.z + HALF_SIZE
+        return box.minX < center.x - radius || box.maxX > center.x + radius
+                || box.minZ < center.z - radius || box.maxZ > center.z + radius
                 || box.minY < feetFloor(entity) || box.maxY > CEILING_Y;
     }
 
@@ -35,8 +46,8 @@ public record ArenaBounds(Vec3 center) {
         if (ghost && entity.getY() < FLOOR_Y) return false;
         if (entity.getY() < feetFloor(entity)) return true;
         return entity.getY() <= FLOOR_Y + 0.05
-                && (Math.abs(entity.getX() - center.x) > HALF_SIZE - entity.getBbWidth() / 2
-                || Math.abs(entity.getZ() - center.z) > HALF_SIZE - entity.getBbWidth() / 2);
+                && (Math.abs(entity.getX() - center.x) > combatRadius(entity) - entity.getBbWidth() / 2
+                || Math.abs(entity.getZ() - center.z) > combatRadius(entity) - entity.getBbWidth() / 2);
     }
     private double feetFloor(Entity entity) {
         var surface = BlockPos.containing(entity.getX(), FLOOR_Y - 1, entity.getZ());

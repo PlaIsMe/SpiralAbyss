@@ -89,7 +89,7 @@ public final class BossDeathBlocks {
     }
 
     private static Guard scriptedGuard(Level level) {
-        Mob source = MobTickContext.scriptedRewardSource();
+        var source = MobTickContext.scriptedRewardSource();
         if (source == null || source.level() != level) return null;
         var rule = MobCatalog.bossOptions(AbyssRegistries.ENTITY_TYPES.getKey(source.getType())).deathBlocks();
         return rule.configured() ? new Guard(source.blockPosition(), rule, level.getGameTime()) : null;

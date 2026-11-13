@@ -139,6 +139,15 @@ public final class AbyssParties {
         return false;
     }
     public static AbyssParties get(MinecraftServer server) { return SERVERS.computeIfAbsent(server, AbyssParties::new); }
+    /** Chunk hooks must not initialize sessions while a world is loading or shutting down. */
+    public static boolean queueBossFloorRepair(ServerLevel level, BlockPos pos) {
+        AbyssParties parties = SERVERS.get(level.getServer());
+        if (parties == null) return false;
+        boolean owned = false;
+        for (ArenaSession session : parties.sessions.values())
+            if (session.level() == level && session.controller().bossEnvironments().queueFloorRepair(pos)) owned = true;
+        return owned;
+    }
     public static void disconnect(ServerPlayer player) {
         // Shutdown closes the service before final logout notifications; do not recreate it.
         AbyssParties parties = SERVERS.get(player.server);

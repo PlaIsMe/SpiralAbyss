@@ -233,9 +233,7 @@ public final class MobCatalog extends SimplePreparableReloadListener<MobCatalog.
                     if (BossEnvironmentCatalog.isMetadata(object)) {
                         if (!bossPool) throw new JsonParseException("environment metadata is only supported in mob_pools/boss.json");
                         if (!configuredEnvironments.add(mob)) throw new JsonParseException("duplicate environment for " + mob);
-                        for (String key : object.keySet()) if (!Set.of("environment", "environment_type", "decoration_environment",
-                                "decoration_chance", "decoration_placement", "entity_place", "block_place").contains(key))
-                            throw new JsonParseException("unknown boss environment metadata field " + key);
+                        BossEnvironmentCatalog.validateMetadataFields(object);
                         continue;
                     }
                     var entry = FloorParser.rewardEntry(object, object.has("item") ? RewardPool.RARE_CHANCE : 0.25);

@@ -18,7 +18,15 @@ public final class WaveStages<T> {
         SortedMap<Integer, List<FloorDefinition.Enemy>> batches = new TreeMap<>();
         lineup.forEach(enemy -> batches.computeIfAbsent(enemy.stage(), unused -> new ArrayList<>()).add(enemy));
         if (batches.isEmpty()) throw new IllegalArgumentException("Empty encounter lineup");
-        sequence = batches.values().stream().map(List::copyOf).toList();
+        List<List<FloorDefinition.Enemy>> isolated = new ArrayList<>();
+        for (var batch : batches.values()) {
+            var ordinary = batch.stream().filter(enemy -> !QliphothEncounters.supports(enemy.id())).toList();
+            if (!ordinary.isEmpty()) isolated.add(ordinary);
+            for (var enemy : batch) if (QliphothEncounters.supports(enemy.id()))
+                for (int count = 0; count < enemy.count(); count++) isolated.add(List.of(
+                        new FloorDefinition.Enemy(enemy.id(), 1, enemy.category(), enemy.stage(), enemy.role())));
+        }
+        sequence = List.copyOf(isolated);
         index = -1;
         removed = 0;
         additional = 0;

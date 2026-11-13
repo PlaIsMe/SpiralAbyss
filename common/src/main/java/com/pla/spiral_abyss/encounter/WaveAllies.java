@@ -27,7 +27,7 @@ public final class WaveAllies {
     private WaveAllies() {}
 
     public static boolean waveMob(Entity entity) {
-        return entity instanceof Mob && entity.level().dimension().equals(AbyssDimension.LEVEL)
+        return entity instanceof LivingEntity && !QliphothEncounters.helper(entity) && entity.level().dimension().equals(AbyssDimension.LEVEL)
                 && AbyssPlatform.data(entity).hasUUID(WaveSpawner.RUN_TAG);
     }
     /** Resolve damage ownership without guessing from arena proximity. */
@@ -48,7 +48,7 @@ public final class WaveAllies {
         if (!waveMob(attacker)) attacker = owner(source.getDirectEntity());
         return waveMob(attacker);
     }
-    public static void add(Mob mob) {
+    public static void add(LivingEntity mob) {
         if (!waveMob(mob) || !(mob.level() instanceof ServerLevel level)) return;
         addMember(level.getServer().getScoreboard(), ledger(level.getServer()), mob.getScoreboardName());
     }
@@ -59,7 +59,7 @@ public final class WaveAllies {
         board.addPlayerToTeam(name, team);
         if (ledger.members.add(name)) ledger.setDirty();
     }
-    public static void remove(Mob mob) {
+    public static void remove(LivingEntity mob) {
         if (!(mob.level() instanceof ServerLevel level)) return;
         removeMember(level.getServer().getScoreboard(), ledger(level.getServer()), mob.getScoreboardName());
     }
@@ -70,10 +70,11 @@ public final class WaveAllies {
         if (team != null && board.getPlayersTeam(name) == team) board.removePlayerFromTeam(name, team);
     }
     public static void join(EntityJoinLevelEvent event) {
-        if (!event.getLevel().isClientSide() && waveMob(event.getEntity())) add((Mob) event.getEntity());
+        QliphothEncounters.capture(event.getEntity());
+        if (!event.getLevel().isClientSide() && waveMob(event.getEntity())) add((LivingEntity) event.getEntity());
     }
     public static void leave(EntityLeaveLevelEvent event) {
-        if (!event.getLevel().isClientSide() && waveMob(event.getEntity())) remove((Mob) event.getEntity());
+        if (!event.getLevel().isClientSide() && waveMob(event.getEntity())) remove((LivingEntity) event.getEntity());
     }
     public static void target(LivingChangeTargetEvent event) {
         if (waveMob(event.getEntity()) && waveMob(event.getNewTarget())) event.setNewTarget(null);
@@ -94,7 +95,7 @@ public final class WaveAllies {
         clearMembers(board, ledger);
         var abyss = server.getLevel(AbyssDimension.LEVEL);
         if (abyss != null) for (Entity entity : abyss.getAllEntities())
-            if (waveMob(entity)) add((Mob) entity);
+            if (waveMob(entity)) add((LivingEntity) entity);
     }
     private static Membership ledger(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(Membership::load, Membership::new, "spiral_abyss_team");

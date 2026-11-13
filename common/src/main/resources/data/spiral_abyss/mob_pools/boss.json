@@ -33,7 +33,7 @@
     {
       "environment": ["minecraft:stone_bricks", "minecraft:cracked_stone_bricks", "minecraft:mossy_stone_bricks"],
       "decoration_environment": ["minecraft:cobweb", "minecraft:iron_bars"],
-      "decoration_placement": "surface",
+      "decoration_placement": "flat_room",
       "decoration_chance": 0.02
     },
     {
@@ -221,9 +221,7 @@
     "cataclysm:netherite_monstrosity",
     {
       "environment": ["minecraft:blackstone", "minecraft:polished_blackstone_bricks", "cataclysm:blackstone_pillar"],
-      "decoration_environment": ["minecraft:magma_block", "minecraft:soul_fire"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.03
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:infernal_forge",
@@ -234,9 +232,7 @@
     "cataclysm:ignis",
     {
       "environment": ["minecraft:polished_blackstone_bricks", "minecraft:cracked_polished_blackstone_bricks", "minecraft:nether_bricks", "cataclysm:blackstone_pillar"],
-      "decoration_environment": ["minecraft:magma_block", "minecraft:fire"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.04
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:the_incinerator",
@@ -247,9 +243,7 @@
     "cataclysm:ancient_remnant",
     {
       "environment": ["minecraft:sandstone", "minecraft:cut_sandstone", "minecraft:smooth_sandstone", "cataclysm:polished_sandstone"],
-      "decoration_environment": ["minecraft:chiseled_sandstone", "minecraft:dead_bush"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.03
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:wrath_of_the_desert",
@@ -264,9 +258,7 @@
     "cataclysm:the_harbinger",
     {
       "environment": ["minecraft:deepslate_tiles", "minecraft:polished_deepslate", "minecraft:deepslate_bricks", "cataclysm:black_steel_block"],
-      "decoration_environment": ["minecraft:iron_bars", "minecraft:redstone_lamp"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.025
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:wither_assault_shoulder_weapon"
@@ -276,9 +268,7 @@
     "cataclysm:ender_guardian",
     {
       "environment": ["minecraft:end_stone_bricks", "cataclysm:polished_end_stone", "cataclysm:obsidian_bricks"],
-      "decoration_environment": ["cataclysm:void_infused_end_stone_bricks", "cataclysm:chiseled_end_stone_bricks"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.03
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:gauntlet_of_guard",
@@ -300,9 +290,7 @@
     "cataclysm:maledictus",
     {
       "environment": ["cataclysm:frosted_stone_bricks", "minecraft:stone_bricks", "minecraft:packed_ice"],
-      "decoration_environment": ["minecraft:blue_ice", "minecraft:soul_lantern"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.03
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:soul_render",
@@ -313,9 +301,7 @@
     "cataclysm:scylla",
     {
       "environment": ["cataclysm:azure_seastone", "cataclysm:azure_seastone_bricks", "cataclysm:azure_seastone_tiles"],
-      "decoration_environment": ["minecraft:sea_lantern", "cataclysm:chiseled_azure_seastone"],
-      "decoration_placement": "surface",
-      "decoration_chance": 0.03
+      "decoration_placement": "flat_room"
     },
     {
       "item": "cataclysm:ceraunus",
@@ -1299,7 +1285,7 @@
     },
     {
       "environment": ["aether:locked_carved_stone", "aether:locked_sentry_stone"],
-      "environment_type": "flat_room",
+      "decoration_placement": "flat_room",
       "decoration_environment": []
     },
     {
@@ -1335,6 +1321,482 @@
     {
       "item": "aether:phoenix_chestplate",
       "enchantment": {"minecraft:protection": 5, "minecraft:unbreaking": 5, "minecraft:mending": 1}
+    }
+  ],
+  [
+    "divinerpg:ancient_entity",
+    {
+      "environment": ["minecraft:grass_block", "minecraft:mossy_cobblestone"],
+      "decoration_environment": ["minecraft:grass"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:sandslash",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:king_of_scorchers",
+    {
+      "environment": ["minecraft:netherrack", "minecraft:basalt", "minecraft:nether_bricks"],
+      "decoration_environment": ["minecraft:nether_brick_fence"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:flaming_fury",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    },
+    {
+      "item": "divinerpg:golden_fury",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:dramix",
+    {
+      "environment": ["divinerpg:battle_bricks", "divinerpg:ancient_stone", "divinerpg:soul_stone"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:livicia_sword",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:parasecta",
+    {
+      "environment": ["divinerpg:ancient_bricks", "divinerpg:soul_stone", "divinerpg:degraded_bricks"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:livicia_sword",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:sunstorm",
+    {
+      "environment": ["divinerpg:eden_bricks", "divinerpg:eden_planks"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:eden_blitz",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:termasect",
+    {
+      "environment": ["divinerpg:wildwood_grass", "divinerpg:wildwood_dirt"],
+      "decoration_environment": ["divinerpg:wildwood_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:wildwood_blitz",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:eternal_archer",
+    {
+      "environment": ["divinerpg:apalachia_bricks", "divinerpg:apalachia_planks"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:halite_bow",
+      "enchantment": { "minecraft:power": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:experienced_cori",
+    {
+      "environment": ["divinerpg:skythern_bricks", "divinerpg:skythern_planks"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:skythern_blitz",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:vamacheron",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:halite_blade",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:karot",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:halite_phaser",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    },
+    {
+      "item": "divinerpg:halite_shickaxe",
+      "enchantment": { "minecraft:efficiency": 5, "divinerpg:rive": 3 }
+    }
+  ],
+  [
+    "divinerpg:twilight_demon",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:awakened_halite_helmet",
+      "enchantment": { "minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:respiration": 3 }
+    },
+    {
+      "item": "divinerpg:awakened_halite_boots",
+      "enchantment": { "minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1, "minecraft:feather_falling": 4 }
+    }
+  ],
+  [
+    "divinerpg:densos",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:awakened_halite_chestplate",
+      "enchantment": { "minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1, "divinerpg:insulation": 1 }
+    }
+  ],
+  [
+    "divinerpg:reyvor",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:awakened_halite_leggings",
+      "enchantment": { "minecraft:protection": 4, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:soul_fiend",
+    {
+      "environment": ["divinerpg:mortum_grass", "divinerpg:mortum_dirt"],
+      "decoration_environment": ["divinerpg:mortum_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "divinerpg:halite_blitz",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "divinerpg:hive_queen",
+    {
+      "environment": ["divinerpg:hive_wall"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:cermile_hammer",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2 }
+    }
+  ],
+  [
+    "divinerpg:quadro",
+    {
+      "environment": ["divinerpg:dark_dream_bricks", "divinerpg:light_dream_bricks"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:quadrotic_hammer",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2 }
+    }
+  ],
+  [
+    "divinerpg:raglok",
+    {
+      "environment": ["divinerpg:chamber_wall", "divinerpg:shifted_chamber_wall", "divinerpg:stacked_chamber_wall"],
+      "decoration_placement": "flat_room"
+    },
+    {
+      "item": "divinerpg:heliosis_hammer",
+      "enchantment": { "minecraft:sharpness": 5, "divinerpg:aftershock": 2 }
+    }
+  ],
+  [
+    "monsterexpansion:skrythe",
+    {
+      "suppress_spawned_entities": ["monsterexpansion:skrythe_tail"]
+    },
+    {
+      "environment": ["minecraft:grass_block", "minecraft:moss_block"],
+      "decoration_environment": ["minecraft:grass"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "monsterexpansion:horn_of_the_shattercry",
+      "enchantment": { "minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "monsterexpansion:rhyza",
+    {
+      "suppress_spawned_entities": ["monsterexpansion:rhyza_tail"]
+    },
+    {
+      "environment": ["minecraft:end_stone", "minecraft:obsidian"],
+      "decoration_environment": ["minecraft:end_stone_brick_wall"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "monsterexpansion:duskrend",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "monsterexpansion:ignathos",
+    {
+      "suppress_spawned_entities": ["monsterexpansion:ignathos_tail"]
+    },
+    {
+      "environment": ["minecraft:stone", "minecraft:andesite", "minecraft:grass_block"],
+      "decoration_environment": ["minecraft:oak_log"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "monsterexpansion:charcraw",
+      "enchantment": { "minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "monsterexpansion:rakoth",
+    {
+      "suppress_spawned_entities": ["monsterexpansion:rakoth_tail"]
+    },
+    {
+      "environment": ["minecraft:sandstone", "minecraft:red_sandstone", "minecraft:terracotta"],
+      "decoration_environment": ["minecraft:dead_bush"],
+      "decoration_placement": "surface",
+      "decoration_chance": 0.02
+    },
+    {
+      "item": "monsterexpansion:spire_shell_bulwark",
+      "enchantment": { "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "monsterexpansion:leivekilth",
+    {
+      "suppress_spawned_entities": ["monsterexpansion:leivekilth_tail"]
+    },
+    {
+      "environment": ["minecraft:packed_ice", "minecraft:blue_ice"],
+      "decoration_environment": ["half_water"]
+    },
+    {
+      "item": "monsterexpansion:rimescourge",
+      "enchantment": { "minecraft:sharpness": 5, "minecraft:unbreaking": 3, "minecraft:mending": 1 }
+    }
+  ],
+  [
+    "fdbosses:chesed",
+    {
+      "hide_boss_bar": true,
+      "spawn_nbt": "{SkipRaisingHealth:1b}"
+    },
+    {
+      "environment": ["minecraft:deepslate", "minecraft:blackstone", "minecraft:polished_blackstone_bricks"],
+      "decoration_placement": "flat_room",
+      "room_radius": 42,
+      "entity_place": [
+        {
+          "entity": "fdbosses:chesed_boss_spawner",
+          "offset": [0, 0, 0],
+          "spawn_nbt": "{active:0b}"
+        },
+        {
+          "entity": "fdbosses:chesed_ray_reflector",
+          "offset": [0, 0, -36]
+        },
+        {
+          "entity": "fdbosses:chesed_ray_reflector",
+          "offset": [-36, 0, 0]
+        },
+        {
+          "entity": "fdbosses:chesed_ray_reflector",
+          "offset": [36, 0, 0]
+        }
+      ]
+    },
+    {
+      "item": "fdbosses:phase_sphere"
+    }
+  ],
+  [
+    "fdbosses:malkuth",
+    {
+      "hide_boss_bar": true,
+      "spawn_nbt": "{SkipRaisingHealth:1b}",
+      "spawn_y_offset": 1
+    },
+    {
+      "environment": ["minecraft:deepslate", "minecraft:blackstone", "minecraft:polished_blackstone_bricks"],
+      "decoration_placement": "flat_room",
+      "room_radius": 32,
+      "entity_place": [
+        {
+          "entity": "fdbosses:malkuth_boss_spawner",
+          "offset": [0, 0, 0],
+          "spawn_nbt": "{active:0b}"
+        }
+      ],
+      "block_place": [
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-2, 13, 26]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-2, 13, 27]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-2, 13, 28]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-2, 13, 29]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-2, 13, 30]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-1, 13, 26]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-1, 13, 27]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-1, 13, 28]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-1, 13, 29]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [-1, 13, 30]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [0, 13, 26]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [0, 13, 27]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [0, 13, 28]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [0, 13, 29]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [0, 13, 30]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [1, 13, 26]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [1, 13, 27]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [1, 13, 28]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [1, 13, 29]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [1, 13, 30]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [2, 13, 26]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [2, 13, 27]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [2, 13, 28]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [2, 13, 29]
+        },
+        {
+          "block": "minecraft:polished_blackstone_bricks",
+          "offset": [2, 13, 30]
+        }
+      ]
+    },
+    {
+      "item": "fdbosses:malkuth_fist"
+    }
+  ],
+  [
+    "fdbosses:geburah",
+    {
+      "hide_boss_bar": true,
+      "spawn_nbt": "{SkipRaisingHealth:1b}"
+    },
+    {
+      "environment": ["fdbosses:justicestone_bricks", "fdbosses:polished_justicestone", "fdbosses:chiseled_justicestone_bricks"],
+      "decoration_placement": "flat_room",
+      "room_radius": 35,
+      "entity_place": [
+        {
+          "entity": "fdbosses:geburah_boss_spawner",
+          "offset": [0, 0, 0],
+          "spawn_nbt": "{active:0b}"
+        }
+      ]
+    },
+    {
+      "item": "fdbosses:divine_gear"
     }
   ]
 ]

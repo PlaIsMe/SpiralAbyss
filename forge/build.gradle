@@ -8,6 +8,8 @@ configurations {
     developmentForge.extendsFrom common
 }
 dependencies {
+    // Optional development integration; never bundled or required by the released mod.
+    modLocalRuntime 'curse.maven:monster-expansion-1336105:8594666'
     modCompileOnly 'curse.maven:geckolib-388172:8285794'
     // The development transformer resolves optional preview superclasses while computing frames.
     modLocalRuntime 'curse.maven:geckolib-388172:8285794'

@@ -3,7 +3,9 @@
   "package": "com.pla.spiral_abyss.forge.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "ChestLootLifetimeMixin"
+    "ChestLootLifetimeMixin",
+    "MonsterPartLootMixin",
+    "QliphothSpawnerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

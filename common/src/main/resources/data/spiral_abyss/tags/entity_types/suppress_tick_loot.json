@@ -24,6 +24,14 @@
     {"id": "annoyingvillagers:reaper_herobrine", "required": false},
     {"id": "annoyingvillagers:aegis_herobrine", "required": false},
     {"id": "annoyingvillagers:sledgehammer_herobrine", "required": false},
-    {"id": "adventurez:the_eye", "required": false}
+    {"id": "adventurez:the_eye", "required": false},
+    {"id": "monsterexpansion:skrythe", "required": false},
+    {"id": "monsterexpansion:rhyza", "required": false},
+    {"id": "monsterexpansion:ignathos", "required": false},
+    {"id": "monsterexpansion:rakoth", "required": false},
+    {"id": "monsterexpansion:leivekilth", "required": false},
+    {"id": "fdbosses:chesed", "required": false},
+    {"id": "fdbosses:malkuth", "required": false},
+    {"id": "fdbosses:geburah", "required": false}
   ]
 }

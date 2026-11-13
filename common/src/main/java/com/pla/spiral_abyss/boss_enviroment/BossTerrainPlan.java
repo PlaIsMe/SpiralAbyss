@@ -62,12 +62,13 @@ public final class BossTerrainPlan {
     /** Replace the foundation at Y=64; clear native ornaments and enclose the playable square. */
     private static List<Placement> flatRoom(Profile profile, BlockPos center, RandomSource random) {
         List<Placement> result = new ArrayList<>();
+        int radius = profile.roomRadius();
         int wallHeight = profile.roomBox() ? ROOM_BOX_HEIGHT : ROOM_WALL_HEIGHT;
-        for (int x = -ROOM_RADIUS; x <= ROOM_RADIUS; x++) for (int z = -ROOM_RADIUS; z <= ROOM_RADIUS; z++) {
+        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) {
             result.add(new Placement(center.offset(x, -1, z), profile.palette().get(random.nextInt(profile.palette().size())), 2));
-            boolean wall = Math.abs(x) == ROOM_RADIUS || Math.abs(z) == ROOM_RADIUS;
-            for (int y = 0; y < wallHeight; y++)
-                result.add(new Placement(center.offset(x, y, z), wall
+            boolean wall = Math.abs(x) == radius || Math.abs(z) == radius;
+            for (int y = 0; y < (radius > ROOM_RADIUS ? ROOM_BOX_HEIGHT : wallHeight); y++)
+                result.add(new Placement(center.offset(x, y, z), wall && y < wallHeight
                         ? profile.palette().get(random.nextInt(profile.palette().size())) : Blocks.AIR.defaultBlockState(), 2));
             if (profile.roomBox())
                 result.add(new Placement(center.offset(x, ROOM_BOX_HEIGHT, z),

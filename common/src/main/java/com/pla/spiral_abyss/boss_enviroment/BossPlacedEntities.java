@@ -1,8 +1,11 @@
 package com.pla.spiral_abyss.boss_enviroment;
 import com.pla.spiral_abyss.platform.AbyssPlatform;
 
+import net.minecraft.nbt.CompoundTag;
 import com.mojang.logging.LogUtils;
 import com.pla.spiral_abyss.encounter.WaveAllies;
+import com.pla.spiral_abyss.encounter.QliphothEncounters;
+import com.pla.spiral_abyss.encounter.MobSpawnData;
 import com.pla.spiral_abyss.encounter.WaveSpawner;
 import com.pla.spiral_abyss.entity.ArenaInteractable;
 import com.pla.spiral_abyss.world.ArenaBounds;
@@ -85,19 +88,21 @@ final class BossPlacedEntities {
 
     static boolean fits(Entity entity, ArenaBounds bounds) {
         var box = entity.getBoundingBox(); var center = bounds.center();
-        return box.minX >= center.x - ArenaBounds.HALF_SIZE && box.maxX <= center.x + ArenaBounds.HALF_SIZE
-                && box.minZ >= center.z - ArenaBounds.HALF_SIZE && box.maxZ <= center.z + ArenaBounds.HALF_SIZE
+        return box.minX >= center.x - bounds.combatRadius(entity) && box.maxX <= center.x + bounds.combatRadius(entity)
+                && box.minZ >= center.z - bounds.combatRadius(entity) && box.maxZ <= center.z + bounds.combatRadius(entity)
                 && box.minY >= ArenaBounds.FLOOR_Y && box.maxY <= 240;
     }
 
-    void spawn(ServerLevel level, ArenaBounds bounds, UUID host, Mob boss, BossEnvironmentCatalog.Profile profile) {
+    void spawn(ServerLevel level, ArenaBounds bounds, UUID host, LivingEntity boss, BossEnvironmentCatalog.Profile profile) {
         for (var entry : profile.entities()) {
             var type = AbyssRegistries.ENTITY_TYPES.getValue(entry.id());
             if (!AbyssRegistries.ENTITY_TYPES.containsKey(entry.id()) || type == null) {
+                if (entry.offset() != null) throw new IllegalStateException("Required environment entity unavailable: " + entry.id());
                 LogUtils.getLogger().warn("Skipping unavailable environment entity {}", entry.id()); continue;
             }
             for (int count = 0; count < entry.count(); count++) {
                 Entity entity = type.create(level);
+                if (entity == null && entry.offset() != null) throw new IllegalStateException("Cannot create required environment entity " + entry.id());
                 if (entity == null) { LogUtils.getLogger().warn("Cannot create environment entity {}", entry.id()); break; }
                 entities.add(entity); // Register before any hook can throw; emergency cleanup owns it now.
                 if (entity instanceof Player || entity instanceof ArenaInteractable || entity instanceof ItemEntity) {
@@ -106,23 +111,34 @@ final class BossPlacedEntities {
                 AbyssPlatform.data(entity).putUUID(OWNER, boss.getUUID());
                 AbyssPlatform.data(entity).putUUID(WaveSpawner.RUN_TAG, AbyssPlatform.data(boss).getUUID(WaveSpawner.RUN_TAG));
                 AbyssPlatform.data(entity).putUUID("spiral_abyss_host", host);
-                Vec3 anchor = entry.position().resolve(bounds.center(), entity.getBbWidth() / 2);
+                Vec3 anchor = entry.anchor(bounds.center(), entity.getBbWidth() / 2);
                 entity.setPos(anchor);
                 if (entity instanceof Mob mob) {
                     SpawnGroupData group = mob instanceof Zombie
                             ? new Zombie.ZombieGroupData(false, false) : null;
                     mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(anchor)), MobSpawnType.COMMAND, group, null);
                     new ArrayList<>(mob.getPassengers()).forEach(Entity::discard); mob.stopRiding();
-                    mob.setPersistenceRequired(); mob.setTarget(boss.getTarget());
-                    anchor = entry.position().resolve(bounds.center(), mob.getBbWidth() / 2);
+                    mob.setPersistenceRequired(); if (boss instanceof Mob ai) mob.setTarget(ai.getTarget());
+                    anchor = entry.anchor(bounds.center(), mob.getBbWidth() / 2);
+                }
+                var overrides = MobSpawnData.parse(entry.spawnNbt());
+                if (!overrides.isEmpty()) {
+                    var saved = entity.saveWithoutId(new CompoundTag());
+                    for (String key : overrides.getAllKeys()) {
+                        var value = overrides.get(key);
+                        if (value == null || !saved.contains(key, value.getId()))
+                            throw new IllegalArgumentException(entry.id() + " has no matching native save field " + key);
+                        saved.put(key, value.copy());
+                    }
+                    entity.load(saved);
                 }
                 boolean placed = false;
-                for (int attempt = 0; attempt < 256; attempt++) {
+                for (int attempt = 0; attempt < (entry.offset() == null ? 256 : 1); attempt++) {
                     Vec3 point = candidate(anchor, attempt, Math.max(1.25, entity.getBbWidth() + 0.5));
-                    double inset = ArenaBounds.HALF_SIZE - entity.getBbWidth() / 2;
+                    double inset = bounds.combatRadius(entity) - entity.getBbWidth() / 2;
                     // Check X/Z before querying blocks: oversized mod entities must not load remote chunks.
                     if (Math.abs(point.x - bounds.center().x) > inset || Math.abs(point.z - bounds.center().z) > inset) continue;
-                    point = surface(level, point, profile.waterDepth() == 15);
+                    if (entry.offset() == null) point = surface(level, point, profile.waterDepth() == 15);
                     entity.moveTo(point.x, point.y, point.z, 0, 0);
                     if (!fits(entity, bounds) || !level.noCollision(entity)
                             || entities.stream().anyMatch(other -> other != entity && !other.isRemoved() && other.getBoundingBox().intersects(entity.getBoundingBox()))) continue;
@@ -134,10 +150,12 @@ final class BossPlacedEntities {
                     if (entity instanceof LivingEntity living) { living.setYHeadRot(yaw); living.setYBodyRot(yaw); }
                     if (entity instanceof Mob mob) mob.getLookControl().setLookAt(boss);
                     keepActive(level, entity);
+                    QliphothEncounters.own(boss, entity);
                     if (!level.addFreshEntity(entity)) throw new IllegalStateException("Environment entity spawn rejected: " + entry.id());
                     if (entity instanceof Mob mob) WaveAllies.add(mob);
                     placed = true; break;
                 }
+                if (!placed && entry.offset() != null) throw new IllegalStateException("Required exact helper placement failed: " + entry.id());
                 if (!placed) { entity.discard(); LogUtils.getLogger().warn("No safe environment position for {}", entry.id()); }
             }
         }

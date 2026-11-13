@@ -45,21 +45,21 @@ public final class EncounterReinforcements {
         }
     };
     private final ArenaSession session;
-    private final Map<ResourceLocation, Mob> phases = new HashMap<>();
+    private final Map<ResourceLocation, LivingEntity> phases = new HashMap<>();
     private final Set<UUID> roots = new HashSet<>();
 
     public EncounterReinforcements(ArenaSession session) { this.session = session; }
 
-    public void begin(List<Mob> initial) {
+    public void begin(List<LivingEntity> initial) {
         clear();
-        for (Mob root : initial) {
+        for (LivingEntity root : initial) {
             var ids = MobCatalog.bossOptions(EntityType.getKey(root.getType())).phaseMobs();
             if (!ids.isEmpty()) roots.add(root.getUUID());
             for (var id : ids) phases.put(id, root);
         }
     }
 
-    public boolean retainsEnvironment(Mob root) { return roots.contains(root.getUUID()); }
+    public boolean retainsEnvironment(LivingEntity root) { return roots.contains(root.getUUID()); }
 
     public void discover(UUID run, Consumer<Mob> accept) {
         var center = session.bounds().center();
@@ -76,7 +76,7 @@ public final class EncounterReinforcements {
                     || playerOwned(mob)
                     || mob instanceof OwnableEntity owned && owned.getOwnerUUID() != null
                         && !(owned.getOwner() instanceof Mob owner && session.controller().owns(owner))) continue;
-            Mob root = phases.get(AbyssRegistries.ENTITY_TYPES.getKey(mob.getType()));
+            LivingEntity root = phases.get(AbyssRegistries.ENTITY_TYPES.getKey(mob.getType()));
             if (root == null && !(mob instanceof Enemy) && mob.getType().getCategory() != MobCategory.MONSTER
                     && !(mob.getTarget() instanceof Player player && session.admitted().contains(player.getUUID()))) continue;
             data.putUUID(WaveSpawner.RUN_TAG, run);
@@ -121,7 +121,7 @@ public final class EncounterReinforcements {
         return false;
     }
 
-    private static void inheritScaling(Mob root, Mob phase) {
+    private static void inheritScaling(LivingEntity root, Mob phase) {
         var original = root.getAttribute(Attributes.MAX_HEALTH);
         var health = phase.getAttribute(Attributes.MAX_HEALTH);
         var modifier = original == null ? null : original.getModifier(WaveScaling.HEALTH_MODIFIER);

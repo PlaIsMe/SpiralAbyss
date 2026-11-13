@@ -117,6 +117,26 @@
         "loot_table": "tofucraft:chests/tofu_castle/tofu_castle_chest",
         "weight": 1,
         "chance": 0.15
+      },
+      {
+        "loot_table": "divinerpg:chests/twilight/skythern/chest",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/karos_madhouse_loot",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/raglok_chamber_loot",
+        "weight": 1,
+        "chance": 0.15
+      },
+      {
+        "loot_table": "divinerpg:chests/vethea/wreck_hall_loot",
+        "weight": 1,
+        "chance": 0.1
       }
     ]
   }

@@ -1,12 +1,13 @@
 package com.pla.spiral_abyss.encounter.challenge;
 import com.pla.spiral_abyss.platform.event.AbyssEvents.*;
 
+import net.minecraft.world.entity.player.Player;
 import com.pla.spiral_abyss.SpiralAbyss;
 import com.pla.spiral_abyss.world.AbyssDimension;
 import com.pla.spiral_abyss.world.AbyssParties;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ThrownEnderpearl;
@@ -15,7 +16,8 @@ import net.minecraft.world.phys.EntityHitResult;
 /** Damage hooks collect evidence; FloorController confirms death and evaluates stars. */
 public final class ChallengeEvents {
     private ChallengeEvents() {}
-    private static ChallengeTracker tracker(Mob mob) {
+    private static ChallengeTracker tracker(LivingEntity mob) {
+        if (mob instanceof Player) return null;
         if (!(mob.level() instanceof ServerLevel level) || !level.dimension().equals(AbyssDimension.LEVEL)) return null;
         var parties = AbyssParties.get(level.getServer());
         var session = parties.hostedBy(parties.hostOf(mob));
@@ -28,12 +30,12 @@ public final class ChallengeEvents {
                 session.controller().challengeTracker().playerDamaged(player, event);
             return;
         }
-        if (!(event.getEntity() instanceof Mob mob)) return;
+        LivingEntity mob = event.getEntity();
         ChallengeTracker tracker = tracker(mob);
         if (tracker != null) tracker.damaged(mob, event);
     }
     public static void death(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof Mob mob)) return;
+        LivingEntity mob = event.getEntity();
         ChallengeTracker tracker = tracker(mob);
         if (tracker != null) tracker.died(mob, event);
     }
@@ -48,7 +50,7 @@ public final class ChallengeEvents {
     public static void impact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof FishingHook || event.getProjectile() instanceof ThrownEnderpearl)
                 || !(event.getRayTraceResult() instanceof EntityHitResult hit)
-                || !(hit.getEntity() instanceof Mob mob)) return;
+                || !(hit.getEntity() instanceof LivingEntity mob)) return;
         ChallengeTracker tracker = tracker(mob);
         if (tracker != null) tracker.projectileImpacted(event, mob);
     }

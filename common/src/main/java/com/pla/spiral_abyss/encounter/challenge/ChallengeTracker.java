@@ -1,6 +1,7 @@
 package com.pla.spiral_abyss.encounter.challenge;
 import com.pla.spiral_abyss.platform.AbyssPlatform;
 
+import net.minecraft.world.entity.player.Player;
 import com.pla.spiral_abyss.encounter.FloorController;
 import com.pla.spiral_abyss.encounter.MobDeathLifecycle;
 import com.pla.spiral_abyss.encounter.WaveChallenges;
@@ -17,7 +18,6 @@ import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -44,8 +44,8 @@ public final class ChallengeTracker {
     private record Hit(UUID player, ItemStack weapon, boolean projectile, boolean trickshot, boolean explosion,
                        boolean playerBurning, boolean mobBurning, Set<ResourceLocation> playerEffects,
                        Set<ResourceLocation> mobEffects, long attributedAt) {}
-    private record Damage(Mob mob, Hit hit, LivingDamageEvent event, boolean tracked) {}
-    private record Death(Mob mob, Hit hit, LivingDeathEvent event, LivingDamageEvent damageEvent) {}
+    private record Damage(LivingEntity mob, Hit hit, LivingDamageEvent event, boolean tracked) {}
+    private record Death(LivingEntity mob, Hit hit, LivingDeathEvent event, LivingDamageEvent damageEvent) {}
     private record Impact(Challenge.Type type, ProjectileImpactEvent event) {}
     private static final int DOT_ATTRIBUTION_TICKS = 300;
     private static final EquipmentSlot[] ARMOR = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
@@ -184,14 +184,15 @@ public final class ChallengeTracker {
         equipmentProgress[index] = Math.min(requiredEquipmentPlayers, (int) qualifying);
         counter.set(!counter.failed() && qualifying >= requiredEquipmentPlayers ? 1 : 0);
     }
-    private boolean tracked(Mob mob) {
+    private boolean tracked(LivingEntity mob) {
         return session.controller().state() == FloorController.State.RUNNING && session.controller().owns(mob)
                 && session.controller().enemies().contains(mob);
     }
     /** Includes a reinforcement's first-tick credit before the controller adopts it. Count goals retain their starting population. */
-    private boolean challengeTarget(Mob mob) {
+    private boolean challengeTarget(LivingEntity mob) {
         if (session.controller().state() != FloorController.State.RUNNING
-                || mob.level() != session.level() || mob instanceof ArenaInteractable) return false;
+                || mob.level() != session.level() || mob instanceof ArenaInteractable
+                || mob instanceof Player) return false;
         var center = session.bounds().center();
         if (Math.abs(mob.getX() - center.x) > ArenaBounds.FLIGHT_RADIUS
                 || Math.abs(mob.getZ() - center.z) > ArenaBounds.FLIGHT_RADIUS
@@ -210,7 +211,7 @@ public final class ChallengeTracker {
                     !player.onGround() && !player.isInWaterOrBubble() && !player.isInLava()
                             && !player.getAbilities().flying));
     }
-    public void projectileImpacted(ProjectileImpactEvent event, Mob mob) {
+    public void projectileImpacted(ProjectileImpactEvent event, LivingEntity mob) {
         if (!tracked(mob) || !(event.getProjectile().getOwner() instanceof ServerPlayer player)
                 || !session.isCombatant(player)) return;
         Challenge.Type type = event.getProjectile() instanceof FishingHook ? Challenge.Type.FISHING
@@ -226,9 +227,9 @@ public final class ChallengeTracker {
                 || !AbyssPlatform.canShieldBlock(player.getUseItem())
                 || !(event.getBlockedDamage() > 0)) return;
         Entity attacker = event.getDamageSource().getEntity();
-        if (!(attacker instanceof Mob) && event.getDamageSource().getDirectEntity() instanceof Projectile projectile)
+        if (!(attacker instanceof LivingEntity) && event.getDamageSource().getDirectEntity() instanceof Projectile projectile)
             attacker = projectile.getOwner();
-        if (attacker instanceof Mob mob && tracked(mob)) shieldBlocks.add(event);
+        if (attacker instanceof LivingEntity mob && tracked(mob)) shieldBlocks.add(event);
     }
     /** Capture the actual hand before an instant crossbow/throwable use spawns its entity. */
     public void itemUsed(ServerPlayer player, ItemStack stack) {
@@ -244,7 +245,7 @@ public final class ChallengeTracker {
             }
         }
     }
-    public void damaged(Mob mob, LivingDamageEvent event) {
+    public void damaged(LivingEntity mob, LivingDamageEvent event) {
         if (!challengeTarget(mob)) return;
         Hit hit = capture(mob, event.getSource());
         // Custom delayed deaths (including Goety's Apostle) retain the fatal DamageSource.
@@ -263,9 +264,9 @@ public final class ChallengeTracker {
         Entity attacker = event.getSource().getEntity();
         if (attacker == null && event.getSource().getDirectEntity() instanceof Projectile projectile)
             attacker = projectile.getOwner();
-        if (attacker instanceof Mob mob && tracked(mob)) receivedDamage.add(event);
+        if (attacker instanceof LivingEntity mob && tracked(mob)) receivedDamage.add(event);
     }
-    public void died(Mob mob, LivingDeathEvent event) {
+    public void died(LivingEntity mob, LivingDeathEvent event) {
         if (!challengeTarget(mob)) return;
         Damage delayed = delayedHits.get(mob.getUUID());
         boolean sameHit = delayed != null && delayed.event.getSource() == event.getSource();
@@ -291,7 +292,7 @@ public final class ChallengeTracker {
             if (qualifies) counters.get(index).incrementDistinct(mob);
         }
     }
-    private Hit capture(Mob mob, DamageSource source) {
+    private Hit capture(LivingEntity mob, DamageSource source) {
         if (source.is(DamageTypes.GENERIC_KILL) || source.is(DamageTypes.FELL_OUT_OF_WORLD)) return null;
         Entity direct = source.getDirectEntity();
         Shot shot = direct == null ? null : shots.get(direct.getUUID());
