@@ -240,8 +240,53 @@ public final class AbyssParties {
         persisted.put(RETURN, origin); AbyssPlatform.data(player).put("PlayerPersisted", persisted);
         player.setPortalCooldown();
     }
+    /** One stable arena identity per physical portal and destination; player progress stays separate. */
+    public ArenaSession section(UUID portal, int floor) {
+        if (portal == null) return null;
+        return sessions.values().stream().filter(s -> s.section() && portal.equals(s.profile().portal)
+                && s.controller().currentFloor() == floor).findFirst().orElse(null);
+    }
+    void changeSectionOwner(ArenaSession session, UUID owner) {
+        session.profile().sectionOwner = owner;
+        data.setDirty();
+    }
+    public boolean enterSection(ServerPlayer player, UUID portal, int floor) {
+        if (portal == null || floor < 1 || floor > 7) return false;
+        if (floor != ENDLESS_FLOOR && !FloorCatalog.snapshot().floors().containsKey(floor)) return tell(player, "floor_unavailable");
+        if (!checkUnlocked(player, player, floor) || !canTravel(player)) return false;
+        ArenaSession current = sessionFor(player);
+        if (current != null && !current.canNavigate(player)) return tell(player, "claim_first");
+        var personal = profile(player.getUUID()).progress;
+        if (floor != ENDLESS_FLOOR && !(current == null ? personal.canEnterFloor(floor) : personal.canSelectFloor(floor, true)))
+            return tell(player, "claim_first");
+        ArenaSession destination = section(portal, floor);
+        if (destination == current && current != null) return true;
+        if (destination == null) {
+            if (sessions.size() >= AbyssPlayers.ARENA_SLOTS) return tell(player, "arenas_full");
+            UUID id = UUID.nameUUIDFromBytes(("spiral_abyss:section:" + portal + ":" + floor).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            var sectionProfile = profile(id);
+            sectionProfile.portal = portal; sectionProfile.sectionFloor = floor; sectionProfile.sectionOwner = player.getUUID();
+            sectionProfile.setEndlessMode(floor == ENDLESS_FLOOR);
+            if (floor != ENDLESS_FLOOR) {
+                sectionProfile.progress.placeSection(floor);
+                // A fresh section visit must not restore reward events from its previous occupants.
+                sectionProfile.progress.clearPayouts(floor);
+            }
+            data.setDirty();
+            destination = acquire(id);
+            if (destination == null) return tell(player, "arenas_full");
+        }
+        if (!enter(player, destination.host())) return false;
+        follow(player.getUUID(), null);
+        profile(player.getUUID()).portal = portal;
+        if (floor != ENDLESS_FLOOR) personal.selectFloor(floor, true);
+        data.setDirty();
+        if (current != null && current != destination && current.players().isEmpty()) retire(current);
+        return true;
+    }
     public boolean enterFloor(ServerPlayer player, int number) {
         ArenaSession current = sessionFor(player);
+        if (current != null && current.section()) return enterSection(player, current.profile().portal, number);
         if (current != null && current.isLeader(player) && !current.host().equals(player.getUUID()))
             return enterLedFloor(player, current, number);
         if (profile(player.getUUID()).followingHost != null) return followFloor(player, number);
@@ -289,7 +334,7 @@ public final class AbyssParties {
         if (!returnAfterCycleReset(player)) return false;
         if (!canTravel(player) || !player.canChangeDimensions(player.level(), server.getLevel(AbyssDimension.LEVEL))) return tell(player, "travel_unavailable");
         ArenaSession source = sessionFor(player);
-        if (source != null && !source.host().equals(host) && source.controller().active()) return tell(player, "already_running");
+        if (source != null && !source.host().equals(host) && source.controller().active() && !source.observer(player)) return tell(player, "already_running");
         ArenaSession session = acquire(host);
         if (session == null) return tell(player, "arenas_full");
         if (!host.equals(player.getUUID()) && !checkUnlocked(player, player, session.controller().currentFloor())) return false;
@@ -309,12 +354,13 @@ public final class AbyssParties {
             if (session.admitted().isEmpty()) retire(session);
             return false;
         }
+        player.closeContainer();
         if (previous != null && previous != session) previous.remove(player.getUUID());
         membership.put(player.getUUID(), host);
         persisted.putUUID(VISIT, host); persisted.putInt(VISIT_FLOOR, session.controller().currentFloor());
         AbyssPlatform.data(player).put("PlayerPersisted", persisted);
         session.admit(player);
-        if (!session.endless() && host.equals(player.getUUID()) && !session.controller().active() && session.profile().progress.claimed()) {
+        if (!session.section() && !session.endless() && host.equals(player.getUUID()) && !session.controller().active() && session.profile().progress.claimed()) {
             session.controller().close(); session.refreshDisplay();
         }
         // Vanilla initializes clients with the overworld border, even after changing dimensions.
@@ -346,6 +392,7 @@ public final class AbyssParties {
             player.teleportTo(destination, position.x, position.y, position.z, saved.getFloat("Yaw"), saved.getFloat("Pitch"));
             if (player.level() != destination) return false;
         } else if (player.changeDimension(new DimensionTransition(destination, position, Vec3.ZERO, saved.getFloat("Yaw"), saved.getFloat("Pitch"), DimensionTransition.DO_NOTHING)) == null) return false;
+        player.closeContainer();
         if (session != null) session.remove(player.getUUID());
         if (session != null && session.players().isEmpty()) retire(session);
         membership.remove(player.getUUID()); persisted.remove(VISIT); persisted.remove(VISIT_FLOOR); persisted.remove(RETURN); persisted.remove(RETURN_REQUIRED);
@@ -381,6 +428,8 @@ public final class AbyssParties {
         return GuestFloorRules.next(profile(player.getUUID()).progress, current.controller().currentFloor(), current.canNavigate(player));
     }
     public boolean followFloor(ServerPlayer player, int number) {
+        ArenaSession section = sessionFor(player);
+        if (section != null && section.section()) return enterSection(player, section.profile().portal, number);
         UUID host = followedHost(player);
         if (host == null) return tell(player, "selection_expired");
         ArenaSession current = sessionFor(player);
@@ -455,6 +504,11 @@ public final class AbyssParties {
                 && session.host().equals(entity.arenaHost()) && player.distanceToSqr(entity) <= 64;
     }
     public boolean nextFloor(ServerPlayer player) {
+        ArenaSession section = sessionFor(player);
+        if (section != null && section.section()) {
+            int next = section.controller().currentFloor() + 1;
+            return next <= 6 && section.canAdvance(player) && enterSection(player, section.profile().portal, next);
+        }
         if (followedHost(player) != null) return followFloor(player, guestDestination(player));
         ArenaSession session = sessionFor(player);
         return session == null ? tell(player, "wrong_dimension") : session.controller().nextFloor(player);
@@ -477,6 +531,8 @@ public final class AbyssParties {
         return true;
     }
     public boolean reset(ServerPlayer player) {
+        ArenaSession current = sessionFor(player);
+        if (current != null && current.section() && !leave(player)) return false;
         ArenaSession session = sessions.get(player.getUUID());
         // An original owner returning outside cannot erase the successor's live encounter or chest.
         if (session != null && !session.isLeader(player)) return tell(player, "host_only");

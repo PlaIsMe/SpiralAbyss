@@ -83,7 +83,7 @@ public final class FloorController {
     public State state() { return state; }
     public BossEnvironments bossEnvironments() { return bossEnvironments; }
     public int currentFloor() { return session.endless() ? EndlessWaves.FLOOR : progress.floor(); }
-    public int currentWave() { return session.endless() && !active() ? session.profile().endlessWave : waveIndex + 1; }
+    public int currentWave() { return session.endless() && !active() ? session.endlessProgress().endlessWave : waveIndex + 1; }
     public int remainingTicks() { return clock.remainingTicks(); }
     public int remainingEnemies() { return stages.enemies().size(); }
     public List<LivingEntity> enemies() { return stages.enemies(); }
@@ -91,7 +91,7 @@ public final class FloorController {
     public List<ChallengeTracker.Progress> challengeProgress() {
         return challengeTracker == null ? List.of() : challengeTracker.progress();
     }
-    public boolean waitingForExperience() { return session.endless() && session.profile().endlessCheckpoint > 0 && !active(); }
+    public boolean waitingForExperience() { return session.endless() && session.endlessProgress().endlessCheckpoint > 0 && !active(); }
     public boolean showsEndlessChest() { return waitingForExperience() || session.endless() && endlessLooted && state == State.BETWEEN_WAVES; }
     public AbyssNetwork.EncounterStatus hudStatus(ServerPlayer viewer) {
         if (session.endless()) return new AbyssNetwork.EncounterStatus(true, !active(), EndlessWaves.FLOOR,
@@ -164,6 +164,7 @@ public final class FloorController {
         if (player.level() != level || !session.contains(player)) return false;
         if (!player.isAlive() || player.isSpectator()) return message(player, "spectator");
         if (active()) return message(player, "already_running");
+        if (session.section() && !session.endless() && state == State.COMPLETED) return message(player, "already_completed");
         if (showsChest() && session.looting()) return message(player, "already_completed");
         if (level.getDifficulty() == Difficulty.PEACEFUL) return message(player, "peaceful");
         if (session.endless()) return startEndless(player);
@@ -207,7 +208,7 @@ public final class FloorController {
 
     public void tick() {
         refreshDefinitions();
-        if (waitingForExperience() && session.profile().endlessPayout.active()) {
+        if (waitingForExperience() && session.endlessProgress().endlessPayout.active()) {
             tickEndlessPayout();
             return;
         }
@@ -276,7 +277,7 @@ public final class FloorController {
             if (session.endless()) {
                 endlessLooted = false;
                 int wave = waveIndex + 1;
-                session.profile().saveEndlessWave(wave);
+                session.endlessProgress().saveEndlessWave(wave);
                 var selected = EndlessWaves.select(wave, session.endlessSeed(wave), FloorCatalog.waveTypes().values(),
                         MobCatalog.snapshot(), equipment);
                 stages.prepare(selected.enemies()); selectedWaveType = selected.type();
@@ -323,16 +324,16 @@ public final class FloorController {
         if (!session.captureParty()) return message(player, "host_required");
         equipment = MobCatalog.equipment(); mobScaling = MobCatalog.scalingSnapshot();
         encounteredMobs.clear(); challenges = List.of();
-        waveIndex = session.profile().endlessWave - 1; delayTicks = 0;
+        waveIndex = session.endlessProgress().endlessWave - 1; delayTicks = 0;
         return startWave(player);
     }
     private void completeEndlessWave() {
         bossHealthBars.clear();
         session.finishAttempt();
         int wave = waveIndex + 1;
-        session.profile().saveEndlessWave(wave);
-        if (wave % 10 == 0 && wave > session.profile().endlessRewardedWave) {
-            session.profile().saveEndlessCheckpoint(wave);
+        session.endlessProgress().saveEndlessWave(wave);
+        if (wave % 10 == 0 && wave > session.endlessProgress().endlessRewardedWave) {
+            session.endlessProgress().saveEndlessCheckpoint(wave);
             state = State.COMPLETED;
             runId = null;
         } else {
@@ -343,21 +344,21 @@ public final class FloorController {
     }
     public boolean openEndlessCheckpoint(ServerPlayer player) {
         if (!waitingForExperience() || !session.contains(player) || !player.isAlive() || player.isSpectator()
-                || session.profile().endlessPayout.active()
-                || (!session.host().equals(player.getUUID()) && !session.participants().contains(player.getUUID()))
-                || session.players().stream().noneMatch(p -> p.getUUID().equals(session.host()) && p.isAlive() && !p.isSpectator())) return false;
+                || session.endlessProgress().endlessPayout.active()
+                || (!session.originalOwner().equals(player.getUUID()) && !session.participants().contains(player.getUUID()))
+                || session.players().stream().noneMatch(p -> p.getUUID().equals(session.originalOwner()) && p.isAlive() && !p.isSpectator())) return false;
         // Save the exact roll before animation; reentry resumes without rerolling or paying twice.
-        int wave = session.profile().endlessCheckpoint;
-        int experience = wave > session.profile().endlessRewardedWave ? EndlessWaves.experience(wave, level.random) : 0;
-        session.profile().markEndlessRewarded(wave);
-        session.profile().endlessPayout.begin(new FloorRewards.Bundle(List.of(), experience));
+        int wave = session.endlessProgress().endlessCheckpoint;
+        int experience = wave > session.endlessProgress().endlessRewardedWave ? EndlessWaves.experience(wave, level.random) : 0;
+        session.endlessProgress().markEndlessRewarded(wave);
+        session.endlessProgress().endlessPayout.begin(new FloorRewards.Bundle(List.of(), experience));
         session.refreshDisplay();
         return true;
     }
     private void tickEndlessPayout() {
         // An offline owner's payout pauses, just as it does after the room is released.
-        if (session.players().stream().noneMatch(p -> p.getUUID().equals(session.host()) && p.isAlive() && !p.isSpectator())) return;
-        var payout = session.profile().endlessPayout;
+        if (session.players().stream().noneMatch(p -> p.getUUID().equals(session.originalOwner()) && p.isAlive() && !p.isSpectator())) return;
+        var payout = session.endlessProgress().endlessPayout;
         payout.tickOpening();
         if (payout.chestTicks() < LootChestEntity.OPEN_TICKS
                 + LootChestEntity.DROP_INTERVAL_TICKS) {
@@ -366,11 +367,12 @@ public final class FloorController {
         }
         int experience = payout.pending().experience();
         payout.complete();
-        int wave = session.profile().endlessCheckpoint;
-        session.profile().saveEndlessCheckpoint(0);
+        int wave = session.endlessProgress().endlessCheckpoint;
+        session.endlessProgress().saveEndlessCheckpoint(0);
         FloorRewards.releaseExperience(level, center, experience);
         waveIndex = wave - 1;
         equipment = MobCatalog.equipment(); mobScaling = MobCatalog.scalingSnapshot();
+        session.releaseObservers();
         if (!session.captureParty()) { state = State.READY; session.refreshDisplay(); return; }
         endlessLooted = true;
         runId = UUID.randomUUID();

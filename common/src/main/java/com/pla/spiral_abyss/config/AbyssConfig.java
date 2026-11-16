@@ -7,6 +7,7 @@ import java.util.List;
 
 public final class AbyssConfig {
     public static final ModConfigSpec SPEC;
+    public static final ModConfigSpec.BooleanValue NO_DROP_REWARD_CHESTS;
     public static final ModConfigSpec.BooleanValue MIX_MOBS;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_BLACKLIST;
     public static final ModConfigSpec.IntValue RESET_DAYS;
@@ -15,6 +16,9 @@ public final class AbyssConfig {
     public static final ModConfigSpec.BooleanValue ABYSSAL_REJECTION;
     static {
         var builder = new ModConfigSpec.Builder();
+        NO_DROP_REWARD_CHESTS = builder.comment("Open normal reward chests as a shared loot container instead of dropping items.",
+                "Does not affect Endless experience chests. Opened payouts retain their delivery mode.")
+                .define("no_drop_reward_chests", false);
         ABYSSAL_REJECTION = builder.comment("Reduce a player's damage to floor 5/6 bosses by 60% until they defeat that species outside the Abyss.",
                 "Preserves normal boss progression. Disable for packs that intentionally allow Abyss-first boss encounters.")
                 .define("abyssal_rejection", true);

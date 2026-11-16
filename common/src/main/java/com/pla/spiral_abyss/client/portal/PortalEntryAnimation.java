@@ -187,7 +187,7 @@ public final class PortalEntryAnimation {
             long remaining = state.resetRemainingMillis() < 0 ? state.resetRemainingMillis()
                     : Math.max(0, state.resetRemainingMillis() - elapsed());
             FloorSelectionScreen.open(new AbyssNetwork.OpenFloors(state.token(), state.claimed(), state.unlocked(),
-                    state.selectable(), state.visible(), state.inside(), remaining, state.floors(), null, state.endlessWave()));
+                    state.selectable(), state.visible(), state.inside(), remaining, state.floors(), null, state.endlessWave(), state.sections()));
         }
 
         @Override public boolean keyPressed(int key, int scan, int modifiers) {

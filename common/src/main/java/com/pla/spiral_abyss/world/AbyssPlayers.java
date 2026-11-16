@@ -33,6 +33,8 @@ public final class AbyssPlayers extends SavedData {
         public int slot;
         public final FloorProgress progress;
         public UUID portal;
+        public int sectionFloor;
+        public UUID sectionOwner;
         public UUID followingHost;
         /** Personal play remains separate until the player leaves and reenters a physical portal. */
         public boolean personalRun;
@@ -86,6 +88,8 @@ public final class AbyssPlayers extends SavedData {
             Profile profile = data.new Profile(owner, -1,
                     FloorProgress.load(entry.getCompound("Progress"), data::setDirty, registries));
             data.profiles.put(owner, profile);
+            profile.sectionFloor = Math.max(0, Math.min(7, entry.getInt("SectionFloor")));
+            if (entry.hasUUID("SectionOwner")) profile.sectionOwner = entry.getUUID("SectionOwner");
             if (entry.hasUUID("Portal")) profile.portal = entry.getUUID("Portal");
             if (entry.hasUUID("FollowingHost")) profile.followingHost = entry.getUUID("FollowingHost");
             profile.personalRun = entry.contains("PersonalRun") ? entry.getBoolean("PersonalRun") : profile.followingHost != null;
@@ -108,6 +112,8 @@ public final class AbyssPlayers extends SavedData {
         profiles.values().forEach(profile -> {
             CompoundTag entry = new CompoundTag();
             entry.putUUID("Owner", profile.owner);
+            entry.putInt("SectionFloor", profile.sectionFloor);
+            if (profile.sectionOwner != null) entry.putUUID("SectionOwner", profile.sectionOwner);
             entry.putBoolean("ResetArena", profile.arenaResetRequested);
             entry.putBoolean("CycleReturnRequired", profile.cycleReturnRequired);
             entry.putBoolean("EndlessMode", profile.endlessMode);

@@ -30,13 +30,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.FriendlyByteBuf;
 
 public final class AbyssNetwork {
-    public static final String VERSION = "24";
+    public static final String VERSION = "25";
     private static final Map<ServerPlayer, Integer> JOURNAL_REQUESTS = new WeakHashMap<>();
     public record OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
-                             long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal, int endlessWave) implements CustomPacketPayload {
+                             long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal, int endlessWave, List<SectionView> sections) implements CustomPacketPayload {
         public static final Type<OpenFloors> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "open_floors"));
         @Override public Type<OpenFloors> type() { return TYPE; }
-        public OpenFloors { floors = List.copyOf(floors); endlessWave = Math.max(1, endlessWave); }
+        public OpenFloors { sections = List.copyOf(sections); floors = List.copyOf(floors); endlessWave = Math.max(1, endlessWave); }
+        public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
+                          long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal, int endlessWave) {
+            this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, entryPortal, endlessWave, List.of());
+        }
         public OpenFloors(UUID token, int claimed, int unlocked, int selectable, int visible, boolean inside,
                           long resetRemainingMillis, List<FloorPreview> floors, BlockPos entryPortal) {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, entryPortal, 1);
@@ -45,6 +49,15 @@ public final class AbyssNetwork {
                           long resetRemainingMillis, List<FloorPreview> floors) {
             this(token, claimed, unlocked, selectable, visible, inside, resetRemainingMillis, floors, null);
         }
+    }
+    public record SectionPlayer(UUID id, String name) {}
+    public record SectionView(int floor, int status, List<SectionPlayer> players) {
+        public SectionView { players = List.copyOf(players); }
+    }
+    public record SectionStatus(UUID token, List<SectionView> sections, int selectable) implements CustomPacketPayload {
+        public static final Type<SectionStatus> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(SpiralAbyss.MOD_ID, "section_status"));
+        public SectionStatus { sections = List.copyOf(sections); }
+        @Override public Type<SectionStatus> type() { return TYPE; }
     }
     public record EnemyPreview(ResourceLocation id, int count, boolean rejected, PreviewAnimation animation) {
         public EnemyPreview(ResourceLocation id, int count, boolean rejected) { this(id, count, rejected, PreviewAnimation.DEFAULT); }
@@ -114,6 +127,10 @@ public final class AbyssNetwork {
     }
     private AbyssNetwork() {}
     public static void register(AbyssPayloadRegistrar registrar) {
+        registrar.playToClient(SectionStatus.TYPE, StreamCodec.of((buffer, message) -> {
+            buffer.writeUUID(message.token()); writeSections(buffer, message.sections()); buffer.writeVarInt(message.selectable());
+        }, buffer -> new SectionStatus(buffer.readUUID(), readSections(buffer), buffer.readVarInt())),
+                (message, context) -> FloorSelectionScreen.updateSections(message));
         registrar.playToClient(OpenFloors.TYPE, StreamCodec.of((buffer, message) -> writeFloors(message, buffer), AbyssNetwork::readFloors), (message, context) -> PortalEntryAnimation.open(message));
         registrar.playToServer(SelectFloor.TYPE, StreamCodec.of((buffer, message) -> { buffer.writeUUID(message.token); buffer.writeVarInt(message.floor); }, buffer -> new SelectFloor(buffer.readUUID(), buffer.readVarInt())), (message, context) -> {
                     ServerPlayer sender = (ServerPlayer) context.player();
@@ -152,6 +169,28 @@ public final class AbyssNetwork {
                 });
         registrar.playToClient(OpenJournal.TYPE, StreamCodec.of((buffer, message) -> writeJournal(message, buffer), AbyssNetwork::readJournal), (message, context) -> JournalClientHandler.open(message));
     }
+    public static void sectionStatus(ServerPlayer player, UUID token, List<SectionView> sections, int selectable) {
+        AbyssPacketDistributor.sendToPlayer(player, new SectionStatus(token, sections, selectable));
+    }
+    private static void writeSections(FriendlyByteBuf buffer, List<SectionView> sections) {
+        buffer.writeVarInt(sections.size());
+        for (var section : sections) {
+            buffer.writeVarInt(section.floor()); buffer.writeVarInt(section.status());
+            buffer.writeVarInt(section.players().size());
+            for (var player : section.players()) { buffer.writeUUID(player.id()); buffer.writeUtf(player.name(), 16); }
+        }
+    }
+    private static List<SectionView> readSections(FriendlyByteBuf buffer) {
+        List<SectionView> sections = new ArrayList<>();
+        for (int count = bounded(buffer, 7); count > 0; count--) {
+            int floor = bounded(buffer, 7), status = bounded(buffer, 2);
+            List<SectionPlayer> players = new ArrayList<>();
+            for (int people = bounded(buffer, 80); people > 0; people--)
+                players.add(new SectionPlayer(buffer.readUUID(), buffer.readUtf(16)));
+            sections.add(new SectionView(floor, status, players));
+        }
+        return List.copyOf(sections);
+    }
     private static void writeFloors(OpenFloors message, RegistryFriendlyByteBuf buffer) {
         buffer.writeUUID(message.token); buffer.writeVarInt(message.claimed); buffer.writeVarInt(message.unlocked);
         buffer.writeVarInt(message.selectable); buffer.writeVarInt(message.visible);
@@ -159,11 +198,12 @@ public final class AbyssNetwork {
         writePreviews(buffer, message.floors);
         buffer.writeNullable(message.entryPortal, (buf, pos) -> buf.writeBlockPos(pos));
         buffer.writeVarInt(message.endlessWave);
+        writeSections(buffer, message.sections);
     }
     private static OpenFloors readFloors(RegistryFriendlyByteBuf buffer) {
         return new OpenFloors(buffer.readUUID(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readBoolean(), buffer.readLong(), readPreviews(buffer),
-                buffer.readNullable(buf -> buf.readBlockPos()), buffer.readVarInt());
+                buffer.readNullable(buf -> buf.readBlockPos()), buffer.readVarInt(), readSections(buffer));
     }
     private static void writeJournal(OpenJournal message, RegistryFriendlyByteBuf buffer) {
         buffer.writeLong(message.resetRemainingMillis()); buffer.writeLong(message.poseSeed());
@@ -202,7 +242,8 @@ public final class AbyssNetwork {
         for (int floor = 1; floor <= 6; floor++) if (progress.unlocked(floor)) unlocked |= 1 << floor;
         AbyssPacketDistributor.sendToPlayer(player, new OpenFloors(token, claimed, unlocked, selectable, visible, inside,
                 AbyssParties.get(player.server).resetRemainingMillis(), previews(player), entryPortal,
-                AbyssParties.get(player.server).profile(player.getUUID()).endlessWave));
+                AbyssParties.get(player.server).profile(player.getUUID()).endlessWave,
+                AbyssParties.get(player.server).portals().sectionViews(player)));
     }
     /** Preview uses the same persisted cycle lineups as spawning; the client never rolls mobs. */
     private static List<FloorPreview> previews(ServerPlayer player) {
@@ -288,7 +329,7 @@ public final class AbyssNetwork {
         for (int count = bounded(buffer, 128); count > 0; count--) result.add(buffer.readResourceLocation());
         return result;
     }
-    private static int bounded(RegistryFriendlyByteBuf buffer, int max) {
+    private static int bounded(FriendlyByteBuf buffer, int max) {
         int number = buffer.readVarInt();
         if (number < 0 || number > max) throw new IllegalArgumentException("Invalid Abyss preview size");
         return number;

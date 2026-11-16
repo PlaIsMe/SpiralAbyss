@@ -1,6 +1,8 @@
 package com.pla.spiral_abyss.neoforge.client.handler;
 
 import com.pla.spiral_abyss.SpiralAbyss;
+import com.pla.spiral_abyss.init.MenuInit;
+import com.pla.spiral_abyss.client.screen.RewardChestScreen;
 import com.pla.spiral_abyss.client.handler.JournalClientHandler;
 import com.pla.spiral_abyss.client.renderer.*;
 import com.pla.spiral_abyss.client.screen.AbyssClientConfigScreen;
@@ -15,6 +17,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 @EventBusSubscriber(modid = SpiralAbyss.MOD_ID, value = Dist.CLIENT)
@@ -27,6 +30,11 @@ public final class ClientModHandler {
                 .registerExtensionPoint(
                         IConfigScreenFactory.class,
                         (container, parent) -> new AbyssClientConfigScreen(parent));
+    }
+
+    @SubscribeEvent
+    public static void registerMenuScreens(RegisterMenuScreensEvent event) {
+        event.register(MenuInit.REWARD_CHEST.get(), RewardChestScreen::new);
     }
 
     @SubscribeEvent

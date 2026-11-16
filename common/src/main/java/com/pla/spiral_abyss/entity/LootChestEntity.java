@@ -15,6 +15,7 @@ import net.minecraft.world.phys.AABB;
 public abstract class LootChestEntity extends ArenaInteractable {
     public static final int IDLE = 0, OPEN = 1, DISPENSING = 2, LOOTED = 3, SPAWN = 4;
     public static final int SPAWN_TICKS = 11, OPEN_TICKS = 10, DROP_INTERVAL_TICKS = 6;
+    public static final int CONTAINER_GLOW_TICKS = 100;
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(LootChestEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> PHASE_START = SynchedEntityData.defineId(LootChestEntity.class, EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Boolean> RARE = SynchedEntityData.defineId(LootChestEntity.class, EntityDataSerializers.BOOLEAN);

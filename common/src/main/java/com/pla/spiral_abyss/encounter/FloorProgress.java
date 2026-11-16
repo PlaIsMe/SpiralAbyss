@@ -97,6 +97,14 @@ public final class FloorProgress {
         return unlocked(number) && (number == floor || hasPayouts(number) || !hasPayouts()
                 || acknowledgedCurrentFloor && claimed(floor));
     }
+    /** Section placement is independent of any player's unlocks; admission validates their personal profile. */
+    public void placeSection(int number) { requireFloor(number); floor = number; dirty.run(); }
+
+    /** End a retired section's payout events without altering stars, claims or unlocks. */
+    public void clearPayouts(int number) {
+        requireFloor(number);
+        for (ChestPayout payout : payouts[number]) if (payout.active()) payout.complete();
+    }
     public void selectFloor(int number) {
         selectFloor(number, false);
     }

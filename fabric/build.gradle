@@ -10,8 +10,6 @@ configurations {
 dependencies {
     modCompileOnly 'com.terraformersmc:modmenu:11.0.3'
     modCompileOnly 'maven.modrinth:geckolib:tmxM7U4W'
-    // Architectury's development transformer resolves the optional preview hierarchy.
-    modLocalRuntime 'maven.modrinth:geckolib:tmxM7U4W'
 
     implementation 'com.electronwill.night-config:core:3.8.0'
     implementation 'com.electronwill.night-config:toml:3.8.0'

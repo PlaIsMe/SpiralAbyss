@@ -7,5 +7,6 @@ public final class SpiralAbyss {
   GearConfig.prepare();
   EntityInit.ENTITY_TYPES.register(); BlockInit.BLOCKS.register(); BlockEntityInit.BLOCK_ENTITIES.register();
   ItemInit.ITEMS.register(); CreativeTabInit.TABS.register(); SoundInit.SOUNDS.register();
+  MenuInit.MENUS.register();
  }
 }

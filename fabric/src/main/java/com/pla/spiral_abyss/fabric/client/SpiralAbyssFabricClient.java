@@ -1,5 +1,8 @@
 package com.pla.spiral_abyss.fabric.client;
 
+import com.pla.spiral_abyss.init.MenuInit;
+import com.pla.spiral_abyss.client.screen.RewardChestScreen;
+import dev.architectury.registry.menu.MenuRegistry;
 import com.pla.spiral_abyss.client.handler.JournalClientHandler;
 import com.pla.spiral_abyss.client.overlay.*;
 import com.pla.spiral_abyss.client.platform.AbyssClientEvents.*;
@@ -21,6 +24,7 @@ import net.minecraft.world.phys.BlockHitResult;
 public final class SpiralAbyssFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        MenuRegistry.registerScreenFactory(MenuInit.REWARD_CHEST.get(), RewardChestScreen::new);
         KeyBindingHelper.registerKeyBinding(JournalClientHandler.OPEN);
         EntityRendererRegistry.register(EntityInit.KEY_ENTITY.get(), KeyEntityRenderer::new);
         BlockEntityRendererRegistry.register(
