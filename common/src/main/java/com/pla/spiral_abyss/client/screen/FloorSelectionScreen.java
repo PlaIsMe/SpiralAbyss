@@ -94,8 +94,7 @@ public final class FloorSelectionScreen extends Screen {
         }
     }
     private void chooseSectionCard(int floor) {
-        if (selectable(floor) && sections.stream().anyMatch(s -> s.floor() == floor && !s.players().isEmpty())) submit(floor);
-        else navigate(floor, 0);
+        navigate(floor, 0);
     }
     private void initOverview() {
         sectionCards.clear();
