@@ -1,6 +1,9 @@
 package com.pla.spiral_abyss.forge.client.handler;
 
 import com.pla.spiral_abyss.SpiralAbyss;
+import com.pla.spiral_abyss.init.MenuInit;
+import com.pla.spiral_abyss.client.screen.RewardChestScreen;
+import net.minecraft.client.gui.screens.MenuScreens;
 import com.pla.spiral_abyss.client.handler.JournalClientHandler;
 import com.pla.spiral_abyss.client.renderer.*;
 import com.pla.spiral_abyss.client.screen.AbyssClientConfigScreen;
@@ -23,6 +26,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public final class ClientModHandler {
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> MenuScreens.register(MenuInit.REWARD_CHEST.get(), RewardChestScreen::new));
         ModLoadingContext.get()
                 .registerExtensionPoint(
                         ConfigScreenHandler.ConfigScreenFactory.class,

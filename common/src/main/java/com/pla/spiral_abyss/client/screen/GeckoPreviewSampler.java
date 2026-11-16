@@ -130,7 +130,7 @@ final class GeckoPreviewSampler {
             if (type == null) return false;
             // Explicit frames render just the sampled mesh. A mod's renderer may require
             // live combat lighting/effect helpers that are absent on an unspawned preview.
-            GeoRenderer mesh = preview.configured() ? new PreviewMesh(model, animated) : renderer;
+            GeoRenderer mesh = previewRenderer(model, animated, renderer, preview.configured());
             mesh.reRender(baked, pose, buffers, animated, type, buffers.getBuffer(type), 0,
                     light, OverlayTexture.NO_OVERLAY, 1, 1, 1, 1);
             LogUtils.getLogger().debug("Abyss preview {} samples {} at {} ticks", entity.getType(), clip, sample);
@@ -150,6 +150,13 @@ final class GeckoPreviewSampler {
             if (processor != null) processor.reloadAnimations = reload;
             pose.popPose();
         }
+    }
+
+    // Separate returns avoid merging optional renderer subclasses during Architectury's frame computation.
+    private static GeoRenderer previewRenderer(GeoModel model, GeoAnimatable entity,
+                                              GeoEntityRenderer renderer, boolean meshOnly) {
+        if (meshOnly) return new PreviewMesh(model, entity);
+        return renderer;
     }
 
     private record PreviewMesh(GeoModel model, GeoAnimatable entity) implements GeoRenderer<GeoAnimatable> {

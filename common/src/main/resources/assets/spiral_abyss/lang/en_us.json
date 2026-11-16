@@ -183,5 +183,13 @@
   "screen.spiral_abyss.endless": "Endless Mode",
   "hud.spiral_abyss.endless_wave": "Endless Mode Wave %s",
   "screen.spiral_abyss.endless_description": "Clear every enemy within five minutes to advance. No challenges or Abyssal Rejection. Open an XP chest every 10 waves.",
-  "entity.spiral_abyss.experience_chest": "Experience Chest"
+  "entity.spiral_abyss.experience_chest": "Experience Chest",
+  "screen.spiral_abyss.reward_chest": "Abyss Rewards",
+  "screen.spiral_abyss.loot_page": "Loot %s / %s",
+  "screen.spiral_abyss.section_idle": "Ready",
+  "screen.spiral_abyss.section_fighting": "Fighting",
+  "screen.spiral_abyss.section_claiming": "Claiming",
+  "screen.spiral_abyss.section_players": "%s players",
+  "screen.spiral_abyss.section_players_scroll": "Scroll to browse players (%s/%s)",
+  "message.spiral_abyss.section_spectating": "This section is busy. You are spectating; use the Abyss menu to choose another floor."
 }

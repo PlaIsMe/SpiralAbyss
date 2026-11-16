@@ -10,6 +10,8 @@ Third-party components listed below remain subject to their respective licenses.
 
 ## Credits
 
+- Rare-item inventory frames are inspired by [Item Borders](https://github.com/AHilyard/ItemBorders) by Anthony Hilyard ([CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)). The frame renderer is independently written; no Item Borders code or assets are bundled.
+
 - Earth button artwork adapted from [earth-cube](https://sketchfab.com/3d-models/earth-cube-ed594f0b3a5b4bcc947561af91a9742e) by madexc, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The model was rendered for the menu button.
 - Broadcast UI textures and portions of the animation/rendering code were adapted from Fancy Toasts by Bivrik, licensed under the MIT License.
 

@@ -183,5 +183,13 @@
   "screen.spiral_abyss.endless": "无尽模式",
   "hud.spiral_abyss.endless_wave": "无尽模式 · 第%s波",
   "screen.spiral_abyss.endless_description": "在五分钟内击败所有敌人即可进入下一波。无挑战目标，也无深渊排斥。每完成10波可开启一个经验宝箱。",
-  "entity.spiral_abyss.experience_chest": "经验宝箱"
+  "entity.spiral_abyss.experience_chest": "经验宝箱",
+  "screen.spiral_abyss.reward_chest": "深渊奖励",
+  "screen.spiral_abyss.loot_page": "战利品 %s / %s",
+  "screen.spiral_abyss.section_idle": "准备中",
+  "screen.spiral_abyss.section_fighting": "战斗中",
+  "screen.spiral_abyss.section_claiming": "领取中",
+  "screen.spiral_abyss.section_players": "%s 名玩家",
+  "screen.spiral_abyss.section_players_scroll": "滚动查看玩家（%s/%s）",
+  "message.spiral_abyss.section_spectating": "该区域正在战斗或领取奖励。你已进入旁观模式，可通过深渊菜单选择其他楼层。"
 }

@@ -31,8 +31,12 @@ public final class RareRewardBroadcast {
         if (floor < 1 || floor > 6 || metadata.getBoolean(ANNOUNCED)) return;
         // Persist consumption even while disabled, so a partial legacy stack cannot announce later.
         metadata.putBoolean(ANNOUNCED, true);
-        if (!AbyssConfig.BROADCAST_RARE_LOOT.get()) return;
-        var stack = event.getStack().copy();
+        acquired(player, event.getStack(), floor);
+    }
+
+    public static void acquired(ServerPlayer player, net.minecraft.world.item.ItemStack reward, int floor) {
+        if (!AbyssConfig.BROADCAST_RARE_LOOT.get() || reward.isEmpty()) return;
+        var stack = reward.copy();
         stack.setCount(1);
         var name = player.getName().copy().withStyle(ChatFormatting.AQUA);
         var itemName = Component.empty().append(stack.getHoverName().copy().withStyle(ChatFormatting.GOLD))

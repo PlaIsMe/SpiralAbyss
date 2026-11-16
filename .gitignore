@@ -8,6 +8,8 @@ run-fabric
 run-forge
 run-forge-data
 run-multiloader-neoforge
+run-multiloader-fabric
+run-multiloader-neoforge-data
 bin
 libs
 reference

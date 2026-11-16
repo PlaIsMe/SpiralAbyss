@@ -9,11 +9,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import com.pla.spiral_abyss.client.portal.PortalEntryAnimation;
 import net.minecraft.Util;
 
@@ -24,6 +28,20 @@ public final class FloorSelectionScreen extends Screen {
     private static final float ARTWORK_BUTTON_SCALE = 0.5F;
     private static final float WAVE_BUTTON_SCALE = 0.8F;
     private final AbyssNetwork.OpenFloors state;
+    private List<AbyssNetwork.SectionView> sections;
+    private int available;
+    private final Map<Integer, AbstractWidget> sectionCards = new HashMap<>();
+    private final Map<Integer, Integer> sectionHeadPages = new HashMap<>();
+    public static void updateSections(AbyssNetwork.SectionStatus status) {
+        if (Minecraft.getInstance().screen instanceof FloorSelectionScreen screen && screen.state.token().equals(status.token())) {
+            screen.sections = status.sections();
+            if (screen.available != status.selectable()) {
+                screen.available = status.selectable();
+                screen.clearWidgets(); screen.init();
+            }
+            screen.updateSectionTooltips();
+        }
+    }
     private final EnemyPreviewRenderer previews = new EnemyPreviewRenderer();
     private final long openedAt = Util.getMillis();
     private boolean replied;
@@ -40,11 +58,11 @@ public final class FloorSelectionScreen extends Screen {
         else if (Minecraft.getInstance().screen instanceof AbyssJournalScreen) Minecraft.getInstance().setScreen(null);
     }
     public FloorSelectionScreen(AbyssNetwork.OpenFloors state) {
-        super(Component.translatable("screen.spiral_abyss.floors")); this.state = state;
+        super(Component.translatable("screen.spiral_abyss.floors")); this.state = state; this.sections = state.sections(); this.available = state.selectable();
     }
     public static void open(AbyssNetwork.OpenFloors state) { Minecraft.getInstance().setScreen(new FloorSelectionScreen(state)); }
     private static ResourceLocation texture(String name) { return new ResourceLocation(SpiralAbyss.MOD_ID, "textures/gui/floors/" + name + ".png"); }
-    private boolean selectable(int floor) { return (state.selectable() & (1 << floor)) != 0; }
+    private boolean selectable(int floor) { return (available & (1 << floor)) != 0; }
     private ResourceLocation floorTexture(int floor) {
         String suffix = (state.claimed() & (1 << floor)) != 0 ? "_looted"
                 : (state.unlocked() & (1 << floor)) != 0 ? "" : "_locked";
@@ -72,10 +90,15 @@ public final class FloorSelectionScreen extends Screen {
         // All three pages share a token. Reading previews must not expire travel.
         if (!replied && keepOpenTicks-- <= 0) {
             AbyssNetwork.keepFloorsOpen(state.token());
-            keepOpenTicks = 199;
+            keepOpenTicks = 39;
         }
     }
+    private void chooseSectionCard(int floor) {
+        if (selectable(floor) && sections.stream().anyMatch(s -> s.floor() == floor && !s.players().isEmpty())) submit(floor);
+        else navigate(floor, 0);
+    }
     private void initOverview() {
+        sectionCards.clear();
         int gap = Math.max(2, Math.min(12, width / 80));
         int count = Integer.bitCount(state.visible() & 254);
         int cardWidth = Math.max(1, Math.min((width - 24 - 6 * gap) / 7, Math.max(1, height - 132) * 256 / 455));
@@ -88,14 +111,16 @@ public final class FloorSelectionScreen extends Screen {
             int x = left + index++ * (cardWidth + gap);
             var label = Component.translatable(floor == 7 ? "screen.spiral_abyss.endless" : "screen.spiral_abyss.floor", floor);
             var card = floor == 7 ? addRenderableWidget(new Button(x, top, cardWidth, cardHeight, label,
-                    pressed -> navigate(7, 0), narration -> narration.get()) {
+                    pressed -> chooseSectionCard(7), narration -> narration.get()) {
                 @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                     EndlessArtwork.render(graphics, getX(), getY(), getWidth(), getHeight());
                     if (isHoveredOrFocused()) graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFFF2D58C);
                 }
-            }) : imageButton(x, top, cardWidth, cardHeight, label, floorTexture(floor), 256, 455, () -> navigate(number, 0));
+            }) : imageButton(x, top, cardWidth, cardHeight, label, floorTexture(floor), 256, 455, () -> chooseSectionCard(number));
+            sectionCards.put(floor, card);
             card.setTooltip(Tooltip.create(floor == 7 ? label : Component.translatable("screen.spiral_abyss.view_floor", floor)));
         }
+        updateSectionTooltips();
         int buttonY = Math.min(height - 60, top + cardHeight + 15);
         resetRowY = buttonY + 37;
         Component exitLabel = Component.translatable(state.inside() ? "screen.spiral_abyss.return_overworld" : "screen.spiral_abyss.close");
@@ -257,7 +282,78 @@ public final class FloorSelectionScreen extends Screen {
         }
         boolean overRewardTooltip = rewardPanel != null && rewardPanel.popupContains(mouseX, mouseY);
         super.render(graphics, overRewardTooltip ? -1 : mouseX, overRewardTooltip ? -1 : mouseY, partialTick);
+        if (selectedFloor == 0) renderSections(graphics, mouseX, mouseY);
         if (rewardPanel != null) rewardPanel.render(graphics, mouseX, mouseY, width, height);
+    }
+    private Component sectionLabel(AbyssNetwork.SectionView section) {
+        return Component.translatable("screen.spiral_abyss.section_" + (section.status() == 1 ? "fighting" : section.status() == 2 ? "claiming" : "idle"));
+    }
+    private void updateSectionTooltips() {
+        for (var entry : sectionCards.entrySet()) {
+            var text = Component.translatable("screen.spiral_abyss.view_floor", entry.getKey());
+            for (var section : sections) if (section.floor() == entry.getKey()) {
+                text.append("\n").append(sectionLabel(section));
+                text.append("\n").append(Component.translatable("screen.spiral_abyss.section_players", section.players().size()));
+            }
+            entry.getValue().setTooltip(Tooltip.create(text));
+        }
+    }
+    private record HeadGrid(int size, int columns, int rows) {
+        int capacity() { return columns * rows; }
+        int pageSize(int count) { return count > capacity() ? Math.max(1, capacity() - 1) : capacity(); }
+        int pages(int count) { return (count + pageSize(count) - 1) / pageSize(count); }
+    }
+    private HeadGrid headGrid(AbstractWidget card) {
+        int size = Math.max(4, Math.min(10, Math.min(card.getWidth() - 6, card.getHeight() - 20)));
+        int columns = Math.max(1, (card.getWidth() - 4) / (size + 2));
+        int rows = Math.max(1, Math.min(2, (card.getHeight() - 18) / (size + 2)));
+        return new HeadGrid(size, columns, rows);
+    }
+    private int headPage(AbyssNetwork.SectionView section, HeadGrid grid) {
+        return Math.max(0, Math.min(grid.pages(section.players().size()) - 1,
+                sectionHeadPages.getOrDefault(section.floor(), 0)));
+    }
+    private void renderSections(GuiGraphics graphics, int mouseX, int mouseY) {
+        Component hovered = null;
+        for (var section : sections) {
+            AbstractWidget card = sectionCards.get(section.floor());
+            if (card == null || section.players().isEmpty() || card.getWidth() < 8 || card.getHeight() < 26) continue;
+            int x = card.getX(), bottom = card.getY() + card.getHeight();
+            HeadGrid grid = headGrid(card);
+            int count = section.players().size(), page = headPage(section, grid);
+            int first = page * grid.pageSize(count), shown = Math.min(grid.pageSize(count), count - first);
+            boolean overflow = count > grid.capacity();
+            int cells = shown + (overflow && grid.capacity() > 1 ? 1 : 0);
+            int rows = (cells + grid.columns() - 1) / grid.columns();
+            int panelHeight = rows * (grid.size() + 2) + 18;
+            graphics.fill(x + 1, bottom - panelHeight, x + card.getWidth() - 1, bottom - 1, 0xD9101B2B);
+            for (int cell = 0; cell < cells; cell++) {
+                int row = cell / grid.columns(), column = cell % grid.columns();
+                int rowCells = Math.min(grid.columns(), cells - row * grid.columns());
+                int headX = x + (card.getWidth() - rowCells * (grid.size() + 2) + 2) / 2 + column * (grid.size() + 2);
+                int headY = bottom - panelHeight + 3 + row * (grid.size() + 2);
+                Component tooltip;
+                if (cell < shown) {
+                    var person = section.players().get(first + cell);
+                    var info = minecraft.getConnection() == null ? null : minecraft.getConnection().getPlayerInfo(person.id());
+                    var skin = info == null ? DefaultPlayerSkin.getDefaultSkin(person.id()) : info.getSkinLocation();
+                    PlayerFaceRenderer.draw(graphics, skin, headX, headY, grid.size());
+                    tooltip = Component.literal(person.name());
+                } else {
+                    drawFitted(graphics, Component.literal("+" + (count - shown)), headX, headY, grid.size(), 0xFFFFFF);
+                    tooltip = Component.translatable("screen.spiral_abyss.section_players", count);
+                }
+                if (mouseX >= headX && mouseX < headX + grid.size() && mouseY >= headY && mouseY < headY + grid.size()) {
+                    graphics.renderOutline(headX - 1, headY - 1, grid.size() + 2, grid.size() + 2, 0xFFFFD66B);
+                    hovered = overflow ? tooltip.copy().append("\n").append(Component.translatable(
+                            "screen.spiral_abyss.section_players_scroll", page + 1, grid.pages(count))) : tooltip;
+                }
+            }
+            String label = sectionLabel(section).getString();
+            graphics.drawCenteredString(font, font.plainSubstrByWidth(label, Math.max(1, card.getWidth() - 4)),
+                    x + card.getWidth() / 2, bottom - 12, section.status() == 0 ? 0xB4E7B0 : 0xFFD66B);
+        }
+        if (hovered != null) setTooltipForNextRenderPass(Tooltip.create(hovered), DefaultTooltipPositioner.INSTANCE, true);
     }
     private void renderOverview(GuiGraphics graphics) {
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFF3D7);
@@ -342,6 +438,15 @@ public final class FloorSelectionScreen extends Screen {
         graphics.drawString(font, text, 0, 0, color, false); graphics.pose().popPose();
     }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (selectedFloor == 0 && amount != 0) for (var section : sections) {
+            AbstractWidget card = sectionCards.get(section.floor());
+            if (card == null || !card.isMouseOver(mouseX, mouseY) || section.players().isEmpty()) continue;
+            HeadGrid grid = headGrid(card);
+            if (section.players().size() <= grid.capacity()) continue;
+            sectionHeadPages.put(section.floor(), Math.max(0, Math.min(grid.pages(section.players().size()) - 1,
+                    headPage(section, grid) + (amount > 0 ? -1 : 1))));
+            return true;
+        }
         if (rewardPanel != null && rewardPanel.scroll(mouseX, mouseY, amount)) return true;
         if (selectedWave != 0 && mouseX >= panelX && mouseX < panelX + panelWidth && mouseY >= gridTop && mouseY < gridBottom) {
             scroll = Math.max(0, Math.min(maxScroll, scroll - (int) (amount * 30))); return true;

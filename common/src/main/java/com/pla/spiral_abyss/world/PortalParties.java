@@ -32,28 +32,15 @@ public final class PortalParties {
     /** Only the party bound to this physical portal may drive its floor indicator or guest admission. */
     public ArenaSession boundSession(AbyssPortalBlockEntity portal) {
         ArenaSession bound = portal.host() == null ? null : parties.hostedBy(portal.host());
-        return bound != null && bound.profile().followingHost == null && !bound.profile().personalRun
-                && portal.portalId().equals(bound.profile().portal) && !bound.players().isEmpty() ? bound : null;
+        if (bound != null && portal.portalId().equals(bound.profile().portal) && !bound.players().isEmpty()) return bound;
+        return parties.sessions().stream().filter(s -> portal.portalId().equals(s.profile().portal)
+                && !s.players().isEmpty()).findFirst().orElse(null);
     }
 
     public void touch(ServerPlayer player, AbyssPortalFrame frame) {
         if (!player.isAlive() || player.isSpectator() || player.hasDisconnected() || !frame.active(player.level())) return;
         if (!(player.level().getBlockEntity(frame.anchor()) instanceof AbyssPortalBlockEntity portal)) return;
         tick();
-        UUID host = portal.host();
-        ArenaSession bound = boundSession(portal);
-        if (bound != null) {
-            ArenaSession own = parties.hostedBy(player.getUUID());
-            if (own != null && own != bound && !own.players().isEmpty()) { tell(player, "already_hosting"); return; }
-            parties.enterPortalGuest(player, host, frame.returnPosition(player));
-            return;
-        }
-        if (selections.values().stream().anyMatch(s -> s.portal.equals(portal.portalId()))) {
-            tell(player, "portal_selecting"); return;
-        }
-        ArenaSession own = parties.hostedBy(player.getUUID());
-        if (own != null && !own.players().isEmpty()) { tell(player, "already_hosting"); return; }
-        if (own != null) { tell(player, "portal_busy"); return; }
         // Reentry is a new visit. Opened payouts stay on their original floors;
         // floorChoices and enterFloor share the saved-claim admission policy.
         UUID token = UUID.randomUUID();
@@ -64,7 +51,7 @@ public final class PortalParties {
     }
 
     public boolean openArenaMenu(ServerPlayer player) {
-        if (!player.isAlive() || player.isSpectator() || player.hasDisconnected()) return false;
+        if (!player.isAlive() || player.hasDisconnected()) return false;
         ArenaSession session = parties.sessionFor(player);
         if (session == null) return false;
         UUID token = UUID.randomUUID();
@@ -78,6 +65,20 @@ public final class PortalParties {
         return true;
     }
 
+    public List<AbyssNetwork.SectionView> sectionViews(ServerPlayer player) {
+        ArenaSession current = parties.sessionFor(player);
+        Selection selection = selections.get(player.getUUID());
+        UUID portal = current != null ? current.profile().portal : selection == null ? null : selection.portal;
+        if (portal == null) return List.of();
+        List<AbyssNetwork.SectionView> result = new ArrayList<>();
+        for (int floor = 1; floor <= 7; floor++) {
+            ArenaSession session = parties.section(portal, floor);
+            if (session == null) continue;
+            var members = session.players().stream().limit(80).map(p -> new AbyssNetwork.SectionPlayer(p.getUUID(), p.getGameProfile().getName())).toList();
+            result.add(new AbyssNetwork.SectionView(floor, session.controller().active() ? 1 : session.looting() ? 2 : 0, members));
+        }
+        return List.copyOf(result);
+    }
     private int floorChoices(ServerPlayer player) {
         int available = 0;
         var progress = parties.profile(player.getUUID()).progress;
@@ -94,19 +95,22 @@ public final class PortalParties {
         if (selection != null && selection.token.equals(token) && valid(selection, player)) {
             selections.put(player.getUUID(), new Selection(selection.token, selection.portal, selection.player,
                     selection.dimension, selection.base, selection.returnPosition, server.getTickCount() + MENU_TIMEOUT_TICKS));
+            AbyssNetwork.sectionStatus(player, token, sectionViews(player), floorChoices(player));
             return;
         }
         ArenaMenu menu = arenaMenus.get(player.getUUID());
-        if (menu != null && menu.token.equals(token) && valid(menu, player))
+        if (menu != null && menu.token.equals(token) && valid(menu, player)) {
+            AbyssNetwork.sectionStatus(player, token, sectionViews(player), parties.sessionFor(player).canNavigate(player) ? floorChoices(player) : 0);
             arenaMenus.put(player.getUUID(), new ArenaMenu(menu.token, menu.arenaHost, menu.floor, menu.followingHost,
                     menu.personalRun, menu.selectable, server.getTickCount() + MENU_TIMEOUT_TICKS));
+        }
     }
     private boolean valid(ArenaMenu menu, ServerPlayer player) {
         ArenaSession session = parties.sessionFor(player);
-        return menu.expires >= server.getTickCount() && player.isAlive() && !player.isSpectator() && !player.hasDisconnected()
+        return menu.expires >= server.getTickCount() && player.isAlive() && !player.hasDisconnected()
                 && session != null && session.host().equals(menu.arenaHost) && session.controller().currentFloor() == menu.floor
-                && Objects.equals(parties.followedHost(player), menu.followingHost)
-                && parties.profile(player.getUUID()).personalRun == menu.personalRun;
+                && (session.section() || Objects.equals(parties.followedHost(player), menu.followingHost)
+                && parties.profile(player.getUUID()).personalRun == menu.personalRun);
     }
     public void choose(ServerPlayer player, UUID token, int floor) {
         ArenaMenu menu = arenaMenus.get(player.getUUID());
@@ -115,8 +119,9 @@ public final class PortalParties {
             ArenaSession session = parties.sessionFor(player);
             if (!valid(menu, player)) { if (floor != 0) tell(player, "selection_expired"); return; }
             if (floor == -1) { parties.leave(player); return; }
-            if (floor <= 0 || floor > 7 || (menu.selectable & (1 << floor)) == 0 || !session.canNavigate(player)) return;
-            if (session.isLeader(player)) parties.enterFloor(player, floor);
+            if (floor <= 0 || floor > 7 || (floorChoices(player) & (1 << floor)) == 0 || !session.canNavigate(player)) return;
+            if (session.section()) parties.enterSection(player, session.profile().portal, floor);
+            else if (session.isLeader(player)) parties.enterFloor(player, floor);
             else if (menu.followingHost != null) parties.followFloor(player, floor);
             return;
         }
@@ -130,10 +135,8 @@ public final class PortalParties {
         if (floor <= 0 || floor > 7) return;
         if (!valid(selection, player)) { tell(player, "selection_expired"); return; }
         var portal = (AbyssPortalBlockEntity) player.level().getBlockEntity(selection.base);
-        if (parties.hostedBy(player.getUUID()) != null) { tell(player, "already_hosting"); return; }
-        if (!parties.enterFloor(player, floor)) return;
-        parties.bindPortal(player.getUUID(), selection.portal);
-        portal.bindHost(player.getUUID());
+        if (!parties.enterSection(player, selection.portal, floor)) return;
+        portal.bindHost(parties.sessionFor(player).host());
         parties.rememberPortalReturn(player, selection.returnPosition);
     }
 
@@ -143,7 +146,7 @@ public final class PortalParties {
                 || player.distanceToSqr(Vec3.atCenterOf(selection.base)) > 100
                 || !player.level().hasChunkAt(selection.base)) return false;
         return player.level().getBlockEntity(selection.base) instanceof AbyssPortalBlockEntity portal
-                && portal.portalId().equals(selection.portal) && portal.frame().active(player.level()) && boundSession(portal) == null;
+                && portal.portalId().equals(selection.portal) && portal.frame().active(player.level());
     }
 
     public void tick() {
